@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as db from './lib/database';
+import { fetchUserRepos, mapRepoToProject } from './lib/github';
 
 // ============================================
 // MAKER PORTFOLIO - Full Functional App
@@ -537,6 +538,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   const [todayMaking, setTodayMaking] = useState(user.todayMaking || '');
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
+  const [showGitHubImport, setShowGitHubImport] = useState(false);
 
   const updateUser = async (updates) => {
     try {
@@ -587,6 +589,23 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
     }
   };
 
+  const importGitHubProjects = async (projects) => {
+    try {
+      const createdProjects = [];
+      for (const project of projects) {
+        const { _github, ...projectData } = project;
+        const newProject = await db.createProject(user.id, projectData);
+        createdProjects.push(newProject);
+      }
+      setUser({ ...user, projects: [...user.projects, ...createdProjects] });
+      showNotification(`Imported ${createdProjects.length} project${createdProjects.length === 1 ? '' : 's'}!`);
+      setShowGitHubImport(false);
+    } catch (error) {
+      console.error('Error importing projects:', error);
+      showNotification('Error importing projects', 'error');
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh' }}>
       {/* Header */}
@@ -633,6 +652,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
         <div style={{ display: 'flex', gap: '16px', marginBottom: '48px' }}>
           <button className="btn btn-secondary" onClick={onEditProfile}>Edit Profile</button>
           <button className="btn btn-primary" onClick={() => { setEditingProject(null); setShowProjectModal(true); }}>+ Add Project</button>
+          <button className="btn btn-secondary" onClick={() => setShowGitHubImport(true)}>Import from GitHub</button>
         </div>
 
         {/* Projects */}
@@ -664,6 +684,14 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
           project={editingProject}
           onSave={saveProject}
           onClose={() => { setShowProjectModal(false); setEditingProject(null); }}
+        />
+      )}
+
+      {showGitHubImport && (
+        <GitHubImportModal
+          onImport={importGitHubProjects}
+          onClose={() => setShowGitHubImport(false)}
+          showNotification={showNotification}
         />
       )}
     </div>
@@ -902,6 +930,146 @@ const ProjectModal = ({ project, onSave, onClose }) => {
             <button type="submit" className="btn btn-primary">Save Project</button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// GITHUB IMPORT MODAL
+// ============================================
+const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
+  const [username, setUsername] = useState('');
+  const [repos, setRepos] = useState([]);
+  const [selectedRepos, setSelectedRepos] = useState(new Set());
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState('input'); // input | select
+
+  const handleFetch = async () => {
+    if (!username.trim()) return;
+    setLoading(true);
+    try {
+      const fetchedRepos = await fetchUserRepos(username.trim());
+      const mappedRepos = fetchedRepos.map(mapRepoToProject);
+      setRepos(mappedRepos);
+      setSelectedRepos(new Set());
+      setStep('select');
+    } catch (error) {
+      showNotification(error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleRepo = (index) => {
+    const newSelected = new Set(selectedRepos);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else {
+      newSelected.add(index);
+    }
+    setSelectedRepos(newSelected);
+  };
+
+  const selectAll = () => {
+    setSelectedRepos(new Set(repos.map((_, i) => i)));
+  };
+
+  const selectNone = () => {
+    setSelectedRepos(new Set());
+  };
+
+  const handleImport = () => {
+    const selected = repos.filter((_, i) => selectedRepos.has(i));
+    if (selected.length === 0) {
+      showNotification('Select at least one repo', 'error');
+      return;
+    }
+    onImport(selected);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '80vh', overflow: 'auto' }}>
+        <h2 style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>
+          Import from GitHub
+        </h2>
+        <p style={{ color: '#78716c', marginBottom: '24px' }}>
+          {step === 'input' ? 'Enter a GitHub username to fetch repositories' : `Select repositories to import (${selectedRepos.size} selected)`}
+        </p>
+
+        {step === 'input' ? (
+          <>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+              <input
+                className="input"
+                placeholder="GitHub username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
+                style={{ flex: 1 }}
+              />
+              <button className="btn btn-primary" onClick={handleFetch} disabled={loading}>
+                {loading ? 'Loading...' : 'Fetch Repos'}
+              </button>
+            </div>
+            <button className="btn btn-ghost" onClick={onClose} style={{ width: '100%' }}>Cancel</button>
+          </>
+        ) : (
+          <>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+              <button className="btn btn-ghost" onClick={selectAll} style={{ fontSize: '12px' }}>Select All</button>
+              <button className="btn btn-ghost" onClick={selectNone} style={{ fontSize: '12px' }}>Select None</button>
+              <button className="btn btn-ghost" onClick={() => setStep('input')} style={{ fontSize: '12px', marginLeft: 'auto' }}>
+                ← Back
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', maxHeight: '400px', overflow: 'auto' }}>
+              {repos.map((repo, index) => (
+                <div
+                  key={index}
+                  onClick={() => toggleRepo(index)}
+                  style={{
+                    padding: '12px 16px',
+                    background: selectedRepos.has(index) ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.03)',
+                    border: selectedRepos.has(index) ? '1px solid rgba(251, 191, 36, 0.3)' : '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: '500' }}>{repo.name}</span>
+                        {repo._github.isFork && <span className="tag" style={{ fontSize: '10px' }}>fork</span>}
+                        {repo._github.isArchived && <span className="tag" style={{ fontSize: '10px' }}>archived</span>}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#78716c' }}>{repo.oneLiner}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px', color: '#57534e' }}>
+                      {repo._github.language && <span>{repo._github.language}</span>}
+                      <span>★ {repo._github.stars}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {repos.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '24px', color: '#57534e' }}>
+                  No public repositories found
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn btn-secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleImport} style={{ flex: 1 }} disabled={selectedRepos.size === 0}>
+                Import {selectedRepos.size} Project{selectedRepos.size === 1 ? '' : 's'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
