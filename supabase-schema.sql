@@ -29,6 +29,7 @@ CREATE TABLE projects (
   role TEXT DEFAULT 'solo',
   current_stage TEXT DEFAULT 'idea',
   start_date DATE,
+  end_date DATE,
   ongoing BOOLEAN DEFAULT true,
   domains TEXT[] DEFAULT '{}',
   links TEXT[] DEFAULT '{}',

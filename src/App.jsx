@@ -590,20 +590,22 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   };
 
   const importGitHubProjects = async (projects) => {
-    try {
-      const createdProjects = [];
-      for (const project of projects) {
-        const { _github, ...projectData } = project;
-        const newProject = await db.createProject(user.id, projectData);
-        createdProjects.push(newProject);
-      }
-      setUser({ ...user, projects: [...user.projects, ...createdProjects] });
-      showNotification(`Imported ${createdProjects.length} project${createdProjects.length === 1 ? '' : 's'}!`);
-      setShowGitHubImport(false);
-    } catch (error) {
-      console.error('Error importing projects:', error);
-      showNotification('Error importing projects', 'error');
+    const createdProjects = [];
+    for (const project of projects) {
+      const { _github, ...projectData } = project;
+      const newProject = await db.createProject(user.id, projectData);
+      createdProjects.push(newProject);
     }
+    setUser({ ...user, projects: [...user.projects, ...createdProjects] });
+    return createdProjects; // Return for review flow
+  };
+
+  const handleGitHubImportClose = () => {
+    setShowGitHubImport(false);
+    // Refresh projects in case they were updated during review
+    db.getProjectsByUserId(user.id).then(projects => {
+      setUser(u => ({ ...u, projects }));
+    });
   };
 
   return (
@@ -690,7 +692,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
       {showGitHubImport && (
         <GitHubImportModal
           onImport={importGitHubProjects}
-          onClose={() => setShowGitHubImport(false)}
+          onClose={handleGitHubImportClose}
           showNotification={showNotification}
         />
       )}
@@ -763,6 +765,7 @@ const ProjectModal = ({ project, onSave, onClose }) => {
     role: 'solo',
     currentStage: 'idea',
     startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
     ongoing: true,
     stageData: {},
     domains: [],
@@ -845,7 +848,7 @@ const ProjectModal = ({ project, onSave, onClose }) => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start Date</label>
               <input
@@ -855,15 +858,26 @@ const ProjectModal = ({ project, onSave, onClose }) => {
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
               />
             </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End Date</label>
+              <input
+                className="input"
+                type="date"
+                value={formData.endDate || ''}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value, ongoing: false })}
+                disabled={formData.ongoing}
+                style={{ opacity: formData.ongoing ? 0.5 : 1 }}
+              />
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', paddingTop: '24px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={formData.ongoing}
-                  onChange={(e) => setFormData({ ...formData, ongoing: e.target.checked })}
+                  onChange={(e) => setFormData({ ...formData, ongoing: e.target.checked, endDate: e.target.checked ? '' : formData.endDate })}
                   style={{ width: '16px', height: '16px' }}
                 />
-                <span style={{ fontSize: '14px', color: '#a8a29e' }}>Still ongoing</span>
+                <span style={{ fontSize: '14px', color: '#a8a29e' }}>Ongoing</span>
               </label>
             </div>
           </div>
@@ -943,7 +957,12 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
   const [repos, setRepos] = useState([]);
   const [selectedRepos, setSelectedRepos] = useState(new Set());
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState('input'); // input | select
+  const [step, setStep] = useState('input'); // input | select | review
+
+  // Review step state
+  const [importedProjects, setImportedProjects] = useState([]);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [reviewData, setReviewData] = useState(null);
 
   const handleFetch = async () => {
     if (!username.trim()) return;
@@ -979,26 +998,72 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
     setSelectedRepos(new Set());
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     const selected = repos.filter((_, i) => selectedRepos.has(i));
     if (selected.length === 0) {
       showNotification('Select at least one repo', 'error');
       return;
     }
-    onImport(selected);
+
+    // Import all projects first, then start review
+    setLoading(true);
+    try {
+      const projects = await onImport(selected);
+      setImportedProjects(projects);
+      setReviewIndex(0);
+      setReviewData({ ...projects[0] });
+      setStep('review');
+    } catch (error) {
+      showNotification('Failed to import projects', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReviewSave = async () => {
+    // Update current project with review data
+    try {
+      await db.updateProject(importedProjects[reviewIndex].id, reviewData);
+      importedProjects[reviewIndex] = { ...importedProjects[reviewIndex], ...reviewData };
+    } catch (error) {
+      showNotification('Failed to save changes', 'error');
+    }
+    moveToNext();
+  };
+
+  const handleReviewSkip = () => {
+    moveToNext();
+  };
+
+  const moveToNext = () => {
+    if (reviewIndex < importedProjects.length - 1) {
+      const nextIndex = reviewIndex + 1;
+      setReviewIndex(nextIndex);
+      setReviewData({ ...importedProjects[nextIndex] });
+    } else {
+      showNotification(`Imported ${importedProjects.length} project${importedProjects.length === 1 ? '' : 's'}!`);
+      onClose();
+    }
+  };
+
+  const handleFinishEarly = () => {
+    showNotification(`Imported ${importedProjects.length} project${importedProjects.length === 1 ? '' : 's'}!`);
+    onClose();
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '80vh', overflow: 'auto' }}>
         <h2 style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>
-          Import from GitHub
+          {step === 'review' ? `Review Projects (${reviewIndex + 1} of ${importedProjects.length})` : 'Import from GitHub'}
         </h2>
         <p style={{ color: '#78716c', marginBottom: '24px' }}>
-          {step === 'input' ? 'Enter a GitHub username to fetch repositories' : `Select repositories to import (${selectedRepos.size} selected)`}
+          {step === 'input' && 'Enter a GitHub username to fetch repositories'}
+          {step === 'select' && `Select repositories to import (${selectedRepos.size} selected)`}
+          {step === 'review' && 'Add details to your imported projects'}
         </p>
 
-        {step === 'input' ? (
+        {step === 'input' && (
           <>
             <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
               <input
@@ -1015,7 +1080,9 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
             </div>
             <button className="btn btn-ghost" onClick={onClose} style={{ width: '100%' }}>Cancel</button>
           </>
-        ) : (
+        )}
+
+        {step === 'select' && (
           <>
             <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
               <button className="btn btn-ghost" onClick={selectAll} style={{ fontSize: '12px' }}>Select All</button>
@@ -1064,10 +1131,101 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
 
             <div style={{ display: 'flex', gap: '12px' }}>
               <button className="btn btn-secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleImport} style={{ flex: 1 }} disabled={selectedRepos.size === 0}>
-                Import {selectedRepos.size} Project{selectedRepos.size === 1 ? '' : 's'}
+              <button className="btn btn-primary" onClick={handleImport} style={{ flex: 1 }} disabled={selectedRepos.size === 0 || loading}>
+                {loading ? 'Importing...' : `Import ${selectedRepos.size} Project${selectedRepos.size === 1 ? '' : 's'}`}
               </button>
             </div>
+          </>
+        )}
+
+        {step === 'review' && reviewData && (
+          <>
+            {/* Project header */}
+            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
+              <div style={{ fontWeight: '500', fontSize: '16px', marginBottom: '4px' }}>{reviewData.name}</div>
+              <div style={{ fontSize: '13px', color: '#78716c' }}>{reviewData.oneLiner}</div>
+            </div>
+
+            {/* Editable fields */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Role</label>
+                <select
+                  className="input"
+                  value={reviewData.role}
+                  onChange={(e) => setReviewData({ ...reviewData, role: e.target.value })}
+                >
+                  {roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Stage</label>
+                <select
+                  className="input"
+                  value={reviewData.currentStage}
+                  onChange={(e) => setReviewData({ ...reviewData, currentStage: e.target.value })}
+                >
+                  {stages.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start Date</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={reviewData.startDate || ''}
+                  onChange={(e) => setReviewData({ ...reviewData, startDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End Date</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={reviewData.endDate || ''}
+                  onChange={(e) => setReviewData({ ...reviewData, endDate: e.target.value, ongoing: false })}
+                  disabled={reviewData.ongoing}
+                  style={{ opacity: reviewData.ongoing ? 0.5 : 1 }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', paddingTop: '24px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={reviewData.ongoing}
+                    onChange={(e) => setReviewData({ ...reviewData, ongoing: e.target.checked, endDate: e.target.checked ? '' : reviewData.endDate })}
+                    style={{ width: '16px', height: '16px' }}
+                  />
+                  <span style={{ fontSize: '14px', color: '#a8a29e' }}>Ongoing</span>
+                </label>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Outcome</label>
+              <input
+                className="input"
+                placeholder="e.g. 1000 users, acquired, shut down, still active"
+                value={reviewData.outcome || ''}
+                onChange={(e) => setReviewData({ ...reviewData, outcome: e.target.value })}
+              />
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn btn-ghost" onClick={handleReviewSkip} style={{ flex: 1 }}>Skip</button>
+              <button className="btn btn-primary" onClick={handleReviewSave} style={{ flex: 1 }}>
+                {reviewIndex < importedProjects.length - 1 ? 'Save & Next →' : 'Finish'}
+              </button>
+            </div>
+            {reviewIndex < importedProjects.length - 1 && (
+              <button className="btn btn-ghost" onClick={handleFinishEarly} style={{ width: '100%', marginTop: '12px', fontSize: '12px' }}>
+                Finish Early ({importedProjects.length - reviewIndex - 1} remaining)
+              </button>
+            )}
           </>
         )}
       </div>
