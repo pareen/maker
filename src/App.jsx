@@ -4,6 +4,27 @@ import React, { useState, useEffect } from 'react';
 // MAKER PORTFOLIO - Full Functional App
 // ============================================
 
+// Define stages and roles FIRST (used by multiple components)
+const stages = [
+  { key: 'idea', label: 'Idea', color: '#57534e' },
+  { key: 'mvp', label: 'MVP', color: '#78716c' },
+  { key: 'launch', label: 'Launch', color: '#a8a29e' },
+  { key: 'believers', label: 'Believers', color: '#fbbf24' },
+  { key: 'users', label: 'Users', color: '#fb923c' },
+  { key: 'paying', label: 'Paying', color: '#f472b6' },
+  { key: 'funded', label: 'Funded', color: '#a78bfa' },
+  { key: 'revenue', label: 'Revenue', color: '#4ade80' },
+  { key: 'acquired', label: 'Acquired', color: '#22d3ee' },
+  { key: 'ipo', label: 'IPO', color: '#fff' },
+];
+
+const roles = [
+  { key: 'solo', label: 'Solo', color: '#fbbf24' },
+  { key: 'cofounder', label: 'Co-founder', color: '#f472b6' },
+  { key: 'early_team', label: 'Early team', color: '#a78bfa' },
+  { key: 'contributor', label: 'Contributor', color: '#22d3ee' },
+];
+
 const App = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, dashboard, profile, editProfile, publicProfile
@@ -638,26 +659,6 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
 // ============================================
 // PROJECT CARD
 // ============================================
-const stages = [
-  { key: 'idea', label: 'Idea', color: '#57534e' },
-  { key: 'mvp', label: 'MVP', color: '#78716c' },
-  { key: 'launch', label: 'Launch', color: '#a8a29e' },
-  { key: 'believers', label: 'Believers', color: '#fbbf24' },
-  { key: 'users', label: 'Users', color: '#fb923c' },
-  { key: 'paying', label: 'Paying', color: '#f472b6' },
-  { key: 'funded', label: 'Funded', color: '#a78bfa' },
-  { key: 'revenue', label: 'Revenue', color: '#4ade80' },
-  { key: 'acquired', label: 'Acquired', color: '#22d3ee' },
-  { key: 'ipo', label: 'IPO', color: '#fff' },
-];
-
-const roles = [
-  { key: 'solo', label: 'Solo', color: '#fbbf24' },
-  { key: 'cofounder', label: 'Co-founder', color: '#f472b6' },
-  { key: 'early_team', label: 'Early team', color: '#a78bfa' },
-  { key: 'contributor', label: 'Contributor', color: '#22d3ee' },
-];
-
 const ProjectCard = ({ project, onEdit, onDelete }) => {
   const stageIndex = stages.findIndex(s => s.key === project.currentStage);
   const stage = stages[stageIndex];
