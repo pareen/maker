@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as db from './lib/database';
 
 // ============================================
 // MAKER PORTFOLIO - Full Functional App
@@ -32,40 +33,65 @@ const App = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [notification, setNotification] = useState(null);
 
-  // Load user from localStorage on mount
+  // Load user on mount and listen for auth changes
   useEffect(() => {
-    const saved = localStorage.getItem('makerPortfolio_currentUser');
-    if (saved) {
-      const userData = JSON.parse(saved);
-      setCurrentUser(userData);
-      setCurrentView('dashboard');
-    }
-  }, []);
+    const loadUser = async () => {
+      try {
+        const user = await db.getCurrentUser();
+        if (user) {
+          // Load projects for the user
+          const projects = await db.getProjectsByUserId(user.id);
+          setCurrentUser({ ...user, projects });
+          setCurrentView('dashboard');
+        }
+      } catch (error) {
+        console.error('Error loading user:', error);
+      }
+    };
 
-  // Save user to localStorage
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(currentUser));
-    }
-  }, [currentUser]);
+    loadUser();
+
+    // Listen for auth state changes (Supabase)
+    const { data: { subscription } } = db.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const profile = await db.getProfile(session.user.id);
+        const projects = await db.getProjectsByUserId(session.user.id);
+        setCurrentUser({ ...session.user, ...profile, projects });
+        setCurrentView('dashboard');
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setCurrentView('landing');
+      }
+    });
+
+    return () => subscription?.unsubscribe();
+  }, []);
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('makerPortfolio_currentUser');
-    setCurrentUser(null);
-    setCurrentView('landing');
+  const handleLogout = async () => {
+    try {
+      await db.signOut();
+      setCurrentUser(null);
+      setCurrentView('landing');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
-  const viewPublicProfile = (username) => {
-    const allUsers = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}');
-    const user = Object.values(allUsers).find(u => u.username === username);
-    if (user) {
-      setViewingProfile(user);
-      setCurrentView('publicProfile');
+  const viewPublicProfile = async (username) => {
+    try {
+      const user = await db.getProfileByUsername(username);
+      if (user) {
+        setViewingProfile(user);
+        setCurrentView('publicProfile');
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      showNotification('Profile not found', 'error');
     }
   };
 
@@ -413,53 +439,25 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}');
-
-    if (mode === 'signup') {
-      if (users[email]) {
-        showNotification('Email already exists', 'error');
-        setLoading(false);
-        return;
+    try {
+      if (mode === 'signup') {
+        const user = await db.signUp(email, password, username);
+        showNotification('Account created!');
+        onSuccess({ ...user, username, projects: [] });
+      } else {
+        const user = await db.signIn(email, password);
+        const profile = await db.getProfile(user.id);
+        const projects = await db.getProjectsByUserId(user.id);
+        showNotification('Welcome back!');
+        onSuccess({ ...user, ...profile, projects });
       }
-      if (Object.values(users).some(u => u.username === username)) {
-        showNotification('Username already taken', 'error');
-        setLoading(false);
-        return;
-      }
-
-      const newUser = {
-        id: Date.now().toString(),
-        email,
-        password,
-        username,
-        name: '',
-        bio: '',
-        firstMake: { description: '', age: '' },
-        domains: [],
-        socials: { twitter: '', github: '', linkedin: '', substack: '', website: '' },
-        embedFeed: { type: null, url: '' },
-        projects: [],
-        todayMaking: '',
-        createdAt: new Date().toISOString()
-      };
-
-      users[email] = newUser;
-      localStorage.setItem('makerPortfolio_users', JSON.stringify(users));
-      showNotification('Account created!');
-      onSuccess(newUser);
-    } else {
-      const user = users[email];
-      if (!user || user.password !== password) {
-        showNotification('Invalid email or password', 'error');
-        setLoading(false);
-        return;
-      }
-      showNotification('Welcome back!');
-      onSuccess(user);
+    } catch (error) {
+      showNotification(error.message, 'error');
+      setLoading(false);
     }
   };
 
@@ -540,36 +538,52 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
 
-  const updateUser = (updates) => {
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
-    const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}');
-    users[user.email] = updatedUser;
-    localStorage.setItem('makerPortfolio_users', JSON.stringify(users));
+  const updateUser = async (updates) => {
+    try {
+      await db.updateProfile(user.id, { ...user, ...updates });
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      showNotification('Error updating profile', 'error');
+    }
   };
 
-  const saveTodayMaking = () => {
-    updateUser({ todayMaking });
+  const saveTodayMaking = async () => {
+    await updateUser({ todayMaking });
     showNotification('Updated!');
   };
 
-  const saveProject = (project) => {
-    let updatedProjects;
-    if (editingProject) {
-      updatedProjects = user.projects.map(p => p.id === project.id ? project : p);
-    } else {
-      updatedProjects = [...user.projects, { ...project, id: Date.now().toString() }];
+  const saveProject = async (project) => {
+    try {
+      if (editingProject) {
+        await db.updateProject(project.id, project);
+        const updatedProjects = user.projects.map(p => p.id === project.id ? project : p);
+        setUser({ ...user, projects: updatedProjects });
+        showNotification('Project updated!');
+      } else {
+        const newProject = await db.createProject(user.id, project);
+        setUser({ ...user, projects: [...user.projects, newProject] });
+        showNotification('Project added!');
+      }
+      setShowProjectModal(false);
+      setEditingProject(null);
+    } catch (error) {
+      console.error('Error saving project:', error);
+      showNotification('Error saving project', 'error');
     }
-    updateUser({ projects: updatedProjects });
-    setShowProjectModal(false);
-    setEditingProject(null);
-    showNotification(editingProject ? 'Project updated!' : 'Project added!');
   };
 
-  const deleteProject = (projectId) => {
+  const deleteProject = async (projectId) => {
     if (confirm('Delete this project?')) {
-      updateUser({ projects: user.projects.filter(p => p.id !== projectId) });
-      showNotification('Project deleted');
+      try {
+        await db.deleteProject(projectId);
+        setUser({ ...user, projects: user.projects.filter(p => p.id !== projectId) });
+        showNotification('Project deleted');
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        showNotification('Error deleting project', 'error');
+      }
     }
   };
 
@@ -900,13 +914,16 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
   const [formData, setFormData] = useState({ ...user });
   const [newDomain, setNewDomain] = useState('');
 
-  const handleSave = () => {
-    const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}');
-    users[user.email] = formData;
-    localStorage.setItem('makerPortfolio_users', JSON.stringify(users));
-    setUser(formData);
-    showNotification('Profile saved!');
-    onBack();
+  const handleSave = async () => {
+    try {
+      await db.updateProfile(user.id, formData);
+      setUser({ ...user, ...formData });
+      showNotification('Profile saved!');
+      onBack();
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      showNotification('Error saving profile', 'error');
+    }
   };
 
   const addDomain = () => {
