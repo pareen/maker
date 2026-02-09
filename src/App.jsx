@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as db from './lib/database';
-import { fetchUserRepos, mapRepoToProject } from './lib/github';
+import { fetchUserRepos, fetchAuthenticatedRepos, signInWithGitHub, getGitHubSession, mapRepoToProject } from './lib/github';
 
 // ============================================
 // MAKER PORTFOLIO - Full Functional App
@@ -967,12 +967,52 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
   const [repos, setRepos] = useState([]);
   const [selectedRepos, setSelectedRepos] = useState(new Set());
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState('input'); // input | select | review
+  const [step, setStep] = useState('connect'); // connect | input | select | review
+  const [githubSession, setGithubSession] = useState(null);
 
   // Review step state
   const [importedProjects, setImportedProjects] = useState([]);
   const [reviewIndex, setReviewIndex] = useState(0);
   const [reviewData, setReviewData] = useState(null);
+
+  // Check for existing GitHub connection on mount
+  useEffect(() => {
+    const checkGitHubConnection = async () => {
+      try {
+        const session = await getGitHubSession();
+        setGithubSession(session);
+      } catch (error) {
+        console.error('Failed to check GitHub session:', error);
+      }
+    };
+    checkGitHubConnection();
+  }, []);
+
+  const handleConnectGitHub = async () => {
+    setLoading(true);
+    try {
+      await signInWithGitHub();
+      // OAuth will redirect, so we don't need to do anything here
+    } catch (error) {
+      showNotification(error.message, 'error');
+      setLoading(false);
+    }
+  };
+
+  const handleFetchAuthenticated = async () => {
+    setLoading(true);
+    try {
+      const fetchedRepos = await fetchAuthenticatedRepos();
+      const mappedRepos = fetchedRepos.map(mapRepoToProject);
+      setRepos(mappedRepos);
+      setSelectedRepos(new Set());
+      setStep('select');
+    } catch (error) {
+      showNotification(error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFetch = async () => {
     if (!username.trim()) return;
@@ -1068,10 +1108,39 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
           {step === 'review' ? `Review Projects (${reviewIndex + 1} of ${importedProjects.length})` : 'Import from GitHub'}
         </h2>
         <p style={{ color: '#78716c', marginBottom: '24px' }}>
-          {step === 'input' && 'Enter a GitHub username to fetch repositories'}
+          {step === 'connect' && 'Connect your GitHub account to import private repos'}
+          {step === 'input' && 'Enter a GitHub username to fetch public repositories'}
           {step === 'select' && `Select repositories to import (${selectedRepos.size} selected)`}
           {step === 'review' && 'Add details to your imported projects'}
         </p>
+
+        {step === 'connect' && (
+          <>
+            {githubSession ? (
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ padding: '16px', background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '8px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ color: '#4ade80' }}>✓</span>
+                    <span style={{ color: '#4ade80', fontWeight: '500' }}>Connected to GitHub</span>
+                  </div>
+                  <span style={{ fontSize: '13px', color: '#78716c' }}>{githubSession.user?.email}</span>
+                </div>
+                <button className="btn btn-primary" onClick={handleFetchAuthenticated} disabled={loading} style={{ width: '100%', marginBottom: '12px' }}>
+                  {loading ? 'Loading...' : 'Import My Repos (including private)'}
+                </button>
+              </div>
+            ) : (
+              <button className="btn btn-primary" onClick={handleConnectGitHub} disabled={loading} style={{ width: '100%', marginBottom: '24px', padding: '16px' }}>
+                {loading ? 'Connecting...' : 'Connect GitHub Account'}
+              </button>
+            )}
+            <div style={{ textAlign: 'center', color: '#57534e', fontSize: '12px', marginBottom: '16px' }}>or</div>
+            <button className="btn btn-secondary" onClick={() => setStep('input')} style={{ width: '100%', marginBottom: '12px' }}>
+              Import by username (public repos only)
+            </button>
+            <button className="btn btn-ghost" onClick={onClose} style={{ width: '100%' }}>Cancel</button>
+          </>
+        )}
 
         {step === 'input' && (
           <>
@@ -1088,7 +1157,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
                 {loading ? 'Loading...' : 'Fetch Repos'}
               </button>
             </div>
-            <button className="btn btn-ghost" onClick={onClose} style={{ width: '100%' }}>Cancel</button>
+            <button className="btn btn-ghost" onClick={() => setStep('connect')} style={{ width: '100%' }}>← Back</button>
           </>
         )}
 
@@ -1097,7 +1166,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
             <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
               <button className="btn btn-ghost" onClick={selectAll} style={{ fontSize: '12px' }}>Select All</button>
               <button className="btn btn-ghost" onClick={selectNone} style={{ fontSize: '12px' }}>Select None</button>
-              <button className="btn btn-ghost" onClick={() => setStep('input')} style={{ fontSize: '12px', marginLeft: 'auto' }}>
+              <button className="btn btn-ghost" onClick={() => setStep('connect')} style={{ fontSize: '12px', marginLeft: 'auto' }}>
                 ← Back
               </button>
             </div>
@@ -1120,6 +1189,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                         <span style={{ fontWeight: '500' }}>{repo.name}</span>
+                        {repo._github.isPrivate && <span className="tag" style={{ fontSize: '10px', background: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24' }}>private</span>}
                         {repo._github.isFork && <span className="tag" style={{ fontSize: '10px' }}>fork</span>}
                         {repo._github.isArchived && <span className="tag" style={{ fontSize: '10px' }}>archived</span>}
                       </div>
@@ -1134,7 +1204,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
               ))}
               {repos.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '24px', color: '#57534e' }}>
-                  No public repositories found
+                  No repositories found
                 </div>
               )}
             </div>
