@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Startup Maze — From Idea Maze to Internal Navigation</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0c0c;
+    --surface: #141414;
+    --surface-raised: #1a1a1a;
+    --text: #e8e4de;
+    --text-muted: #8a847a;
+    --text-dim: #5a5650;
+    --accent: #e85d26;
+    --accent-glow: rgba(232, 93, 38, 0.15);
+    --accent-soft: #f0a070;
+    --border: #2a2724;
+    --border-light: #3a3630;
+    --serif: 'Playfair Display', Georgia, serif;
+    --body: 'Source Serif 4', Georgia, serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 19px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* ===== HERO ===== */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 24px;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 40%, var(--accent-glow) 0%, transparent 70%),
+      radial-gradient(circle at 20% 80%, rgba(232,93,38,0.05) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .hero-maze-bg {
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+  }
+
+  .hero-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    color: var(--accent);
+    margin-bottom: 32px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.2s;
+  }
+
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(3rem, 8vw, 6.5rem);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    max-width: 800px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.4s;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-family: var(--body);
+    font-size: clamp(1.05rem, 2vw, 1.3rem);
+    color: var(--text-muted);
+    max-width: 560px;
+    margin-top: 28px;
+    font-weight: 300;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.6s;
+  }
+
+  .hero-meta {
+    margin-top: 48px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.8s;
+  }
+
+  .hero-meta span { text-transform: uppercase; }
+  .hero-meta .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 1s, float 2.5s ease-in-out infinite 1.5s;
+  }
+
+  .scroll-hint svg { width: 24px; height: 24px; stroke: var(--text-dim); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(8px); }
+  }
+
+  /* ===== ARTICLE ===== */
+  .article {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 24px 120px;
+  }
+
+  .article p {
+    margin-bottom: 1.5em;
+    color: var(--text);
+  }
+
+  .article p.lead {
+    font-size: 1.25em;
+    color: var(--text-muted);
+    line-height: 1.65;
+    border-left: 3px solid var(--accent);
+    padding-left: 24px;
+    margin-bottom: 2.5em;
+  }
+
+  .article h2 {
+    font-family: var(--serif);
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-top: 3.5em;
+    margin-bottom: 0.8em;
+    letter-spacing: -0.01em;
+  }
+
+  .article h3 {
+    font-family: var(--serif);
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-top: 2.5em;
+    margin-bottom: 0.6em;
+    color: var(--accent-soft);
+  }
+
+  .article a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: rgba(232,93,38,0.4);
+    transition: text-decoration-color 0.2s;
+  }
+
+  .article a:hover {
+    text-decoration-color: var(--accent);
+  }
+
+  .article strong {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* ===== BLOCKQUOTE ===== */
+  blockquote {
+    position: relative;
+    margin: 2.5em 0;
+    padding: 28px 32px;
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 1.05em;
+    line-height: 1.7;
+  }
+
+  blockquote .attribution {
+    display: block;
+    margin-top: 12px;
+    font-style: normal;
+    font-family: var(--mono);
+    font-size: 0.72em;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+  }
+
+  /* ===== EMBEDDED CARDS ===== */
+  .embed-card {
+    margin: 2.5em 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    transition: border-color 0.3s;
+  }
+
+  .embed-card:hover {
+    border-color: var(--border-light);
+  }
+
+  .embed-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-raised);
+  }
+
+  .embed-card-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .embed-card-name {
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 0.9em;
+    color: var(--text);
+  }
+
+  .embed-card-handle {
+    font-family: var(--mono);
+    font-size: 0.72em;
+    color: var(--text-dim);
+  }
+
+  .embed-card-platform {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .embed-card-body {
+    padding: 20px;
+    font-size: 0.95em;
+    line-height: 1.7;
+    color: var(--text-muted);
+  }
+
+  .embed-card-body p {
+    margin-bottom: 0.8em;
+    color: var(--text-muted);
+  }
+
+  .embed-card-body p:last-child { margin-bottom: 0; }
+
+  .embed-card-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    gap: 16px;
+  }
+
+  .embed-card-footer a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 11px;
+  }
+
+  /* ===== COMPARISON TABLE ===== */
+  .comparison {
+    margin: 3em 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--border);
+  }
+
+  .comparison-col {
+    background: var(--surface);
+    padding: 28px 24px;
+  }
+
+  .comparison-col h4 {
+    font-family: var(--serif);
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+    font-weight: 700;
+  }
+
+  .comparison-col.idea h4 { color: var(--text-muted); }
+  .comparison-col.startup h4 { color: var(--accent); }
+
+  .comparison-col ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .comparison-col li {
+    padding: 8px 0;
+    font-size: 0.88em;
+    line-height: 1.5;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .comparison-col li:last-child { border-bottom: none; }
+
+  .comparison-col li::before {
+    content: '→';
+    margin-right: 8px;
+    color: var(--text-dim);
+  }
+
+  .comparison-col.startup li::before {
+    color: var(--accent);
+  }
+
+  /* ===== DIAGRAM ===== */
+  .maze-diagram {
+    margin: 3em 0;
+    padding: 40px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    text-align: center;
+  }
+
+  .maze-diagram-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+
+  .maze-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .maze-node {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    transition: all 0.3s;
+  }
+
+  .maze-node:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .maze-node.active {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .maze-arrow {
+    color: var(--text-dim);
+    font-size: 18px;
+  }
+
+  /* ===== CALLOUT ===== */
+  .callout {
+    margin: 2.5em 0;
+    padding: 24px 28px;
+    background: var(--accent-glow);
+    border: 1px solid rgba(232,93,38,0.2);
+    border-radius: 10px;
+  }
+
+  .callout-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .callout p {
+    color: var(--text) !important;
+    font-size: 0.95em;
+    margin-bottom: 0 !important;
+  }
+
+  /* ===== SECTION DIVIDER ===== */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 4em 0 3em;
+  }
+
+  .section-divider::before,
+  .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .section-divider span {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+  }
+
+  /* ===== CTA ===== */
+  .cta-section {
+    margin-top: 4em;
+    text-align: center;
+    padding: 48px 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .cta-section h3 {
+    font-family: var(--serif);
+    font-size: 1.8rem;
+    margin-top: 0;
+    margin-bottom: 12px;
+    color: var(--text) !important;
+  }
+
+  .cta-section p {
+    color: var(--text-muted) !important;
+    margin-bottom: 28px !important;
+    font-size: 1em;
+  }
+
+  .cta-btn {
+    display: inline-block;
+    padding: 14px 36px;
+    background: var(--accent);
+    color: white;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.3s;
+  }
+
+  .cta-btn:hover {
+    background: #d04e1c;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(232,93,38,0.3);
+  }
+
+  /* ===== FOOTER ===== */
+  .article-footer {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    border-top: 1px solid var(--border);
+  }
+
+  .article-footer p {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 640px) {
+    body { font-size: 17px; }
+    .comparison { grid-template-columns: 1fr; }
+    .maze-flow { gap: 6px; }
+    .maze-node { padding: 8px 12px; font-size: 11px; }
+    blockquote { padding: 20px; }
+    .embed-card-platform { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-maze-bg"></div>
+  <div class="hero-label">An essay on startup navigation</div>
+  <h1>The <em>Startup</em> Maze</h1>
+  <p class="hero-sub">Balaji gave us the Idea Maze to navigate markets. But what about the maze inside — the one every founder walks alone from MVP to Product-Market Fit?</p>
+  <div class="hero-meta">
+    <span>2025</span>
+    <div class="dot"></div>
+    <span>12 min read</span>
+    <div class="dot"></div>
+    <span>Founders</span>
+  </div>
+  <div class="scroll-hint">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+  </div>
+</section>
+
+<!-- ARTICLE -->
+<article class="article">
+
+  <p class="lead">
+    In 2013, Balaji Srinivasan introduced a concept that would become foundational vocabulary in Silicon Valley: the Idea Maze. It described the complex decision tree founders must navigate when choosing what to build. A decade later, we need a companion framework — not for the market, but for the founder. That's the Startup Maze.
+  </p>
+
+  <!-- ====== PART 1: THE ORIGIN ====== -->
+  <h2>The Idea Maze: A Quick Primer</h2>
+
+  <p>
+    The concept originated in Balaji's Stanford lecture on <a href="https://spark-public.s3.amazonaws.com/startup/lecture_slides/lecture5-market-wireframing-design.pdf" target="_blank">Market Research, Wireframing, and Design</a>, where he laid out a deceptively simple observation: a startup idea isn't a single sentence. It's a bird's-eye map of every possible future the company could face.
+  </p>
+
+  <div class="embed-card">
+    <div class="embed-card-header">
+      <div class="embed-card-avatar">BS</div>
+      <div>
+        <div class="embed-card-name">Balaji Srinivasan</div>
+        <div class="embed-card-handle">Stanford Startup Engineering</div>
+      </div>
+      <div class="embed-card-platform">Lecture</div>
+    </div>
+    <div class="embed-card-body">
+      <p>"A good founder doesn't just have an idea, s/he has a bird's eye view of the idea maze. Most of the time, end-users only see the solid path through the maze taken by one company. They don't see the paths not taken by that company, and certainly don't think much about all the dead companies that fell into various pits before reaching the customer."</p>
+      <p>"A good founder is capable of anticipating which turns lead to treasure and which lead to certain death."</p>
+    </div>
+    <div class="embed-card-footer">
+      <span>From: Startup Engineering — Lecture 5</span>
+      <a href="https://spark-public.s3.amazonaws.com/startup/lecture_slides/lecture5-market-wireframing-design.pdf" target="_blank">View Source →</a>
+    </div>
+  </div>
+
+  <p>
+    Chris Dixon expanded on this in his now-canonical <a href="https://cdixon.org/2013/08/04/the-idea-maze" target="_blank">2013 blog post</a>, arguing that the pop culture view of startups — eureka moment followed by inevitable success — completely misses the years of grueling navigation. Dixon identified four tools for mapping the maze: history, analogy, theories, and direct experience.
+  </p>
+
+  <p>
+    Marc Andreessen later gave the concept its most vivid articulation on the <a href="https://www.hubermanlab.com/episode/marc-andreessen-how-risk-taking-innovation-and-artificial-intelligence-transform-human-experience" target="_blank">Huberman Lab podcast</a>, framing entrepreneurship through the lens of military strategy.
+  </p>
+
+  <div class="embed-card">
+    <div class="embed-card-header">
+      <div class="embed-card-avatar">MA</div>
+      <div>
+        <div class="embed-card-name">Marc Andreessen</div>
+        <div class="embed-card-handle">a16z — on Huberman Lab, Sep 2023</div>
+      </div>
+      <div class="embed-card-platform">Podcast</div>
+    </div>
+    <div class="embed-card-body">
+      <p>"Entrepreneurship, creativity, innovation is what economists call decision making under uncertainty. Both parts of that are important. Decision making — you're going to make a ton of decisions… And then uncertainty — the world's a complicated place. In mathematical terms, the world is a complex adaptive system with feedback loops."</p>
+      <p>"Military commanders call this the fog of war. You're just dealing with a situation where the number of variables is just off the charts."</p>
+      <p>"The great ones course-correct every single day. They take stock of what they've learned. They modify the plan."</p>
+    </div>
+    <div class="embed-card-footer">
+      <span>Huberman Lab · Sep 2023</span>
+      <a href="https://www.startuparchive.org/p/marc-andreessen-on-how-the-best-founders-navigate-the-idea-maze" target="_blank">View Clip →</a>
+    </div>
+  </div>
+
+  <p>
+    Andreessen described how the best founders operate in two phases. First, they pre-plan obsessively — building the most complete map of possible futures anyone could. Then on Day 1, they enter the fog of war, and reconstruct the maze on the fly, day by day, hypothesis by hypothesis.
+  </p>
+
+  <p>
+    And just recently, Andrew Chen introduced the <a href="https://andrewchen.substack.com/p/the-growth-maze-vs-the-idea-maze" target="_blank">Growth Maze</a> — a complementary framework about navigating distribution decisions from initial audience to mainstream scale.
+  </p>
+
+  <div class="embed-card">
+    <div class="embed-card-header">
+      <div class="embed-card-avatar">AC</div>
+      <div>
+        <div class="embed-card-name">Andrew Chen</div>
+        <div class="embed-card-handle">@andrewchen · a16z</div>
+      </div>
+      <div class="embed-card-platform">Substack</div>
+    </div>
+    <div class="embed-card-body">
+      <p>"Recent years have been dominated by solving the Idea Maze, figuring out all the correct turns needed to pick the best idea. But in future years simply picking the 'best idea' will not be enough — one will also need to figure out how to distribute them too. This is the Growth Maze."</p>
+    </div>
+    <div class="embed-card-footer">
+      <span>Feb 10, 2025</span>
+      <a href="https://andrewchen.substack.com/p/the-growth-maze-vs-the-idea-maze" target="_blank">Read Full Essay →</a>
+    </div>
+  </div>
+
+  <p>
+    So now we have two mazes: the <strong>Idea Maze</strong> for what to build, and the <strong>Growth Maze</strong> for how to distribute it. Both are external — about markets, competitors, channels, and customers.
+  </p>
+
+  <p>
+    But there's a third maze nobody talks about. The one that happens inside.
+  </p>
+
+  <div class="section-divider"><span>The Missing Maze</span></div>
+
+  <!-- ====== PART 2: THE STARTUP MAZE ====== -->
+  <h2>Introducing the Startup Maze</h2>
+
+  <p>
+    The Idea Maze asks: <em>What should we build, given the market landscape?</em> The Growth Maze asks: <em>How do we reach people, given distribution options?</em>
+  </p>
+
+  <p>
+    The <strong>Startup Maze</strong> asks a fundamentally different question: <em>How do we survive and find product-market fit, given our current resources, team morale, user signal, and runway?</em>
+  </p>
+
+  <p>
+    Where the Idea Maze is about external navigation — understanding industry history, competitors, and technology shifts — the Startup Maze is about internal navigation. It's the series of high-stakes operational decisions a founder faces from the moment they have an MVP to the moment they (hopefully) reach product-market fit.
+  </p>
+
+  <div class="comparison">
+    <div class="comparison-col idea">
+      <h4>The Idea Maze</h4>
+      <ul>
+        <li>External: market, competitors, technology</li>
+        <li>Pre-founding: what should we build?</li>
+        <li>Knowledge-based: study history, analogies</li>
+        <li>Navigated by research and pattern matching</li>
+        <li>Dead ends = bad market choices</li>
+        <li>Treasure = a viable idea</li>
+      </ul>
+    </div>
+    <div class="comparison-col startup">
+      <h4>The Startup Maze</h4>
+      <ul>
+        <li>Internal: runway, morale, signal, users</li>
+        <li>Post-MVP: how do we reach PMF?</li>
+        <li>Experience-based: learn by doing</li>
+        <li>Navigated by decisions under real constraints</li>
+        <li>Traps = premature scaling, burnout, vanity metrics</li>
+        <li>Treasure = product-market fit</li>
+      </ul>
+    </div>
+  </div>
+
+  <p>
+    Think of it this way: the Idea Maze is studied before you enter the building. The Startup Maze is what happens once you're inside, the lights are off, your cash is burning, and every decision echoes.
+  </p>
+
+  <h3>The Decisions Nobody Prepares You For</h3>
+
+  <p>
+    The Startup Maze is made of 30+ critical decisions — and about 14 traps — that can kill real startups. These aren't hypothetical strategy questions. They're the visceral, daily choices that founders actually face:
+  </p>
+
+  <p>
+    Your first 50 users love the product but growth has flatlined. Do you double down on making the core experience incredible for them, or do you pivot your positioning to chase a bigger market? A VC offers a term sheet, but wants you to shift focus. Do you take the money or preserve your vision? Your co-founder wants to build feature X; your users are asking for feature Y; your data says neither matters. Who do you listen to?
+  </p>
+
+  <p>
+    These aren't market research questions. They're gut-check, fog-of-war decisions where the variables include your bank balance, your team's sanity, conflicting user feedback, and your own confidence.
+  </p>
+
+  <div class="maze-diagram">
+    <div class="maze-diagram-label">A simplified path through the Startup Maze</div>
+    <div class="maze-flow">
+      <div class="maze-node active">MVP</div>
+      <div class="maze-arrow">→</div>
+      <div class="maze-node">First Users</div>
+      <div class="maze-arrow">→</div>
+      <div class="maze-node">Signal?</div>
+      <div class="maze-arrow">→</div>
+      <div class="maze-node">Pivot or Double Down</div>
+      <div class="maze-arrow">→</div>
+      <div class="maze-node">Hire or Stay Lean</div>
+      <div class="maze-arrow">→</div>
+      <div class="maze-node">Runway Check</div>
+      <div class="maze-arrow">→</div>
+      <div class="maze-node active">PMF</div>
+    </div>
+  </div>
+
+  <p>
+    Between MVP and PMF, there are no straight lines. Every node is a fork, every fork has consequences, and most paths lead to a dead end. The Startup Maze makes this visible.
+  </p>
+
+  <div class="section-divider"><span>Why This Matters</span></div>
+
+  <!-- ====== PART 3: THE GAP ====== -->
+  <h2>The Gap in Founder Education</h2>
+
+  <p>
+    Here's the uncomfortable truth: most startup advice focuses on either the "before" (the Idea Maze) or the "after" (scaling playbooks). The messy middle — the period where you have a product, some users, dwindling runway, and zero clarity — is largely uncharted.
+  </p>
+
+  <blockquote>
+    "You course-correct, you adjust, you evolve. Often, the businesses that end up working really well tend to be different than the original plan. But that's part of the process of a really smart founder basically working their way through reality."
+    <span class="attribution">— Marc Andreessen, Huberman Lab</span>
+  </blockquote>
+
+  <p>
+    Andreessen's observation is profound but abstract. <em>How</em> do you course-correct? <em>When</em> do you adjust versus persist? The Startup Maze attempts to make the invisible visible — to give founders a map of the internal decisions they'll face, the traps that have killed startups before them, and the patterns that lead to product-market fit.
+  </p>
+
+  <p>
+    Consider what Andreessen says about the best founders thinking in terms of hypotheses: going out into the world, declaring a direction, testing it, and then having the courage to reverse when it doesn't work. That loop — declare, test, learn, reverse — is the fundamental mechanic of navigating the Startup Maze.
+  </p>
+
+  <h3>The Traps Are Real</h3>
+
+  <p>
+    The Startup Maze maps 14 traps, and each one has a body count. Premature scaling — hiring ahead of product-market fit — has killed more well-funded startups than bad ideas ever have. Vanity metrics — optimizing for numbers that feel good but don't signal real demand — can keep founders running full-speed in the wrong direction for months. Building in a vacuum, ignoring churn, over-indexing on investor feedback over user feedback: these aren't theoretical risks. They're the specific failure modes that the Startup Maze surfaces.
+  </p>
+
+  <div class="callout">
+    <div class="callout-label">Key Insight</div>
+    <p>
+      The Idea Maze is about <strong>what</strong> to build. The Growth Maze is about <strong>who</strong> to reach. The Startup Maze is about <strong>how to survive</strong> long enough for the first two to matter.
+    </p>
+  </div>
+
+  <div class="section-divider"><span>Playing the Maze</span></div>
+
+  <!-- ====== PART 4: THE PRODUCT ====== -->
+  <h2>The Startup Maze as a Game</h2>
+
+  <p>
+    What makes this concept actionable is that it's not just a framework — it's a <a href="https://maze-sandy.vercel.app/" target="_blank">playable experience</a>. The Startup Maze is an interactive simulation where you navigate from MVP to product-market fit, making real decisions at each node while managing four critical variables: runway, users, morale, and signal.
+  </p>
+
+  <p>
+    The game presents you with 30+ decision points drawn from real startup scenarios. At each fork, you choose — and the consequences ripple through your resources. Spend too much on features nobody wants? Your runway drops and your signal stays flat. Hire too fast before finding fit? Morale tanks when you have to do layoffs. Chase a viral moment without retention? You get a spike followed by a crater.
+  </p>
+
+  <p>
+    This is the maze Andreessen describes when he talks about founders reconstructing their plan "on the fly, day by day." The simulation compresses months of real startup life into a session where every choice teaches you something about the patterns of survival.
+  </p>
+
+  <p>
+    There is exactly one PMF exit. There are infinite paths. And most of them end badly — just like in real life. The question isn't whether you'll hit a trap. It's whether you'll recognize it in time to course-correct.
+  </p>
+
+  <div class="section-divider"><span>The Three Mazes</span></div>
+
+  <!-- ====== PART 5: SYNTHESIS ====== -->
+  <h2>The Complete Picture</h2>
+
+  <p>
+    Balaji's Idea Maze gave founders a language for thinking about market navigation. Andrew Chen's Growth Maze extended it into distribution strategy. The Startup Maze completes the triptych by mapping the internal journey — the resource-constrained, psychologically brutal path from "we built something" to "people actually want this."
+  </p>
+
+  <p>
+    Together, the three mazes describe the full topology of startup life. You need to navigate all three simultaneously, and mastering one doesn't guarantee safe passage through the others. Plenty of founders have had brilliant ideas (Idea Maze: solved) and strong distribution strategies (Growth Maze: solved) but burned through their runway chasing the wrong signals, lost their co-founder, or scaled prematurely.
+  </p>
+
+  <p>
+    The Startup Maze is the maze of execution under uncertainty — not the market uncertainty that Balaji describes, but the internal uncertainty of a founding team: <em>Are we measuring the right things? Are we building for the users we have or the users we want? Can we afford another month of this? Is this normal hard or dead-end hard?</em>
+  </p>
+
+  <blockquote>
+    "Even though I sound like I have complete certainty, I know that I need to test to find out whether it's going to work. And if it doesn't, then I have to go back to all of those people and say we're actually not going left, we're going right."
+    <span class="attribution">— Marc Andreessen, on the founder mindset</span>
+  </blockquote>
+
+  <p>
+    That willingness to publicly reverse — to tell your team, your investors, your users that the plan has changed — is the fundamental skill of the Startup Maze. It can't be learned from reading case studies. It has to be practiced. And that's exactly what the Startup Maze is designed to simulate.
+  </p>
+
+  <!-- ====== CTA ====== -->
+  <div class="cta-section">
+    <h3>Enter the Maze</h3>
+    <p>Navigate from MVP to Product-Market Fit. Make real decisions. Avoid the traps. Find the one path that works.</p>
+    <a href="https://maze-sandy.vercel.app/" target="_blank" class="cta-btn">Play the Startup Maze →</a>
+  </div>
+
+</article>
+
+<footer class="article-footer">
+  <p>Inspired by Balaji Srinivasan's Idea Maze · Chris Dixon · Marc Andreessen · Andrew Chen</p>
+</footer>
+
+</body>
+</html>
