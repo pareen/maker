@@ -1,72 +1,7 @@
-import { supabase } from './supabase';
-
 const GITHUB_API_BASE = 'https://api.github.com';
 
 /**
- * Sign in with GitHub OAuth (for private repo access)
- */
-export async function signInWithGitHub() {
-  if (!supabase) {
-    throw new Error('Supabase not configured');
-  }
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'github',
-    options: {
-      scopes: 'repo',
-      redirectTo: window.location.origin
-    }
-  });
-
-  if (error) throw error;
-  return data;
-}
-
-/**
- * Get current GitHub session (if connected via OAuth)
- */
-export async function getGitHubSession() {
-  if (!supabase) return null;
-
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.provider_token) {
-    return {
-      accessToken: session.provider_token,
-      user: session.user
-    };
-  }
-  return null;
-}
-
-/**
- * Fetch repositories using OAuth token (includes private repos)
- */
-export async function fetchAuthenticatedRepos() {
-  const session = await getGitHubSession();
-  if (!session?.accessToken) {
-    throw new Error('Not connected to GitHub');
-  }
-
-  const response = await fetch(
-    `${GITHUB_API_BASE}/user/repos?per_page=100&sort=updated&type=all`,
-    {
-      headers: {
-        'Authorization': `Bearer ${session.accessToken}`,
-        'Accept': 'application/vnd.github.v3+json',
-      }
-    }
-  );
-
-  if (!response.ok) {
-    if (response.status === 401) throw new Error('GitHub session expired. Please reconnect.');
-    throw new Error('Failed to fetch repositories');
-  }
-
-  return response.json();
-}
-
-/**
- * Fetch public repositories for a GitHub user (no auth required)
+ * Fetch public repositories for a GitHub user
  */
 export async function fetchUserRepos(username) {
   const response = await fetch(
@@ -133,7 +68,6 @@ export function mapRepoToProject(repo) {
       language: repo.language,
       isFork: repo.fork,
       isArchived: repo.archived,
-      isPrivate: repo.private,
       pushedAt: repo.pushed_at
     }
   };
