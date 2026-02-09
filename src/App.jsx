@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import * as db from './lib/database';
+import { fetchUserRepos, mapRepoToProject } from './lib/github';
 
 // ============================================
 // MAKER PORTFOLIO - Full Functional App
@@ -32,40 +34,65 @@ const App = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [notification, setNotification] = useState(null);
 
-  // Load user from localStorage on mount
+  // Load user on mount and listen for auth changes
   useEffect(() => {
-    const saved = localStorage.getItem('makerPortfolio_currentUser');
-    if (saved) {
-      const userData = JSON.parse(saved);
-      setCurrentUser(userData);
-      setCurrentView('dashboard');
-    }
-  }, []);
+    const loadUser = async () => {
+      try {
+        const user = await db.getCurrentUser();
+        if (user) {
+          // Load projects for the user
+          const projects = await db.getProjectsByUserId(user.id);
+          setCurrentUser({ ...user, projects });
+          setCurrentView('dashboard');
+        }
+      } catch (error) {
+        console.error('Error loading user:', error);
+      }
+    };
 
-  // Save user to localStorage
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(currentUser));
-    }
-  }, [currentUser]);
+    loadUser();
+
+    // Listen for auth state changes (Supabase)
+    const { data: { subscription } } = db.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const profile = await db.getProfile(session.user.id);
+        const projects = await db.getProjectsByUserId(session.user.id);
+        setCurrentUser({ ...session.user, ...profile, projects });
+        setCurrentView('dashboard');
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setCurrentView('landing');
+      }
+    });
+
+    return () => subscription?.unsubscribe();
+  }, []);
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('makerPortfolio_currentUser');
-    setCurrentUser(null);
-    setCurrentView('landing');
+  const handleLogout = async () => {
+    try {
+      await db.signOut();
+      setCurrentUser(null);
+      setCurrentView('landing');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
-  const viewPublicProfile = (username) => {
-    const allUsers = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}');
-    const user = Object.values(allUsers).find(u => u.username === username);
-    if (user) {
-      setViewingProfile(user);
-      setCurrentView('publicProfile');
+  const viewPublicProfile = async (username) => {
+    try {
+      const user = await db.getProfileByUsername(username);
+      if (user) {
+        setViewingProfile(user);
+        setCurrentView('publicProfile');
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      showNotification('Profile not found', 'error');
     }
   };
 
@@ -413,53 +440,25 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}');
-
-    if (mode === 'signup') {
-      if (users[email]) {
-        showNotification('Email already exists', 'error');
-        setLoading(false);
-        return;
+    try {
+      if (mode === 'signup') {
+        const user = await db.signUp(email, password, username);
+        showNotification('Account created!');
+        onSuccess({ ...user, username, projects: [] });
+      } else {
+        const user = await db.signIn(email, password);
+        const profile = await db.getProfile(user.id);
+        const projects = await db.getProjectsByUserId(user.id);
+        showNotification('Welcome back!');
+        onSuccess({ ...user, ...profile, projects });
       }
-      if (Object.values(users).some(u => u.username === username)) {
-        showNotification('Username already taken', 'error');
-        setLoading(false);
-        return;
-      }
-
-      const newUser = {
-        id: Date.now().toString(),
-        email,
-        password,
-        username,
-        name: '',
-        bio: '',
-        firstMake: { description: '', age: '' },
-        domains: [],
-        socials: { twitter: '', github: '', linkedin: '', substack: '', website: '' },
-        embedFeed: { type: null, url: '' },
-        projects: [],
-        todayMaking: '',
-        createdAt: new Date().toISOString()
-      };
-
-      users[email] = newUser;
-      localStorage.setItem('makerPortfolio_users', JSON.stringify(users));
-      showNotification('Account created!');
-      onSuccess(newUser);
-    } else {
-      const user = users[email];
-      if (!user || user.password !== password) {
-        showNotification('Invalid email or password', 'error');
-        setLoading(false);
-        return;
-      }
-      showNotification('Welcome back!');
-      onSuccess(user);
+    } catch (error) {
+      showNotification(error.message, 'error');
+      setLoading(false);
     }
   };
 
@@ -539,38 +538,74 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   const [todayMaking, setTodayMaking] = useState(user.todayMaking || '');
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
+  const [showGitHubImport, setShowGitHubImport] = useState(false);
 
-  const updateUser = (updates) => {
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
-    const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}');
-    users[user.email] = updatedUser;
-    localStorage.setItem('makerPortfolio_users', JSON.stringify(users));
+  const updateUser = async (updates) => {
+    try {
+      await db.updateProfile(user.id, { ...user, ...updates });
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      showNotification('Error updating profile', 'error');
+    }
   };
 
-  const saveTodayMaking = () => {
-    updateUser({ todayMaking });
+  const saveTodayMaking = async () => {
+    await updateUser({ todayMaking });
     showNotification('Updated!');
   };
 
-  const saveProject = (project) => {
-    let updatedProjects;
-    if (editingProject) {
-      updatedProjects = user.projects.map(p => p.id === project.id ? project : p);
-    } else {
-      updatedProjects = [...user.projects, { ...project, id: Date.now().toString() }];
+  const saveProject = async (project) => {
+    try {
+      if (editingProject) {
+        await db.updateProject(project.id, project);
+        const updatedProjects = user.projects.map(p => p.id === project.id ? project : p);
+        setUser({ ...user, projects: updatedProjects });
+        showNotification('Project updated!');
+      } else {
+        const newProject = await db.createProject(user.id, project);
+        setUser({ ...user, projects: [...user.projects, newProject] });
+        showNotification('Project added!');
+      }
+      setShowProjectModal(false);
+      setEditingProject(null);
+    } catch (error) {
+      console.error('Error saving project:', error);
+      showNotification('Error saving project', 'error');
     }
-    updateUser({ projects: updatedProjects });
-    setShowProjectModal(false);
-    setEditingProject(null);
-    showNotification(editingProject ? 'Project updated!' : 'Project added!');
   };
 
-  const deleteProject = (projectId) => {
+  const deleteProject = async (projectId) => {
     if (confirm('Delete this project?')) {
-      updateUser({ projects: user.projects.filter(p => p.id !== projectId) });
-      showNotification('Project deleted');
+      try {
+        await db.deleteProject(projectId);
+        setUser({ ...user, projects: user.projects.filter(p => p.id !== projectId) });
+        showNotification('Project deleted');
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        showNotification('Error deleting project', 'error');
+      }
     }
+  };
+
+  const importGitHubProjects = async (projects) => {
+    const createdProjects = [];
+    for (const project of projects) {
+      const { _github, ...projectData } = project;
+      const newProject = await db.createProject(user.id, projectData);
+      createdProjects.push(newProject);
+    }
+    setUser({ ...user, projects: [...user.projects, ...createdProjects] });
+    return createdProjects; // Return for review flow
+  };
+
+  const handleGitHubImportClose = () => {
+    setShowGitHubImport(false);
+    // Refresh projects in case they were updated during review
+    db.getProjectsByUserId(user.id).then(projects => {
+      setUser(u => ({ ...u, projects }));
+    });
   };
 
   return (
@@ -619,6 +654,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
         <div style={{ display: 'flex', gap: '16px', marginBottom: '48px' }}>
           <button className="btn btn-secondary" onClick={onEditProfile}>Edit Profile</button>
           <button className="btn btn-primary" onClick={() => { setEditingProject(null); setShowProjectModal(true); }}>+ Add Project</button>
+          <button className="btn btn-secondary" onClick={() => setShowGitHubImport(true)}>Import from GitHub</button>
         </div>
 
         {/* Projects */}
@@ -650,6 +686,14 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
           project={editingProject}
           onSave={saveProject}
           onClose={() => { setShowProjectModal(false); setEditingProject(null); }}
+        />
+      )}
+
+      {showGitHubImport && (
+        <GitHubImportModal
+          onImport={importGitHubProjects}
+          onClose={handleGitHubImportClose}
+          showNotification={showNotification}
         />
       )}
     </div>
@@ -721,6 +765,7 @@ const ProjectModal = ({ project, onSave, onClose }) => {
     role: 'solo',
     currentStage: 'idea',
     startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
     ongoing: true,
     stageData: {},
     domains: [],
@@ -803,7 +848,7 @@ const ProjectModal = ({ project, onSave, onClose }) => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start Date</label>
               <input
@@ -813,15 +858,26 @@ const ProjectModal = ({ project, onSave, onClose }) => {
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
               />
             </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End Date</label>
+              <input
+                className="input"
+                type="date"
+                value={formData.endDate || ''}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value, ongoing: false })}
+                disabled={formData.ongoing}
+                style={{ opacity: formData.ongoing ? 0.5 : 1 }}
+              />
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', paddingTop: '24px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={formData.ongoing}
-                  onChange={(e) => setFormData({ ...formData, ongoing: e.target.checked })}
+                  onChange={(e) => setFormData({ ...formData, ongoing: e.target.checked, endDate: e.target.checked ? '' : formData.endDate })}
                   style={{ width: '16px', height: '16px' }}
                 />
-                <span style={{ fontSize: '14px', color: '#a8a29e' }}>Still ongoing</span>
+                <span style={{ fontSize: '14px', color: '#a8a29e' }}>Ongoing</span>
               </label>
             </div>
           </div>
@@ -894,19 +950,306 @@ const ProjectModal = ({ project, onSave, onClose }) => {
 };
 
 // ============================================
+// GITHUB IMPORT MODAL
+// ============================================
+const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
+  const [username, setUsername] = useState('');
+  const [repos, setRepos] = useState([]);
+  const [selectedRepos, setSelectedRepos] = useState(new Set());
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState('input'); // input | select | review
+
+  // Review step state
+  const [importedProjects, setImportedProjects] = useState([]);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [reviewData, setReviewData] = useState(null);
+
+  const handleFetch = async () => {
+    if (!username.trim()) return;
+    setLoading(true);
+    try {
+      const fetchedRepos = await fetchUserRepos(username.trim());
+      const mappedRepos = fetchedRepos.map(mapRepoToProject);
+      setRepos(mappedRepos);
+      setSelectedRepos(new Set());
+      setStep('select');
+    } catch (error) {
+      showNotification(error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleRepo = (index) => {
+    const newSelected = new Set(selectedRepos);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else {
+      newSelected.add(index);
+    }
+    setSelectedRepos(newSelected);
+  };
+
+  const selectAll = () => {
+    setSelectedRepos(new Set(repos.map((_, i) => i)));
+  };
+
+  const selectNone = () => {
+    setSelectedRepos(new Set());
+  };
+
+  const handleImport = async () => {
+    const selected = repos.filter((_, i) => selectedRepos.has(i));
+    if (selected.length === 0) {
+      showNotification('Select at least one repo', 'error');
+      return;
+    }
+
+    // Import all projects first, then start review
+    setLoading(true);
+    try {
+      const projects = await onImport(selected);
+      setImportedProjects(projects);
+      setReviewIndex(0);
+      setReviewData({ ...projects[0] });
+      setStep('review');
+    } catch (error) {
+      showNotification('Failed to import projects', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReviewSave = async () => {
+    // Update current project with review data
+    try {
+      await db.updateProject(importedProjects[reviewIndex].id, reviewData);
+      importedProjects[reviewIndex] = { ...importedProjects[reviewIndex], ...reviewData };
+    } catch (error) {
+      showNotification('Failed to save changes', 'error');
+    }
+    moveToNext();
+  };
+
+  const handleReviewSkip = () => {
+    moveToNext();
+  };
+
+  const moveToNext = () => {
+    if (reviewIndex < importedProjects.length - 1) {
+      const nextIndex = reviewIndex + 1;
+      setReviewIndex(nextIndex);
+      setReviewData({ ...importedProjects[nextIndex] });
+    } else {
+      showNotification(`Imported ${importedProjects.length} project${importedProjects.length === 1 ? '' : 's'}!`);
+      onClose();
+    }
+  };
+
+  const handleFinishEarly = () => {
+    showNotification(`Imported ${importedProjects.length} project${importedProjects.length === 1 ? '' : 's'}!`);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '80vh', overflow: 'auto' }}>
+        <h2 style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>
+          {step === 'review' ? `Review Projects (${reviewIndex + 1} of ${importedProjects.length})` : 'Import from GitHub'}
+        </h2>
+        <p style={{ color: '#78716c', marginBottom: '24px' }}>
+          {step === 'input' && 'Enter a GitHub username to fetch repositories'}
+          {step === 'select' && `Select repositories to import (${selectedRepos.size} selected)`}
+          {step === 'review' && 'Add details to your imported projects'}
+        </p>
+
+        {step === 'input' && (
+          <>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+              <input
+                className="input"
+                placeholder="GitHub username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
+                style={{ flex: 1 }}
+              />
+              <button className="btn btn-primary" onClick={handleFetch} disabled={loading}>
+                {loading ? 'Loading...' : 'Fetch Repos'}
+              </button>
+            </div>
+            <button className="btn btn-ghost" onClick={onClose} style={{ width: '100%' }}>Cancel</button>
+          </>
+        )}
+
+        {step === 'select' && (
+          <>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+              <button className="btn btn-ghost" onClick={selectAll} style={{ fontSize: '12px' }}>Select All</button>
+              <button className="btn btn-ghost" onClick={selectNone} style={{ fontSize: '12px' }}>Select None</button>
+              <button className="btn btn-ghost" onClick={() => setStep('input')} style={{ fontSize: '12px', marginLeft: 'auto' }}>
+                ← Back
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', maxHeight: '400px', overflow: 'auto' }}>
+              {repos.map((repo, index) => (
+                <div
+                  key={index}
+                  onClick={() => toggleRepo(index)}
+                  style={{
+                    padding: '12px 16px',
+                    background: selectedRepos.has(index) ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.03)',
+                    border: selectedRepos.has(index) ? '1px solid rgba(251, 191, 36, 0.3)' : '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: '500' }}>{repo.name}</span>
+                        {repo._github.isFork && <span className="tag" style={{ fontSize: '10px' }}>fork</span>}
+                        {repo._github.isArchived && <span className="tag" style={{ fontSize: '10px' }}>archived</span>}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#78716c' }}>{repo.oneLiner}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px', color: '#57534e' }}>
+                      {repo._github.language && <span>{repo._github.language}</span>}
+                      <span>★ {repo._github.stars}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {repos.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '24px', color: '#57534e' }}>
+                  No public repositories found
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn btn-secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleImport} style={{ flex: 1 }} disabled={selectedRepos.size === 0 || loading}>
+                {loading ? 'Importing...' : `Import ${selectedRepos.size} Project${selectedRepos.size === 1 ? '' : 's'}`}
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 'review' && reviewData && (
+          <>
+            {/* Project header */}
+            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
+              <div style={{ fontWeight: '500', fontSize: '16px', marginBottom: '4px' }}>{reviewData.name}</div>
+              <div style={{ fontSize: '13px', color: '#78716c' }}>{reviewData.oneLiner}</div>
+            </div>
+
+            {/* Editable fields */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Role</label>
+                <select
+                  className="input"
+                  value={reviewData.role}
+                  onChange={(e) => setReviewData({ ...reviewData, role: e.target.value })}
+                >
+                  {roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Stage</label>
+                <select
+                  className="input"
+                  value={reviewData.currentStage}
+                  onChange={(e) => setReviewData({ ...reviewData, currentStage: e.target.value })}
+                >
+                  {stages.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start Date</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={reviewData.startDate || ''}
+                  onChange={(e) => setReviewData({ ...reviewData, startDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End Date</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={reviewData.endDate || ''}
+                  onChange={(e) => setReviewData({ ...reviewData, endDate: e.target.value, ongoing: false })}
+                  disabled={reviewData.ongoing}
+                  style={{ opacity: reviewData.ongoing ? 0.5 : 1 }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', paddingTop: '24px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={reviewData.ongoing}
+                    onChange={(e) => setReviewData({ ...reviewData, ongoing: e.target.checked, endDate: e.target.checked ? '' : reviewData.endDate })}
+                    style={{ width: '16px', height: '16px' }}
+                  />
+                  <span style={{ fontSize: '14px', color: '#a8a29e' }}>Ongoing</span>
+                </label>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Outcome</label>
+              <input
+                className="input"
+                placeholder="e.g. 1000 users, acquired, shut down, still active"
+                value={reviewData.outcome || ''}
+                onChange={(e) => setReviewData({ ...reviewData, outcome: e.target.value })}
+              />
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn btn-ghost" onClick={handleReviewSkip} style={{ flex: 1 }}>Skip</button>
+              <button className="btn btn-primary" onClick={handleReviewSave} style={{ flex: 1 }}>
+                {reviewIndex < importedProjects.length - 1 ? 'Save & Next →' : 'Finish'}
+              </button>
+            </div>
+            {reviewIndex < importedProjects.length - 1 && (
+              <button className="btn btn-ghost" onClick={handleFinishEarly} style={{ width: '100%', marginTop: '12px', fontSize: '12px' }}>
+                Finish Early ({importedProjects.length - reviewIndex - 1} remaining)
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ============================================
 // EDIT PROFILE
 // ============================================
 const EditProfile = ({ user, setUser, onBack, showNotification }) => {
   const [formData, setFormData] = useState({ ...user });
   const [newDomain, setNewDomain] = useState('');
 
-  const handleSave = () => {
-    const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}');
-    users[user.email] = formData;
-    localStorage.setItem('makerPortfolio_users', JSON.stringify(users));
-    setUser(formData);
-    showNotification('Profile saved!');
-    onBack();
+  const handleSave = async () => {
+    try {
+      await db.updateProfile(user.id, formData);
+      setUser({ ...user, ...formData });
+      showNotification('Profile saved!');
+      onBack();
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      showNotification('Error saving profile', 'error');
+    }
   };
 
   const addDomain = () => {
