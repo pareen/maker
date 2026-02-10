@@ -284,16 +284,7 @@ const LandingPage = ({ onLogin, onSignup }) => {
           Start your maker profile
         </button>
 
-        {/* Inspiration Credit */}
-        <div style={{ marginTop: '32px', padding: '12px 24px', background: 'linear-gradient(135deg, rgba(251,191,36,0.1) 0%, rgba(251,191,36,0.05) 100%)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '8px', display: 'inline-block' }}>
-          <span style={{ fontSize: '13px', color: '#a8a29e' }}>Inspired by </span>
-          <a href="/startup-maze.html" style={{ fontSize: '13px', color: '#fbbf24', textDecoration: 'none', fontWeight: '500' }}>
-            The Startup Maze
-          </a>
-          <span style={{ fontSize: '13px', color: '#a8a29e' }}> — Balaji Srinivasan's framework for founder navigation</span>
-        </div>
-
-        <div style={{ marginTop: '48px', display: 'flex', gap: '48px', color: '#57534e', fontSize: '13px', justifyContent: 'center' }}>
+        <div style={{ marginTop: '60px', display: 'flex', gap: '48px', color: '#57534e', fontSize: '13px', justifyContent: 'center' }}>
           <div><span style={{ color: '#fbbf24', fontSize: '24px', fontWeight: '600' }}>10</span><br/>stages tracked</div>
           <div><span style={{ color: '#fbbf24', fontSize: '24px', fontWeight: '600' }}>∞</span><br/>types of makes</div>
           <div><span style={{ color: '#fbbf24', fontSize: '24px', fontWeight: '600' }}>0</span><br/>bullshit</div>
