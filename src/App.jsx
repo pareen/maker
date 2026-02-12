@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as db from './lib/database';
-import { fetchUserRepos, mapRepoToProject } from './lib/github';
+import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection } from './lib/github';
 
 // ============================================
 // MAKER PORTFOLIO - Full Functional App
@@ -541,6 +541,19 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   const [editingProject, setEditingProject] = useState(null);
   const [showGitHubImport, setShowGitHubImport] = useState(false);
 
+  // Auto-open GitHub import if user just completed OAuth and has no projects
+  useEffect(() => {
+    const checkOAuthReturn = async () => {
+      if (user.projects.length === 0) {
+        const connection = await getGitHubConnection();
+        if (connection?.connected) {
+          setShowGitHubImport(true);
+        }
+      }
+    };
+    checkOAuthReturn();
+  }, []);
+
   const updateUser = async (updates) => {
     try {
       await db.updateProfile(user.id, { ...user, ...updates });
@@ -664,8 +677,30 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
 
           {user.projects.length === 0 ? (
             <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-              <p style={{ color: '#78716c', marginBottom: '16px' }}>No projects yet. Add your first make!</p>
-              <button className="btn btn-primary" onClick={() => setShowProjectModal(true)}>+ Add Project</button>
+              <h2 style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>Build your maker timeline</h2>
+              <p style={{ color: '#78716c', marginBottom: '24px' }}>Connect GitHub to automatically import your projects</p>
+              <button
+                className="btn btn-primary"
+                style={{ padding: '14px 32px', fontSize: '15px' }}
+                onClick={async () => {
+                  try {
+                    await signInWithGitHub();
+                  } catch (error) {
+                    showNotification(error.message, 'error');
+                  }
+                }}
+              >
+                Connect GitHub
+              </button>
+              <p style={{ marginTop: '24px', color: '#57534e', fontSize: '13px' }}>
+                or{' '}
+                <button
+                  onClick={() => setShowProjectModal(true)}
+                  style={{ background: 'none', border: 'none', color: '#a8a29e', textDecoration: 'underline', cursor: 'pointer', fontSize: '13px' }}
+                >
+                  add projects manually
+                </button>
+              </p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -959,11 +994,37 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
   const [selectedRepos, setSelectedRepos] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState('input'); // input | select | review
+  const [isOAuthConnected, setIsOAuthConnected] = useState(false);
 
   // Review step state
   const [importedProjects, setImportedProjects] = useState([]);
   const [reviewIndex, setReviewIndex] = useState(0);
   const [reviewData, setReviewData] = useState(null);
+
+  // Check for OAuth connection on mount
+  useEffect(() => {
+    const checkOAuthAndFetch = async () => {
+      try {
+        const connection = await getGitHubConnection();
+        if (connection?.connected) {
+          setIsOAuthConnected(true);
+          setLoading(true);
+          const fetchedRepos = await fetchAuthenticatedRepos();
+          if (fetchedRepos) {
+            const mappedRepos = fetchedRepos.map(mapRepoToProject);
+            setRepos(mappedRepos);
+            setSelectedRepos(new Set());
+            setStep('select');
+          }
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('OAuth check failed:', error);
+        setLoading(false);
+      }
+    };
+    checkOAuthAndFetch();
+  }, []);
 
   const handleFetch = async () => {
     if (!username.trim()) return;
