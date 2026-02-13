@@ -1,4 +1,69 @@
+import { supabase, isSupabaseConfigured } from './supabase';
+
 const GITHUB_API_BASE = 'https://api.github.com';
+
+/**
+ * Sign in with GitHub OAuth via Supabase
+ */
+export async function signInWithGitHub() {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase not configured');
+  }
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'github',
+    options: {
+      scopes: 'repo',
+      redirectTo: window.location.origin
+    }
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Fetch repos using OAuth token (includes private repos)
+ */
+export async function fetchAuthenticatedRepos() {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase not configured');
+  }
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.provider_token) {
+    return null; // Not connected to GitHub
+  }
+
+  const response = await fetch(
+    `${GITHUB_API_BASE}/user/repos?per_page=100&sort=pushed&type=all`,
+    {
+      headers: {
+        'Authorization': `Bearer ${session.provider_token}`,
+        'Accept': 'application/vnd.github.v3+json',
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch repositories');
+  }
+
+  return response.json();
+}
+
+/**
+ * Check if user has GitHub connected
+ */
+export async function getGitHubConnection() {
+  if (!isSupabaseConfigured()) return null;
+
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.provider_token ? {
+    connected: true,
+    token: session.provider_token
+  } : null;
+}
 
 /**
  * Fetch public repositories for a GitHub user
