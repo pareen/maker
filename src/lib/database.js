@@ -18,6 +18,19 @@ export async function signUp(email, password, username) {
   })
 
   if (error) throw error
+
+  // Create profile explicitly (don't rely on database trigger)
+  if (data.user) {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: data.user.id,
+        username
+      }, { onConflict: 'id' })
+
+    if (profileError) throw profileError
+  }
+
   return data.user
 }
 
