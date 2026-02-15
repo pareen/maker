@@ -18,19 +18,6 @@ export async function signUp(email, password, username) {
   })
 
   if (error) throw error
-
-  // Create profile explicitly (don't rely on database trigger)
-  if (data.user) {
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .upsert({
-        id: data.user.id,
-        username
-      }, { onConflict: 'id' })
-
-    if (profileError) throw profileError
-  }
-
   return data.user
 }
 
@@ -45,7 +32,31 @@ export async function signIn(email, password) {
   })
 
   if (error) throw error
+
+  // Ensure profile exists (creates on first login)
+  if (data.user) {
+    await ensureProfileExists(data.user)
+  }
+
   return data.user
+}
+
+// Helper to create profile on first authenticated access
+async function ensureProfileExists(user) {
+  const { data: existingProfile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .single()
+
+  if (!existingProfile) {
+    const username = user.user_metadata?.username ||
+                     user.email?.split('@')[0] ||
+                     `user_${user.id.slice(0, 8)}`
+    await supabase
+      .from('profiles')
+      .insert({ id: user.id, username })
+  }
 }
 
 export async function signOut() {
@@ -64,6 +75,9 @@ export async function getCurrentUser() {
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+
+  // Ensure profile exists (handles OAuth first login)
+  await ensureProfileExists(user)
 
   const profile = await getProfile(user.id)
   return { ...user, ...profile }
