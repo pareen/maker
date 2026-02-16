@@ -18,6 +18,13 @@ export async function signUp(email, password, username) {
   })
 
   if (error) throw error
+
+  // Supabase returns a fake user with empty identities for duplicate emails
+  // (instead of an error, to prevent email enumeration)
+  if (!data.user || data.user.identities?.length === 0) {
+    throw new Error('An account with this email already exists')
+  }
+
   return data.user
 }
 
