@@ -73,8 +73,14 @@ export async function getCurrentUser() {
     return getCurrentUserLocal()
   }
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  // Use getSession() instead of getUser() so expired access tokens
+  // are auto-refreshed via the refresh token before returning.
+  // getUser() makes a server call with the raw access token and
+  // returns null when that token has expired.
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) return null
+
+  const user = session.user
 
   // Ensure profile exists (handles OAuth first login)
   await ensureProfileExists(user)
