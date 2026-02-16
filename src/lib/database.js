@@ -131,7 +131,7 @@ export async function getProfile(userId) {
     .single()
 
   if (error && error.code !== 'PGRST116') throw error
-  return data
+  return data ? profileFromDb(data) : data
 }
 
 export async function getProfileByUsername(username) {
@@ -148,8 +148,27 @@ export async function getProfileByUsername(username) {
   if (error) throw error
 
   // Also fetch projects
+  const profile = profileFromDb(data)
   const projects = await getProjectsByUserId(data.id)
-  return { ...data, projects }
+  return { ...profile, projects }
+}
+
+// Convert DB snake_case profile to app camelCase format
+function profileFromDb(dbProfile) {
+  return {
+    id: dbProfile.id,
+    username: dbProfile.username,
+    name: dbProfile.name,
+    bio: dbProfile.bio,
+    firstMake: {
+      description: dbProfile.first_make_description || '',
+      age: dbProfile.first_make_age || ''
+    },
+    domains: dbProfile.domains || [],
+    todayMaking: dbProfile.today_making || '',
+    socials: dbProfile.socials || { twitter: '', github: '', linkedin: '', substack: '', website: '' },
+    embedFeed: dbProfile.embed_feed || { type: null, url: '' }
+  }
 }
 
 export async function updateProfile(userId, updates) {
@@ -209,8 +228,8 @@ export async function createProject(userId, project) {
       one_liner: project.oneLiner,
       role: project.role,
       current_stage: project.currentStage,
-      start_date: project.startDate,
-      end_date: project.endDate,
+      start_date: project.startDate || null,
+      end_date: project.endDate || null,
       ongoing: project.ongoing,
       domains: project.domains,
       links: project.links,
@@ -235,8 +254,8 @@ export async function updateProject(projectId, updates) {
       one_liner: updates.oneLiner,
       role: updates.role,
       current_stage: updates.currentStage,
-      start_date: updates.startDate,
-      end_date: updates.endDate,
+      start_date: updates.startDate || null,
+      end_date: updates.endDate || null,
       ongoing: updates.ongoing,
       domains: updates.domains,
       links: updates.links,
