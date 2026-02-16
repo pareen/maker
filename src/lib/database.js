@@ -9,6 +9,17 @@ export async function signUp(email, password, username) {
     return signUpLocal(email, password, username)
   }
 
+  // Check username uniqueness before creating the auth user
+  const { data: existingProfile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('username', username)
+    .single()
+
+  if (existingProfile) {
+    throw new Error('Username already taken')
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
