@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
-  "homepage": "https://pareen.github.io/maker",
+  "homepage": "https://makerly.me",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
