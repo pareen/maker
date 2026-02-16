@@ -53,8 +53,10 @@ const App = () => {
     loadUser();
 
     // Listen for auth state changes (Supabase)
+    // INITIAL_SESSION fires on first load in Supabase JS v2 (not SIGNED_IN),
+    // so we must handle it to restore the session after page reloads.
     const { data: { subscription } } = db.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
         const profile = await db.getProfile(session.user.id);
         const projects = await db.getProjectsByUserId(session.user.id);
         setCurrentUser({ ...session.user, ...profile, projects });
