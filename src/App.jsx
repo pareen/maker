@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as db from './lib/database';
 import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection } from './lib/github';
+import { isSupabaseConfigured } from './lib/supabase';
 
 // ============================================
 // MAKER PORTFOLIO - Full Functional App
@@ -1129,6 +1130,29 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
 
         {step === 'input' && (
           <>
+            {isSupabaseConfigured() && (
+              <div style={{ marginBottom: '24px' }}>
+                <button
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  onClick={async () => {
+                    try {
+                      await signInWithGitHub();
+                    } catch (error) {
+                      showNotification(error.message, 'error');
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  <span>◐</span> Connect GitHub (includes private repos)
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
+                  <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+                  <span style={{ color: '#57534e', fontSize: '12px' }}>or fetch public repos</span>
+                  <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+                </div>
+              </div>
+            )}
             <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
               <input
                 className="input"
