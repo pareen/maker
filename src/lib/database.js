@@ -77,6 +77,21 @@ async function ensureProfileExists(user) {
   }
 }
 
+export async function signInWithGoogle() {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Google sign-in requires Supabase configuration')
+  }
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin
+    }
+  })
+
+  if (error) throw error
+}
+
 export async function signOut() {
   if (!isSupabaseConfigured()) {
     return signOutLocal()
