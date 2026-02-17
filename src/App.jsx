@@ -478,12 +478,16 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
           {mode === 'login' ? 'Log in to your maker profile' : 'Start tracking what you make'}
         </p>
 
+        <div id="google-signin-btn" style={{ display: 'flex', justifyContent: 'center' }} />
         <button
           className="btn"
           onClick={async () => {
             try {
               setLoading(true);
-              await db.signInWithGoogle();
+              const user = await db.signInWithGoogle();
+              const projects = await db.getProjectsByUserId(user.id);
+              showNotification('Welcome!');
+              onSuccess({ ...user, projects });
             } catch (error) {
               showNotification(error.message, 'error');
               setLoading(false);

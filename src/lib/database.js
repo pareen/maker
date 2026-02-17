@@ -77,19 +77,88 @@ async function ensureProfileExists(user) {
   }
 }
 
-export async function signInWithGoogle() {
-  if (!isSupabaseConfigured()) {
-    throw new Error('Google sign-in requires Supabase configuration')
+export function signInWithGoogle() {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+  if (!clientId) {
+    throw new Error('VITE_GOOGLE_CLIENT_ID is not set')
   }
 
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin
+  return new Promise((resolve, reject) => {
+    if (!window.google?.accounts?.id) {
+      reject(new Error('Google Identity Services not loaded'))
+      return
     }
-  })
 
-  if (error) throw error
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: (response) => {
+        try {
+          // Decode the JWT credential to get user info
+          const payload = JSON.parse(atob(response.credential.split('.')[1]))
+          const googleUser = {
+            id: payload.sub,
+            email: payload.email,
+            name: payload.name || '',
+            picture: payload.picture || ''
+          }
+
+          // Create or find local user keyed by Google ID
+          const user = signInWithGoogleLocal(googleUser)
+          resolve(user)
+        } catch (err) {
+          reject(err)
+        }
+      }
+    })
+
+    // Show the One Tap / popup prompt
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        // Fall back to the button-based popup flow
+        window.google.accounts.id.renderButton(
+          document.getElementById('google-signin-btn'),
+          { theme: 'filled_black', size: 'large', width: 400, text: 'continue_with' }
+        )
+      }
+    })
+  })
+}
+
+function signInWithGoogleLocal(googleUser) {
+  const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}')
+  const googleKey = `google_${googleUser.id}`
+
+  if (users[googleKey]) {
+    // Existing user — update name/picture from Google in case they changed
+    users[googleKey].name = users[googleKey].name || googleUser.name
+    users[googleKey].picture = googleUser.picture
+    localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
+    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[googleKey]))
+    return users[googleKey]
+  }
+
+  // New user
+  const username = googleUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
+  const newUser = {
+    id: googleUser.id,
+    email: googleUser.email,
+    username,
+    name: googleUser.name,
+    picture: googleUser.picture,
+    bio: '',
+    firstMake: { description: '', age: '' },
+    domains: [],
+    socials: { twitter: '', github: '', linkedin: '', substack: '', website: '' },
+    embedFeed: { type: null, url: '' },
+    projects: [],
+    todayMaking: '',
+    createdAt: new Date().toISOString()
+  }
+
+  users[googleKey] = newUser
+  localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
+  localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(newUser))
+  return newUser
 }
 
 export async function signOut() {
