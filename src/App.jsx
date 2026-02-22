@@ -39,6 +39,15 @@ const App = () => {
   useEffect(() => {
     const loadUser = async () => {
       try {
+        // Check for Google OAuth redirect first
+        const googleUser = await db.handleGoogleOAuthRedirect();
+        if (googleUser) {
+          const projects = await db.getProjectsByUserId(googleUser.id);
+          setCurrentUser({ ...googleUser, projects });
+          setCurrentView('dashboard');
+          return;
+        }
+
         const user = await db.getCurrentUser();
         if (user) {
           // Load projects for the user
@@ -481,19 +490,13 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
         <div id="google-signin-btn" style={{ display: 'flex', justifyContent: 'center' }} />
         <button
           className="btn"
-          onClick={async () => {
+          onClick={() => {
             try {
-              setLoading(true);
-              const user = await db.signInWithGoogle();
-              const projects = await db.getProjectsByUserId(user.id);
-              showNotification('Welcome!');
-              onSuccess({ ...user, projects });
+              db.signInWithGoogle();
             } catch (error) {
               showNotification(error.message, 'error');
-              setLoading(false);
             }
           }}
-          disabled={loading}
           style={{
             width: '100%',
             padding: '12px',
