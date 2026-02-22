@@ -116,6 +116,9 @@ export function signInWithGoogle() {
         } catch (err) {
           reject(err)
         }
+      },
+      error_callback: (error) => {
+        reject(new Error(error.type === 'popup_closed' ? 'Sign-in cancelled' : 'Google sign-in failed'))
       }
     })
 
