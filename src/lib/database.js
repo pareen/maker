@@ -77,53 +77,49 @@ async function ensureProfileExists(user) {
   }
 }
 
+// Redirect to Google OAuth (no popups — works reliably everywhere)
 export function signInWithGoogle() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
   if (!clientId) {
     throw new Error('VITE_GOOGLE_CLIENT_ID is not set')
   }
 
-  return new Promise((resolve, reject) => {
-    if (!window.google?.accounts?.oauth2) {
-      reject(new Error('Google Identity Services not loaded'))
-      return
-    }
-
-    const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: 'openid email profile',
-      callback: async (tokenResponse) => {
-        if (tokenResponse.error) {
-          reject(new Error(tokenResponse.error))
-          return
-        }
-
-        try {
-          const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-          })
-          const userInfo = await res.json()
-
-          const googleUser = {
-            id: userInfo.sub,
-            email: userInfo.email,
-            name: userInfo.name || '',
-            picture: userInfo.picture || ''
-          }
-
-          const user = signInWithGoogleLocal(googleUser)
-          resolve(user)
-        } catch (err) {
-          reject(err)
-        }
-      },
-      error_callback: (error) => {
-        reject(new Error(error.type === 'popup_closed' ? 'Sign-in cancelled' : 'Google sign-in failed'))
-      }
-    })
-
-    client.requestAccessToken()
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: window.location.origin,
+    response_type: 'token',
+    scope: 'openid email profile',
+    prompt: 'select_account'
   })
+
+  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
+}
+
+// Called on page load to complete Google OAuth redirect flow
+export async function handleGoogleOAuthRedirect() {
+  const hash = window.location.hash
+  if (!hash.includes('access_token')) return null
+
+  const params = new URLSearchParams(hash.substring(1))
+  const accessToken = params.get('access_token')
+  if (!accessToken) return null
+
+  // Clear the hash from the URL
+  window.history.replaceState(null, '', window.location.pathname)
+
+  const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  })
+  const userInfo = await res.json()
+
+  const googleUser = {
+    id: userInfo.sub,
+    email: userInfo.email,
+    name: userInfo.name || '',
+    picture: userInfo.picture || ''
+  }
+
+  return signInWithGoogleLocal(googleUser)
 }
 
 function signInWithGoogleLocal(googleUser) {
