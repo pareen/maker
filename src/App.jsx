@@ -57,6 +57,8 @@ const App = () => {
         }
       } catch (error) {
         console.error('Error loading user:', error);
+        setNotification({ message: 'Login failed: ' + error.message, type: 'error' });
+        setTimeout(() => setNotification(null), 5000);
       }
     };
 
