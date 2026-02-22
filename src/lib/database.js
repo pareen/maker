@@ -84,25 +84,33 @@ export function signInWithGoogle() {
   }
 
   return new Promise((resolve, reject) => {
-    if (!window.google?.accounts?.id) {
+    if (!window.google?.accounts?.oauth2) {
       reject(new Error('Google Identity Services not loaded'))
       return
     }
 
-    window.google.accounts.id.initialize({
+    const client = window.google.accounts.oauth2.initTokenClient({
       client_id: clientId,
-      callback: (response) => {
+      scope: 'openid email profile',
+      callback: async (tokenResponse) => {
+        if (tokenResponse.error) {
+          reject(new Error(tokenResponse.error))
+          return
+        }
+
         try {
-          // Decode the JWT credential to get user info
-          const payload = JSON.parse(atob(response.credential.split('.')[1]))
+          const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+          })
+          const userInfo = await res.json()
+
           const googleUser = {
-            id: payload.sub,
-            email: payload.email,
-            name: payload.name || '',
-            picture: payload.picture || ''
+            id: userInfo.sub,
+            email: userInfo.email,
+            name: userInfo.name || '',
+            picture: userInfo.picture || ''
           }
 
-          // Create or find local user keyed by Google ID
           const user = signInWithGoogleLocal(googleUser)
           resolve(user)
         } catch (err) {
@@ -111,16 +119,7 @@ export function signInWithGoogle() {
       }
     })
 
-    // Show the One Tap / popup prompt
-    window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        // Fall back to the button-based popup flow
-        window.google.accounts.id.renderButton(
-          document.getElementById('google-signin-btn'),
-          { theme: 'filled_black', size: 'large', width: 400, text: 'continue_with' }
-        )
-      }
-    })
+    client.requestAccessToken()
   })
 }
 
