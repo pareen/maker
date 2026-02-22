@@ -40,11 +40,18 @@ const App = () => {
     const loadUser = async () => {
       try {
         // Check for Google OAuth redirect first
+        const hash = window.location.hash;
         const googleUser = await db.handleGoogleOAuthRedirect();
         if (googleUser) {
-          const projects = await db.getProjectsByUserId(googleUser.id);
-          setCurrentUser({ ...googleUser, projects });
+          setCurrentUser({ ...googleUser, projects: [] });
           setCurrentView('dashboard');
+          return;
+        }
+        // Debug: show what Google returned if hash was present
+        if (hash && hash.length > 1) {
+          const debugInfo = hash.includes('error') ? hash.substring(0, 200) : 'Hash found but login failed';
+          setNotification({ message: debugInfo, type: 'error' });
+          setTimeout(() => setNotification(null), 10000);
           return;
         }
 
