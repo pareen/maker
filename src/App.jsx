@@ -684,6 +684,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
       <header style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600' }}>MAKER.PROFILE</div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <button className="btn btn-secondary" onClick={onEditProfile}>Edit Profile</button>
           <button className="btn btn-primary" onClick={onShare} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>↗</span> Share Profile
           </button>
@@ -720,43 +721,20 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
           )}
         </div>
 
-        {/* Quick Actions */}
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '48px' }}>
-          <button className="btn btn-secondary" onClick={onEditProfile}>Edit Profile</button>
-          <button className="btn btn-primary" onClick={() => { setEditingProject(null); setShowProjectModal(true); }}>+ Add Project</button>
-          <button className="btn btn-secondary" onClick={() => setShowGitHubImport(true)}>Import from GitHub</button>
-        </div>
-
         {/* Projects */}
         <div>
-          <h2 style={{ fontSize: '12px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>YOUR PROJECTS ({user.projects.length})</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '12px', letterSpacing: '0.1em', color: '#57534e' }}>YOUR PROJECTS ({user.projects.length})</h2>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => setShowGitHubImport(true)}>Import from GitHub</button>
+              <button className="btn btn-primary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => { setEditingProject(null); setShowProjectModal(true); }}>+ Add Project</button>
+            </div>
+          </div>
 
           {user.projects.length === 0 ? (
             <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
               <h2 style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>Build your maker timeline</h2>
-              <p style={{ color: '#78716c', marginBottom: '24px' }}>Connect GitHub to automatically import your projects</p>
-              <button
-                className="btn btn-primary"
-                style={{ padding: '14px 32px', fontSize: '15px' }}
-                onClick={async () => {
-                  try {
-                    await signInWithGitHub();
-                  } catch (error) {
-                    showNotification(error.message, 'error');
-                  }
-                }}
-              >
-                Connect GitHub
-              </button>
-              <p style={{ marginTop: '24px', color: '#57534e', fontSize: '13px' }}>
-                or{' '}
-                <button
-                  onClick={() => setShowProjectModal(true)}
-                  style={{ background: 'none', border: 'none', color: '#a8a29e', textDecoration: 'underline', cursor: 'pointer', fontSize: '13px' }}
-                >
-                  add projects manually
-                </button>
-              </p>
+              <p style={{ color: '#78716c', marginBottom: '24px' }}>Import from GitHub or add your first project above</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
