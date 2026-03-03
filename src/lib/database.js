@@ -104,19 +104,20 @@ export async function handleGoogleOAuthRedirect() {
   const accessToken = params.get('access_token')
   if (!accessToken) return null
 
-  // Clear the hash from the URL
-  window.history.replaceState(null, '', window.location.pathname)
-
+  // Check if this is actually a Google token before clearing the hash.
+  // Supabase GitHub OAuth also redirects with #access_token=... and the
+  // Supabase client needs the hash intact to complete its own flow.
   const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: { Authorization: `Bearer ${accessToken}` }
   })
 
-  // If the token isn't a Google token (e.g. it's from Supabase GitHub OAuth),
-  // the Google API will return an error — don't treat this as a Google login
   if (!res.ok) return null
 
   const userInfo = await res.json()
   if (!userInfo.sub) return null
+
+  // Confirmed Google token — now safe to clear the hash
+  window.history.replaceState(null, '', window.location.pathname)
 
   const googleUser = {
     id: userInfo.sub,
