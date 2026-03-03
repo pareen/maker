@@ -114,7 +114,7 @@ export async function handleGoogleOAuthRedirect() {
 
   const googleUser = {
     id: userInfo.sub,
-    email: userInfo.email,
+    email: userInfo.email || '',
     name: userInfo.name || '',
     picture: userInfo.picture || ''
   }
@@ -136,7 +136,9 @@ function signInWithGoogleLocal(googleUser) {
   }
 
   // New user
-  const username = googleUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
+  const username = googleUser.email
+    ? googleUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
+    : `user_${googleUser.id.slice(-8)}`
   const newUser = {
     id: googleUser.id,
     email: googleUser.email,
