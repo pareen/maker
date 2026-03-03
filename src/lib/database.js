@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabase'
+import { supabase, isSupabaseConfigured, _savedHash } from './supabase'
 
 // ============================================
 // AUTH FUNCTIONS
@@ -89,24 +89,32 @@ export function signInWithGoogle() {
     redirect_uri: window.location.origin,
     response_type: 'token',
     scope: 'openid email profile',
-    prompt: 'select_account'
+    prompt: 'select_account',
+    state: 'google_oauth'
   })
 
   window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
 }
 
-// Called on page load to complete Google OAuth redirect flow
+// Called on page load to complete Google OAuth redirect flow.
+// Uses _savedHash (captured before Supabase's createClient can consume it)
+// and checks for state=google_oauth to distinguish Google from Supabase redirects.
 export async function handleGoogleOAuthRedirect() {
-  const hash = window.location.hash
-  if (!hash.includes('access_token')) return null
+  const hash = _savedHash
+  if (!hash || !hash.includes('access_token')) return null
 
   const params = new URLSearchParams(hash.substring(1))
+
+  // Only handle redirects we initiated (state=google_oauth).
+  // Supabase OAuth redirects won't have this — let Supabase handle those.
+  if (params.get('state') !== 'google_oauth') return null
+
   const accessToken = params.get('access_token')
   if (!accessToken) return null
 
-  // Check if this is actually a Google token before clearing the hash.
-  // Supabase GitHub OAuth also redirects with #access_token=... and the
-  // Supabase client needs the hash intact to complete its own flow.
+  // This is our Google redirect — clear the hash so Supabase doesn't also try to process it
+  window.history.replaceState(null, '', window.location.pathname)
+
   const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: { Authorization: `Bearer ${accessToken}` }
   })
@@ -115,9 +123,6 @@ export async function handleGoogleOAuthRedirect() {
 
   const userInfo = await res.json()
   if (!userInfo.sub) return null
-
-  // Confirmed Google token — now safe to clear the hash
-  window.history.replaceState(null, '', window.location.pathname)
 
   const googleUser = {
     id: userInfo.sub,
