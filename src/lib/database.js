@@ -110,7 +110,13 @@ export async function handleGoogleOAuthRedirect() {
   const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: { Authorization: `Bearer ${accessToken}` }
   })
+
+  // If the token isn't a Google token (e.g. it's from Supabase GitHub OAuth),
+  // the Google API will return an error — don't treat this as a Google login
+  if (!res.ok) return null
+
   const userInfo = await res.json()
+  if (!userInfo.sub) return null
 
   const googleUser = {
     id: userInfo.sub,
