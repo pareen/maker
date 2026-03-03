@@ -42,15 +42,15 @@ const App = () => {
         // Check for Google OAuth redirect first
         const googleUser = await db.handleGoogleOAuthRedirect();
         if (googleUser) {
-          const projects = await db.getProjectsByUserId(googleUser.id);
-          setCurrentUser({ ...googleUser, projects });
+          // Google-authed users always use localStorage for data
+          setCurrentUser({ ...googleUser, projects: googleUser.projects || [] });
           setCurrentView('dashboard');
           return;
         }
 
         const user = await db.getCurrentUser();
         if (user) {
-          const projects = await db.getProjectsByUserId(user.id);
+          const projects = user.projects || await db.getProjectsByUserId(user.id);
           setCurrentUser({ ...user, projects });
           setCurrentView('dashboard');
         }
