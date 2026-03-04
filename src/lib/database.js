@@ -174,9 +174,10 @@ function signInWithGoogleLocal(googleUser) {
 }
 
 export async function signOut() {
-  if (!isSupabaseConfigured()) {
-    return signOutLocal()
-  }
+  // Always clear localStorage (Google-authed users use it even with Supabase configured)
+  signOutLocal()
+
+  if (!isSupabaseConfigured()) return
 
   const { error } = await supabase.auth.signOut()
   if (error) throw error
@@ -192,7 +193,10 @@ export async function getCurrentUser() {
   // getUser() makes a server call with the raw access token and
   // returns null when that token has expired.
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.user) return null
+  if (!session?.user) {
+    // No Supabase session — check localStorage for Google-authed users
+    return getCurrentUserLocal()
+  }
 
   const user = session.user
 
