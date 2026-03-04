@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as db from './lib/database';
 import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection } from './lib/github';
 import { isSupabaseConfigured } from './lib/supabase';
@@ -35,6 +35,11 @@ const App = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [notification, setNotification] = useState(null);
 
+  // Track whether the current user was authenticated via Supabase or localStorage.
+  // This prevents Supabase's onAuthStateChange(SIGNED_OUT) from kicking out
+  // users who authenticated via Google OAuth (localStorage-only).
+  const authSourceRef = useRef(null); // 'supabase' | 'local' | null
+
   // Load user on mount and listen for auth changes
   useEffect(() => {
     const loadUser = async () => {
@@ -42,7 +47,7 @@ const App = () => {
         // Check for Google OAuth redirect first
         const googleUser = await db.handleGoogleOAuthRedirect();
         if (googleUser) {
-          // Google-authed users always use localStorage for data
+          authSourceRef.current = 'local';
           setCurrentUser({ ...googleUser, projects: googleUser.projects || [] });
           setCurrentView('dashboard');
           return;
@@ -50,6 +55,8 @@ const App = () => {
 
         const user = await db.getCurrentUser();
         if (user) {
+          // Supabase users have 'aud' field; localStorage users don't
+          authSourceRef.current = user.aud ? 'supabase' : 'local';
           const projects = user.projects || await db.getProjectsByUserId(user.id);
           setCurrentUser({ ...user, projects });
           setCurrentView('dashboard');
@@ -67,15 +74,29 @@ const App = () => {
     // INITIAL_SESSION fires on first load in Supabase JS v2 (not SIGNED_IN),
     // so we must handle it to restore the session after page reloads.
     const { data: { subscription } } = db.onAuthStateChange(async (event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+        // Store GitHub provider_token so it survives page refreshes
+        if (session.provider_token) {
+          localStorage.setItem('makerPortfolio_githubToken', session.provider_token);
+        }
+        authSourceRef.current = 'supabase';
         const profile = await db.getProfile(session.user.id);
         const projects = await db.getProjectsByUserId(session.user.id);
         setCurrentUser({ ...session.user, ...profile, projects });
         setCurrentView('dashboard');
       } else if (event === 'SIGNED_OUT') {
-        setCurrentUser(null);
-        setCurrentView('landing');
+        // Only clear state if user was authenticated via Supabase.
+        // localStorage users (Google OAuth) have no Supabase session,
+        // so SIGNED_OUT would fire spuriously and kick them out.
+        if (authSourceRef.current === 'supabase') {
+          authSourceRef.current = null;
+          localStorage.removeItem('makerPortfolio_githubToken');
+          setCurrentUser(null);
+          setCurrentView('landing');
+        }
       }
+      // INITIAL_SESSION is handled by loadUser() above — skip it here
+      // to avoid a race where both set state simultaneously.
     });
 
     return () => subscription?.unsubscribe();
@@ -89,6 +110,8 @@ const App = () => {
   const handleLogout = async () => {
     try {
       await db.signOut();
+      localStorage.removeItem('makerPortfolio_githubToken');
+      authSourceRef.current = null;
       setCurrentUser(null);
       setCurrentView('landing');
     } catch (error) {
@@ -592,11 +615,15 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   // Auto-open GitHub import if user just completed OAuth and has no projects
   useEffect(() => {
     const checkOAuthReturn = async () => {
-      if (user.projects.length === 0) {
-        const connection = await getGitHubConnection();
-        if (connection?.connected) {
-          setShowGitHubImport(true);
+      try {
+        if (user.projects?.length === 0) {
+          const connection = await getGitHubConnection();
+          if (connection?.connected) {
+            setShowGitHubImport(true);
+          }
         }
+      } catch (error) {
+        console.error('GitHub OAuth check failed:', error);
       }
     };
     checkOAuthReturn();
@@ -654,12 +681,19 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   const importGitHubProjects = async (projects) => {
     const createdProjects = [];
     for (const project of projects) {
-      const { _github, ...projectData } = project;
-      const newProject = await db.createProject(user.id, projectData);
-      createdProjects.push(newProject);
+      try {
+        const { _github, ...projectData } = project;
+        const newProject = await db.createProject(user.id, projectData);
+        createdProjects.push(newProject);
+      } catch (error) {
+        console.error(`Failed to import project ${project.name}:`, error);
+      }
+    }
+    if (createdProjects.length === 0) {
+      throw new Error('Failed to import any projects');
     }
     setUser({ ...user, projects: [...user.projects, ...createdProjects] });
-    return createdProjects; // Return for review flow
+    return createdProjects;
   };
 
   const handleGitHubImportClose = () => {
@@ -1046,6 +1080,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
         }
       } catch (error) {
         console.error('OAuth check failed:', error);
+        showNotification('GitHub connection check failed', 'error');
         setLoading(false);
       }
     };
