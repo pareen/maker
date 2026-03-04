@@ -141,6 +141,8 @@ const App = () => {
 
         .btn { padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500; transition: all 0.15s; font-size: 14px; user-select: none; }
         .btn:active { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn:disabled:hover { box-shadow: none; }
         .btn-primary { background: #fbbf24; color: #0c0a09; }
         .btn-primary:hover { background: #f59e0b; box-shadow: 0 0 16px rgba(251,191,36,0.25); }
         .btn-primary:active { background: #d97706; }
@@ -703,8 +705,12 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
     setShowGitHubImport(false);
     // Refresh projects in case they were updated during review
     db.getProjectsByUserId(user.id).then(projects => {
-      setUser(u => ({ ...u, projects }));
-    });
+      // Only update if we actually got projects back — prevents wiping
+      // projects for localStorage users when Supabase RLS returns empty
+      if (projects && projects.length > 0) {
+        setUser(u => ({ ...u, projects }));
+      }
+    }).catch(err => console.error('Failed to refresh projects:', err));
   };
 
   return (
