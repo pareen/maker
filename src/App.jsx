@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as db from './lib/database';
 import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection } from './lib/github';
 import { isSupabaseConfigured } from './lib/supabase';
@@ -35,6 +35,11 @@ const App = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [notification, setNotification] = useState(null);
 
+  // Track whether the current user was authenticated via Supabase or localStorage.
+  // This prevents Supabase's onAuthStateChange(SIGNED_OUT) from kicking out
+  // users who authenticated via Google OAuth (localStorage-only).
+  const authSourceRef = useRef(null); // 'supabase' | 'local' | null
+
   // Load user on mount and listen for auth changes
   useEffect(() => {
     const loadUser = async () => {
@@ -42,7 +47,7 @@ const App = () => {
         // Check for Google OAuth redirect first
         const googleUser = await db.handleGoogleOAuthRedirect();
         if (googleUser) {
-          // Google-authed users always use localStorage for data
+          authSourceRef.current = 'local';
           setCurrentUser({ ...googleUser, projects: googleUser.projects || [] });
           setCurrentView('dashboard');
           return;
@@ -50,6 +55,8 @@ const App = () => {
 
         const user = await db.getCurrentUser();
         if (user) {
+          // Supabase users have 'aud' field; localStorage users don't
+          authSourceRef.current = user.aud ? 'supabase' : 'local';
           const projects = user.projects || await db.getProjectsByUserId(user.id);
           setCurrentUser({ ...user, projects });
           setCurrentView('dashboard');
@@ -68,13 +75,25 @@ const App = () => {
     // so we must handle it to restore the session after page reloads.
     const { data: { subscription } } = db.onAuthStateChange(async (event, session) => {
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
+        // Store GitHub provider_token so it survives page refreshes
+        if (session.provider_token) {
+          localStorage.setItem('makerPortfolio_githubToken', session.provider_token);
+        }
+        authSourceRef.current = 'supabase';
         const profile = await db.getProfile(session.user.id);
         const projects = await db.getProjectsByUserId(session.user.id);
         setCurrentUser({ ...session.user, ...profile, projects });
         setCurrentView('dashboard');
       } else if (event === 'SIGNED_OUT') {
-        setCurrentUser(null);
-        setCurrentView('landing');
+        // Only clear state if user was authenticated via Supabase.
+        // localStorage users (Google OAuth) have no Supabase session,
+        // so SIGNED_OUT would fire spuriously and kick them out.
+        if (authSourceRef.current === 'supabase') {
+          authSourceRef.current = null;
+          localStorage.removeItem('makerPortfolio_githubToken');
+          setCurrentUser(null);
+          setCurrentView('landing');
+        }
       }
     });
 
@@ -89,6 +108,8 @@ const App = () => {
   const handleLogout = async () => {
     try {
       await db.signOut();
+      localStorage.removeItem('makerPortfolio_githubToken');
+      authSourceRef.current = null;
       setCurrentUser(null);
       setCurrentView('landing');
     } catch (error) {
@@ -118,13 +139,19 @@ const App = () => {
         input:focus, textarea:focus, select:focus { outline: none; }
         a { color: inherit; text-decoration: none; }
 
-        .btn { padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500; transition: all 0.15s; font-size: 14px; }
+        .btn { padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500; transition: all 0.15s; font-size: 14px; user-select: none; }
+        .btn:active { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn:disabled:hover { box-shadow: none; }
         .btn-primary { background: #fbbf24; color: #0c0a09; }
-        .btn-primary:hover { background: #f59e0b; }
+        .btn-primary:hover { background: #f59e0b; box-shadow: 0 0 16px rgba(251,191,36,0.25); }
+        .btn-primary:active { background: #d97706; }
         .btn-secondary { background: rgba(255,255,255,0.08); color: #e7e5e4; border: 1px solid rgba(255,255,255,0.15); }
-        .btn-secondary:hover { background: rgba(255,255,255,0.12); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.25); }
+        .btn-secondary:active { background: rgba(255,255,255,0.06); }
         .btn-ghost { background: transparent; color: #a8a29e; }
-        .btn-ghost:hover { color: #e7e5e4; }
+        .btn-ghost:hover { color: #e7e5e4; background: rgba(255,255,255,0.06); }
+        .btn-ghost:active { background: rgba(255,255,255,0.03); }
 
         .input { width: 100%; padding: 14px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #e7e5e4; font-size: 14px; }
         .input:focus { border-color: #fbbf24; background: rgba(255,255,255,0.08); }
@@ -145,13 +172,14 @@ const App = () => {
         .modal { background: #1c1917; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 32px; max-width: 480px; width: 90%; animation: slideIn 0.2s ease; }
 
         .social-btn { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 0.15s; width: 100%; }
-        .social-btn:hover { background: rgba(255,255,255,0.1); }
+        .social-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+        .social-btn:active { transform: scale(0.98); background: rgba(255,255,255,0.05); }
 
         .stage-dot { width: 10px; height: 10px; border-radius: 50%; transition: all 0.2s; }
         .stage-dot.active { width: 14px; height: 14px; }
 
         .project-card { transition: all 0.15s; cursor: pointer; }
-        .project-card:hover { background: rgba(255,255,255,0.04); }
+        .project-card:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
 
         .ongoing-pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -325,7 +353,7 @@ const LandingPage = ({ onLogin, onSignup }) => {
               </div>
 
               <h3 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>{sampleMaker.name}</h3>
-              <p style={{ color: '#78716c', fontSize: '13px', marginBottom: '16px' }}>maker.profile/{sampleMaker.username}</p>
+              <p style={{ color: '#78716c', fontSize: '13px', marginBottom: '16px' }}>makerly.me/{sampleMaker.username}</p>
               <p style={{ fontSize: '16px', color: '#a8a29e', marginBottom: '24px', lineHeight: 1.5 }}>{sampleMaker.bio}</p>
 
               {/* First Make */}
@@ -535,7 +563,7 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
                 required
               />
-              <div style={{ fontSize: '11px', color: '#57534e', marginTop: '4px' }}>maker.profile/{username || 'yourname'}</div>
+              <div style={{ fontSize: '11px', color: '#57534e', marginTop: '4px' }}>makerly.me/{username || 'yourname'}</div>
             </div>
           )}
 
@@ -592,30 +620,34 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   // Auto-open GitHub import if user just completed OAuth and has no projects
   useEffect(() => {
     const checkOAuthReturn = async () => {
-      if (user.projects.length === 0) {
-        const connection = await getGitHubConnection();
-        if (connection?.connected) {
-          setShowGitHubImport(true);
+      try {
+        if (user.projects?.length === 0) {
+          const connection = await getGitHubConnection();
+          if (connection?.connected) {
+            setShowGitHubImport(true);
+          }
         }
+      } catch (error) {
+        console.error('GitHub OAuth check failed:', error);
       }
     };
     checkOAuthReturn();
   }, []);
 
   const updateUser = async (updates) => {
-    try {
-      await db.updateProfile(user.id, { ...user, ...updates });
-      const updatedUser = { ...user, ...updates };
-      setUser(updatedUser);
-    } catch (error) {
-      console.error('Error updating user:', error);
-      showNotification('Error updating profile', 'error');
-    }
+    await db.updateProfile(user.id, { ...user, ...updates });
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
   };
 
   const saveTodayMaking = async () => {
-    await updateUser({ todayMaking });
-    showNotification('Updated!');
+    try {
+      await updateUser({ todayMaking });
+      showNotification('Updated!');
+    } catch (error) {
+      console.error('Error updating:', error);
+      showNotification('Error saving update', 'error');
+    }
   };
 
   const saveProject = async (project) => {
@@ -654,20 +686,31 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   const importGitHubProjects = async (projects) => {
     const createdProjects = [];
     for (const project of projects) {
-      const { _github, ...projectData } = project;
-      const newProject = await db.createProject(user.id, projectData);
-      createdProjects.push(newProject);
+      try {
+        const { _github, ...projectData } = project;
+        const newProject = await db.createProject(user.id, projectData);
+        createdProjects.push(newProject);
+      } catch (error) {
+        console.error(`Failed to import project ${project.name}:`, error);
+      }
+    }
+    if (createdProjects.length === 0) {
+      throw new Error('Failed to import any projects');
     }
     setUser({ ...user, projects: [...user.projects, ...createdProjects] });
-    return createdProjects; // Return for review flow
+    return createdProjects;
   };
 
   const handleGitHubImportClose = () => {
     setShowGitHubImport(false);
     // Refresh projects in case they were updated during review
     db.getProjectsByUserId(user.id).then(projects => {
-      setUser(u => ({ ...u, projects }));
-    });
+      // Only update if we actually got projects back — prevents wiping
+      // projects for localStorage users when Supabase RLS returns empty
+      if (projects && projects.length > 0) {
+        setUser(u => ({ ...u, projects }));
+      }
+    }).catch(err => console.error('Failed to refresh projects:', err));
   };
 
   return (
@@ -756,6 +799,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
           onImport={importGitHubProjects}
           onClose={handleGitHubImportClose}
           showNotification={showNotification}
+          existingProjects={user.projects}
         />
       )}
     </div>
@@ -1014,7 +1058,7 @@ const ProjectModal = ({ project, onSave, onClose }) => {
 // ============================================
 // GITHUB IMPORT MODAL
 // ============================================
-const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
+const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjects = [] }) => {
   const [username, setUsername] = useState('');
   const [repos, setRepos] = useState([]);
   const [selectedRepos, setSelectedRepos] = useState(new Set());
@@ -1046,6 +1090,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
         }
       } catch (error) {
         console.error('OAuth check failed:', error);
+        showNotification('GitHub connection check failed', 'error');
         setLoading(false);
       }
     };
@@ -1079,7 +1124,13 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
   };
 
   const selectAll = () => {
-    setSelectedRepos(new Set(repos.map((_, i) => i)));
+    const importable = repos.map((repo, i) => {
+      const alreadyImported = existingProjects.some(p =>
+        p.name === repo.name || p.links?.some(l => repo.links?.includes(l))
+      );
+      return alreadyImported ? null : i;
+    }).filter(i => i !== null);
+    setSelectedRepos(new Set(importable));
   };
 
   const selectNone = () => {
@@ -1204,35 +1255,42 @@ const GitHubImportModal = ({ onImport, onClose, showNotification }) => {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', maxHeight: '400px', overflow: 'auto' }}>
-              {repos.map((repo, index) => (
-                <div
-                  key={index}
-                  onClick={() => toggleRepo(index)}
-                  style={{
-                    padding: '12px 16px',
-                    background: selectedRepos.has(index) ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.03)',
-                    border: selectedRepos.has(index) ? '1px solid rgba(251, 191, 36, 0.3)' : '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: '500' }}>{repo.name}</span>
-                        {repo._github.isFork && <span className="tag" style={{ fontSize: '10px' }}>fork</span>}
-                        {repo._github.isArchived && <span className="tag" style={{ fontSize: '10px' }}>archived</span>}
+              {repos.map((repo, index) => {
+                const alreadyImported = existingProjects.some(p =>
+                  p.name === repo.name || p.links?.some(l => repo.links?.includes(l))
+                );
+                return (
+                  <div
+                    key={index}
+                    onClick={() => !alreadyImported && toggleRepo(index)}
+                    style={{
+                      padding: '12px 16px',
+                      background: alreadyImported ? 'rgba(255,255,255,0.02)' : selectedRepos.has(index) ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.03)',
+                      border: selectedRepos.has(index) ? '1px solid rgba(251, 191, 36, 0.3)' : '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: '8px',
+                      cursor: alreadyImported ? 'default' : 'pointer',
+                      transition: 'all 0.15s',
+                      opacity: alreadyImported ? 0.5 : 1
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: '500' }}>{repo.name}</span>
+                          {alreadyImported && <span className="tag" style={{ fontSize: '10px', background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}>imported</span>}
+                          {repo._github.isFork && <span className="tag" style={{ fontSize: '10px' }}>fork</span>}
+                          {repo._github.isArchived && <span className="tag" style={{ fontSize: '10px' }}>archived</span>}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#78716c' }}>{repo.oneLiner}</div>
                       </div>
-                      <div style={{ fontSize: '13px', color: '#78716c' }}>{repo.oneLiner}</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px', color: '#57534e' }}>
-                      {repo._github.language && <span>{repo._github.language}</span>}
-                      <span>★ {repo._github.stars}</span>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px', color: '#57534e' }}>
+                        {repo._github.language && <span>{repo._github.language}</span>}
+                        <span>★ {repo._github.stars}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {repos.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '24px', color: '#57534e' }}>
                   No public repositories found
@@ -1397,7 +1455,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', color: '#57534e', marginBottom: '8px' }}>Username</label>
             <input className="input" value={formData.username} disabled style={{ opacity: 0.6 }} />
-            <div style={{ fontSize: '11px', color: '#57534e', marginTop: '4px' }}>maker.profile/{formData.username}</div>
+            <div style={{ fontSize: '11px', color: '#57534e', marginTop: '4px' }}>makerly.me/{formData.username}</div>
           </div>
 
           <div>
@@ -1536,6 +1594,42 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
 };
 
 // ============================================
+// TWITTER EMBED
+// ============================================
+const TwitterEmbed = ({ username }) => {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Clear any previous embed
+    containerRef.current.innerHTML = '';
+
+    // Create the timeline anchor that Twitter's widget.js looks for
+    const anchor = document.createElement('a');
+    anchor.className = 'twitter-timeline';
+    anchor.setAttribute('data-theme', 'dark');
+    anchor.setAttribute('data-chrome', 'noheader nofooter noborders transparent');
+    anchor.setAttribute('data-tweet-limit', '3');
+    anchor.href = `https://twitter.com/${username}`;
+    anchor.textContent = `Tweets by @${username}`;
+    containerRef.current.appendChild(anchor);
+
+    // Load or re-run the Twitter widget script
+    if (window.twttr?.widgets) {
+      window.twttr.widgets.load(containerRef.current);
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://platform.twitter.com/widgets.js';
+      script.async = true;
+      containerRef.current.appendChild(script);
+    }
+  }, [username]);
+
+  return <div ref={containerRef} style={{ maxHeight: '500px', overflow: 'auto' }} />;
+};
+
+// ============================================
 // PROFILE VIEW (Public)
 // ============================================
 const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
@@ -1558,7 +1652,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
       <header style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button className="btn btn-ghost" onClick={onBack}>← Back</button>
-          <span style={{ fontSize: '14px', letterSpacing: '0.1em', color: '#57534e' }}>maker.profile/{user.username}</span>
+          <span style={{ fontSize: '14px', letterSpacing: '0.1em', color: '#57534e' }}>makerly.me/{user.username}</span>
         </div>
         {isOwner && (
           <div style={{ display: 'flex', gap: '12px' }}>
@@ -1676,23 +1770,16 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
             <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>
               {user.embedFeed.type === 'twitter' ? 'LATEST TWEETS' : 'LATEST POSTS'}
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '24px', textAlign: 'center', color: '#57534e' }}>
-              {user.embedFeed.type === 'twitter' ? (
-                <div>
-                  <p style={{ marginBottom: '12px' }}>Twitter embed for {user.embedFeed.url}</p>
-                  <a href={`https://twitter.com/${user.embedFeed.url.replace('@', '')}`} target="_blank" rel="noopener" className="btn btn-secondary">
-                    View on Twitter ↗
-                  </a>
-                </div>
-              ) : (
-                <div>
-                  <p style={{ marginBottom: '12px' }}>Substack feed from {user.embedFeed.url}</p>
-                  <a href={user.embedFeed.url} target="_blank" rel="noopener" className="btn btn-secondary">
-                    View on Substack ↗
-                  </a>
-                </div>
-              )}
-            </div>
+            {user.embedFeed.type === 'twitter' ? (
+              <TwitterEmbed username={user.embedFeed.url.replace('@', '')} />
+            ) : (
+              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '24px', textAlign: 'center', color: '#57534e' }}>
+                <p style={{ marginBottom: '12px' }}>Substack feed from {user.embedFeed.url}</p>
+                <a href={user.embedFeed.url} target="_blank" rel="noopener" className="btn btn-secondary">
+                  View on Substack ↗
+                </a>
+              </div>
+            )}
           </div>
         )}
 
@@ -1771,7 +1858,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
 // SHARE MODAL
 // ============================================
 const ShareModal = ({ username, onClose, showNotification }) => {
-  const profileUrl = `maker.profile/${username}`;
+  const profileUrl = `makerly.me/${username}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(`https://${profileUrl}`);

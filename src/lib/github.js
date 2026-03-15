@@ -3,11 +3,30 @@ import { supabase, isSupabaseConfigured } from './supabase';
 const GITHUB_API_BASE = 'https://api.github.com';
 
 /**
+ * Get the GitHub token from either the Supabase session or localStorage.
+ * Supabase only provides provider_token on the initial OAuth callback;
+ * after a page refresh it's gone. We persist it in localStorage so
+ * GitHub API calls keep working across reloads.
+ */
+async function getGitHubToken() {
+  if (isSupabaseConfigured()) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.provider_token) {
+      // Fresh token from Supabase — persist it
+      localStorage.setItem('makerPortfolio_githubToken', session.provider_token);
+      return session.provider_token;
+    }
+  }
+  // Fall back to persisted token
+  return localStorage.getItem('makerPortfolio_githubToken');
+}
+
+/**
  * Sign in with GitHub OAuth via Supabase
  */
 export async function signInWithGitHub() {
   if (!isSupabaseConfigured()) {
-    throw new Error('Supabase not configured');
+    throw new Error('Supabase not configured. GitHub OAuth requires Supabase.');
   }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -26,26 +45,28 @@ export async function signInWithGitHub() {
  * Fetch repos using OAuth token (includes private repos)
  */
 export async function fetchAuthenticatedRepos() {
-  if (!isSupabaseConfigured()) {
-    throw new Error('Supabase not configured');
-  }
-
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.provider_token) {
-    return null; // Not connected to GitHub
-  }
+  const token = await getGitHubToken();
+  if (!token) return null;
 
   const response = await fetch(
     `${GITHUB_API_BASE}/user/repos?per_page=100&sort=pushed&type=all`,
     {
       headers: {
-        'Authorization': `Bearer ${session.provider_token}`,
+        'Authorization': `Bearer ${token}`,
         'Accept': 'application/vnd.github.v3+json',
       }
     }
   );
 
   if (!response.ok) {
+    if (response.status === 401) {
+      // Token expired — clear it
+      localStorage.removeItem('makerPortfolio_githubToken');
+      return null;
+    }
+    if (response.status === 403) {
+      throw new Error('GitHub API rate limit exceeded. Try again later.');
+    }
     throw new Error('Failed to fetch repositories');
   }
 
@@ -56,13 +77,8 @@ export async function fetchAuthenticatedRepos() {
  * Check if user has GitHub connected
  */
 export async function getGitHubConnection() {
-  if (!isSupabaseConfigured()) return null;
-
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.provider_token ? {
-    connected: true,
-    token: session.provider_token
-  } : null;
+  const token = await getGitHubToken();
+  return token ? { connected: true } : null;
 }
 
 /**
@@ -121,7 +137,7 @@ export function mapRepoToProject(repo) {
     oneLiner: repo.description || `A ${repo.language || 'code'} project`,
     role: 'solo',
     currentStage: inferStage(repo),
-    startDate: repo.created_at.split('T')[0],
+    startDate: repo.created_at ? repo.created_at.split('T')[0] : '',
     ongoing: !repo.archived,
     domains,
     links,
