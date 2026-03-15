@@ -40,13 +40,19 @@ const App = () => {
   // users who authenticated via Google OAuth (localStorage-only).
   const authSourceRef = useRef(null); // 'supabase' | 'local' | null
 
+  // Version counter to prevent stale async callbacks from overwriting newer state.
+  // Every auth action increments this; async callbacks check it before applying state.
+  const authVersionRef = useRef(0);
+
   // Load user on mount and listen for auth changes
   useEffect(() => {
     const loadUser = async () => {
+      const version = ++authVersionRef.current;
       try {
         // Check for Google OAuth redirect first
         const googleUser = await db.handleGoogleOAuthRedirect();
         if (googleUser) {
+          if (authVersionRef.current !== version) return; // stale
           authSourceRef.current = 'local';
           setCurrentUser({ ...googleUser, projects: googleUser.projects || [] });
           setCurrentView('dashboard');
@@ -55,13 +61,16 @@ const App = () => {
 
         const user = await db.getCurrentUser();
         if (user) {
+          if (authVersionRef.current !== version) return; // stale
           // Supabase users have 'aud' field; localStorage users don't
           authSourceRef.current = user.aud ? 'supabase' : 'local';
           const projects = user.projects || await db.getProjectsByUserId(user.id);
+          if (authVersionRef.current !== version) return; // stale
           setCurrentUser({ ...user, projects });
           setCurrentView('dashboard');
         }
       } catch (error) {
+        if (authVersionRef.current !== version) return; // stale
         console.error('Error loading user:', error);
         setNotification({ message: 'Login failed: ' + error.message, type: 'error' });
         setTimeout(() => setNotification(null), 5000);
@@ -70,18 +79,25 @@ const App = () => {
 
     loadUser();
 
-    // Listen for auth state changes (Supabase)
-    // INITIAL_SESSION fires on first load in Supabase JS v2 (not SIGNED_IN),
-    // so we must handle it to restore the session after page reloads.
+    // Listen for Supabase auth state changes.
+    // DO NOT handle INITIAL_SESSION here — loadUser() handles initial session
+    // restoration via getSession() (which auto-refreshes expired tokens).
+    // Handling INITIAL_SESSION here caused a race condition: it set
+    // authSourceRef='supabase' before async work finished, then SIGNED_OUT
+    // fired during that async work and kicked the user out (flickering).
     const { data: { subscription } } = db.onAuthStateChange(async (event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
-        // Store GitHub provider_token so it survives page refreshes
-        if (session.provider_token) {
-          localStorage.setItem('makerPortfolio_githubToken', session.provider_token);
-        }
+      // Always persist GitHub provider_token when available
+      if (session?.provider_token) {
+        localStorage.setItem('makerPortfolio_githubToken', session.provider_token);
+      }
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Explicit login (user action or cross-tab sign-in)
+        const version = ++authVersionRef.current;
         authSourceRef.current = 'supabase';
         const profile = await db.getProfile(session.user.id);
         const projects = await db.getProjectsByUserId(session.user.id);
+        if (authVersionRef.current !== version) return; // stale
         setCurrentUser({ ...session.user, ...profile, projects });
         setCurrentView('dashboard');
       } else if (event === 'SIGNED_OUT') {
@@ -89,6 +105,7 @@ const App = () => {
         // localStorage users (Google OAuth) have no Supabase session,
         // so SIGNED_OUT would fire spuriously and kick them out.
         if (authSourceRef.current === 'supabase') {
+          authVersionRef.current++;
           authSourceRef.current = null;
           localStorage.removeItem('makerPortfolio_githubToken');
           setCurrentUser(null);
