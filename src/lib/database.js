@@ -504,14 +504,14 @@ function updateProjectLocal(projectId, updates) {
   if (!currentUser) return null
 
   const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}')
-  const userEmail = currentUser.email
+  const userKey = Object.keys(users).find(key => users[key].id === currentUser.id)
 
-  if (users[userEmail]) {
-    users[userEmail].projects = users[userEmail].projects.map(p =>
+  if (userKey && users[userKey]) {
+    users[userKey].projects = users[userKey].projects.map(p =>
       p.id === projectId ? { ...p, ...updates } : p
     )
     localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
-    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userEmail]))
+    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userKey]))
     return updates
   }
   return null
@@ -522,11 +522,11 @@ function deleteProjectLocal(projectId) {
   if (!currentUser) return
 
   const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}')
-  const userEmail = currentUser.email
+  const userKey = Object.keys(users).find(key => users[key].id === currentUser.id)
 
-  if (users[userEmail]) {
-    users[userEmail].projects = users[userEmail].projects.filter(p => p.id !== projectId)
+  if (userKey && users[userKey]) {
+    users[userKey].projects = users[userKey].projects.filter(p => p.id !== projectId)
     localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
-    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userEmail]))
+    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userKey]))
   }
 }

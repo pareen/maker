@@ -1833,9 +1833,13 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                     {/* Project links */}
                     {project.links?.length > 0 && (
                       <div style={{ marginTop: '12px', display: 'flex', gap: '16px' }}>
-                        {project.links.map(link => (
-                          <a key={link} href={link} target="_blank" rel="noopener" style={{ color: '#fbbf24', fontSize: '13px' }}>↗ {new URL(link).hostname}</a>
-                        ))}
+                        {project.links.map(link => {
+                          let hostname;
+                          try { hostname = new URL(link).hostname; } catch { hostname = link; }
+                          return (
+                            <a key={link} href={link} target="_blank" rel="noopener" style={{ color: '#fbbf24', fontSize: '13px' }}>↗ {hostname}</a>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
