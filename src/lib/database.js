@@ -1,5 +1,17 @@
 import { supabase, isSupabaseConfigured, _savedHash } from './supabase'
 
+// Track whether the current user authenticated via Supabase or localStorage.
+// Google OAuth users are stored in localStorage even when Supabase is configured,
+// so CRUD functions must route based on auth mode, not just isSupabaseConfigured().
+let _authMode = null // 'supabase' | 'local' | null
+export function setAuthMode(mode) { _authMode = mode }
+export function getAuthMode() { return _authMode }
+
+// Use Supabase for CRUD operations only if configured AND user has a Supabase session
+function useSupabase() {
+  return isSupabaseConfigured() && _authMode === 'supabase'
+}
+
 // ============================================
 // AUTH FUNCTIONS
 // ============================================
@@ -220,7 +232,7 @@ export function onAuthStateChange(callback) {
 // ============================================
 
 export async function getProfile(userId) {
-  if (!isSupabaseConfigured()) {
+  if (!useSupabase()) {
     return getProfileLocal(userId)
   }
 
@@ -235,22 +247,24 @@ export async function getProfile(userId) {
 }
 
 export async function getProfileByUsername(username) {
-  if (!isSupabaseConfigured()) {
-    return getProfileByUsernameLocal(username)
+  // Public profile lookup: check both Supabase and localStorage.
+  // The viewed user might be stored in either backend.
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('username', username)
+      .single()
+
+    if (data && !error) {
+      const profile = profileFromDb(data)
+      const projects = await getProjectsByUserId(data.id)
+      return { ...profile, projects }
+    }
   }
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('username', username)
-    .single()
-
-  if (error) throw error
-
-  // Also fetch projects
-  const profile = profileFromDb(data)
-  const projects = await getProjectsByUserId(data.id)
-  return { ...profile, projects }
+  // Fall back to localStorage (covers Google OAuth users and no-Supabase setups)
+  return getProfileByUsernameLocal(username)
 }
 
 // Convert DB snake_case profile to app camelCase format
@@ -272,7 +286,7 @@ function profileFromDb(dbProfile) {
 }
 
 export async function updateProfile(userId, updates) {
-  if (!isSupabaseConfigured()) {
+  if (!useSupabase()) {
     return updateProfileLocal(userId, updates)
   }
 
@@ -301,7 +315,7 @@ export async function updateProfile(userId, updates) {
 // ============================================
 
 export async function getProjectsByUserId(userId) {
-  if (!isSupabaseConfigured()) {
+  if (!useSupabase()) {
     return getProjectsByUserIdLocal(userId)
   }
 
@@ -316,7 +330,7 @@ export async function getProjectsByUserId(userId) {
 }
 
 export async function createProject(userId, project) {
-  if (!isSupabaseConfigured()) {
+  if (!useSupabase()) {
     return createProjectLocal(userId, project)
   }
 
@@ -343,7 +357,7 @@ export async function createProject(userId, project) {
 }
 
 export async function updateProject(projectId, updates) {
-  if (!isSupabaseConfigured()) {
+  if (!useSupabase()) {
     return updateProjectLocal(projectId, updates)
   }
 
@@ -370,7 +384,7 @@ export async function updateProject(projectId, updates) {
 }
 
 export async function deleteProject(projectId) {
-  if (!isSupabaseConfigured()) {
+  if (!useSupabase()) {
     return deleteProjectLocal(projectId)
   }
 

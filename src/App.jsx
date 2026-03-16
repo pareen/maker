@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as db from './lib/database';
+import { setAuthMode } from './lib/database';
 import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection } from './lib/github';
 import { isSupabaseConfigured } from './lib/supabase';
 
@@ -54,6 +55,7 @@ const App = () => {
         if (googleUser) {
           if (authVersionRef.current !== version) return; // stale
           authSourceRef.current = 'local';
+          setAuthMode('local');
           setCurrentUser({ ...googleUser, projects: googleUser.projects || [] });
           setCurrentView('dashboard');
           return;
@@ -63,7 +65,9 @@ const App = () => {
         if (user) {
           if (authVersionRef.current !== version) return; // stale
           // Supabase users have 'aud' field; localStorage users don't
-          authSourceRef.current = user.aud ? 'supabase' : 'local';
+          const source = user.aud ? 'supabase' : 'local';
+          authSourceRef.current = source;
+          setAuthMode(source);
           const projects = user.projects || await db.getProjectsByUserId(user.id);
           if (authVersionRef.current !== version) return; // stale
           setCurrentUser({ ...user, projects });
@@ -95,6 +99,7 @@ const App = () => {
         // Explicit login (user action or cross-tab sign-in)
         const version = ++authVersionRef.current;
         authSourceRef.current = 'supabase';
+        setAuthMode('supabase');
         const profile = await db.getProfile(session.user.id);
         const projects = await db.getProjectsByUserId(session.user.id);
         if (authVersionRef.current !== version) return; // stale
@@ -107,6 +112,7 @@ const App = () => {
         if (authSourceRef.current === 'supabase') {
           authVersionRef.current++;
           authSourceRef.current = null;
+          setAuthMode(null);
           localStorage.removeItem('makerPortfolio_githubToken');
           setCurrentUser(null);
           setCurrentView('landing');
@@ -127,6 +133,7 @@ const App = () => {
       await db.signOut();
       localStorage.removeItem('makerPortfolio_githubToken');
       authSourceRef.current = null;
+      setAuthMode(null);
       setCurrentUser(null);
       setCurrentView('landing');
     } catch (error) {
