@@ -1232,7 +1232,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
 
         {step === 'input' && (
           <>
-            {isSupabaseConfigured() && (
+            {(isSupabaseConfigured() || import.meta.env.VITE_GITHUB_CLIENT_ID) && (
               <div style={{ marginBottom: '24px' }}>
                 <button
                   className="btn btn-primary"
