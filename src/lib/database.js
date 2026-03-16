@@ -259,7 +259,8 @@ export async function getProfileByUsername(username) {
     if (data && !error) {
       const profile = profileFromDb(data)
       const projects = await getProjectsByUserId(data.id)
-      return { ...profile, projects }
+      const updates = await getUpdatesByUserId(data.id)
+      return { ...profile, projects, updates }
     }
   }
 
@@ -392,6 +393,60 @@ export async function deleteProject(projectId) {
     .from('projects')
     .delete()
     .eq('id', projectId)
+
+  if (error) throw error
+}
+
+// ============================================
+// UPDATE FUNCTIONS (timeline / feed)
+// ============================================
+
+export async function getUpdatesByUserId(userId) {
+  if (!useSupabase()) {
+    return getUpdatesByUserIdLocal(userId)
+  }
+
+  const { data, error } = await supabase
+    .from('updates')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data
+}
+
+export async function createUpdate(userId, content) {
+  if (!useSupabase()) {
+    return createUpdateLocal(userId, content)
+  }
+
+  const { data, error } = await supabase
+    .from('updates')
+    .insert({ user_id: userId, content })
+    .select()
+    .single()
+
+  if (error) throw error
+
+  // Also update today_making on the profile so the latest update shows there
+  await supabase
+    .from('profiles')
+    .update({ today_making: content })
+    .eq('id', userId)
+
+  return data
+}
+
+export async function deleteUpdate(updateId) {
+  if (!useSupabase()) {
+    return deleteUpdateLocal(updateId)
+  }
+
+  const { error } = await supabase
+    .from('updates')
+    .delete()
+    .eq('id', updateId)
 
   if (error) throw error
 }
@@ -545,4 +600,35 @@ function deleteProjectLocal(projectId) {
     localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
     localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userKey]))
   }
+}
+
+function getUpdatesByUserIdLocal(userId) {
+  const updates = JSON.parse(localStorage.getItem('makerPortfolio_updates') || '{}')
+  return (updates[userId] || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+}
+
+function createUpdateLocal(userId, content) {
+  const updates = JSON.parse(localStorage.getItem('makerPortfolio_updates') || '{}')
+  const newUpdate = { id: Date.now().toString(), user_id: userId, content, created_at: new Date().toISOString() }
+  updates[userId] = [newUpdate, ...(updates[userId] || [])]
+  localStorage.setItem('makerPortfolio_updates', JSON.stringify(updates))
+
+  // Also update todayMaking on the user profile
+  const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}')
+  const userKey = Object.keys(users).find(key => users[key].id === userId)
+  if (userKey) {
+    users[userKey].todayMaking = content
+    localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
+    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userKey]))
+  }
+
+  return newUpdate
+}
+
+function deleteUpdateLocal(updateId) {
+  const updates = JSON.parse(localStorage.getItem('makerPortfolio_updates') || '{}')
+  for (const userId of Object.keys(updates)) {
+    updates[userId] = updates[userId].filter(u => u.id !== updateId)
+  }
+  localStorage.setItem('makerPortfolio_updates', JSON.stringify(updates))
 }

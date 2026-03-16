@@ -654,10 +654,16 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
 // DASHBOARD
 // ============================================
 const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onShare, showNotification }) => {
-  const [todayMaking, setTodayMaking] = useState(user.todayMaking || '');
+  const [updateText, setUpdateText] = useState('');
+  const [updates, setUpdates] = useState([]);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [showGitHubImport, setShowGitHubImport] = useState(false);
+
+  // Load updates on mount
+  useEffect(() => {
+    db.getUpdatesByUserId(user.id).then(setUpdates).catch(console.error);
+  }, [user.id]);
 
   // Auto-open GitHub import if user just completed OAuth and has no projects
   useEffect(() => {
@@ -682,13 +688,28 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
     setUser(updatedUser);
   };
 
-  const saveTodayMaking = async () => {
+  const postUpdate = async () => {
+    if (!updateText.trim()) return;
     try {
-      await updateUser({ todayMaking });
-      showNotification('Updated!');
+      const newUpdate = await db.createUpdate(user.id, updateText.trim());
+      setUpdates([newUpdate, ...updates]);
+      setUser({ ...user, todayMaking: updateText.trim() });
+      setUpdateText('');
+      showNotification('Update posted!');
     } catch (error) {
-      console.error('Error updating:', error);
-      showNotification('Error saving update', 'error');
+      console.error('Error posting update:', error);
+      showNotification('Error posting update', 'error');
+    }
+  };
+
+  const handleDeleteUpdate = async (updateId) => {
+    try {
+      await db.deleteUpdate(updateId);
+      setUpdates(updates.filter(u => u.id !== updateId));
+      showNotification('Update deleted');
+    } catch (error) {
+      console.error('Error deleting update:', error);
+      showNotification('Error deleting update', 'error');
     }
   };
 
@@ -779,24 +800,49 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
           <p style={{ color: '#78716c' }}>What are you making today?</p>
         </div>
 
-        {/* Today's Making */}
+        {/* Post Update */}
         <div className="card" style={{ padding: '24px', marginBottom: '32px' }}>
           <div style={{ display: 'flex', gap: '12px' }}>
             <input
               className="input"
-              placeholder="Working on the landing page for my new app..."
-              value={todayMaking}
-              onChange={(e) => setTodayMaking(e.target.value)}
+              placeholder="What are you making today?"
+              value={updateText}
+              onChange={(e) => setUpdateText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && postUpdate()}
               style={{ flex: 1 }}
             />
-            <button className="btn btn-primary" onClick={saveTodayMaking}>Update</button>
+            <button className="btn btn-primary" onClick={postUpdate}>Post</button>
           </div>
-          {user.todayMaking && (
-            <div style={{ marginTop: '12px', fontSize: '12px', color: '#57534e' }}>
-              This shows on your public profile
-            </div>
-          )}
+          <div style={{ marginTop: '8px', fontSize: '12px', color: '#57534e' }}>
+            Latest update shows on your public profile. All updates are saved as a timeline.
+          </div>
         </div>
+
+        {/* Updates Timeline */}
+        {updates.length > 0 && (
+          <div style={{ marginBottom: '32px' }}>
+            <h2 style={{ fontSize: '12px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>UPDATES ({updates.length})</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+              {updates.map((update) => (
+                <div key={update.id} className="card" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ color: '#d6d3d1', fontSize: '14px' }}>{update.content}</span>
+                    <div style={{ fontSize: '11px', color: '#57534e', marginTop: '6px' }}>
+                      {new Date(update.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {' · '}
+                      {new Date(update.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteUpdate(update.id)}
+                    style={{ background: 'none', border: 'none', color: '#57534e', cursor: 'pointer', fontSize: '16px', padding: '2px 6px', lineHeight: 1 }}
+                    title="Delete update"
+                  >×</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Projects */}
         <div>
@@ -1721,10 +1767,10 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         {/* Profile Header */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '60px', marginBottom: '60px' }}>
           <div>
-            {/* Today Making */}
+            {/* Latest Update */}
             {user.todayMaking && (
               <div style={{ marginBottom: '24px', padding: '12px 16px', background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '8px' }}>
-                <span style={{ fontSize: '11px', color: '#4ade80', fontWeight: '500' }}>MAKING TODAY: </span>
+                <span style={{ fontSize: '11px', color: '#4ade80', fontWeight: '500' }}>LATEST: </span>
                 <span style={{ color: '#a8a29e' }}>{user.todayMaking}</span>
               </div>
             )}
@@ -1833,6 +1879,26 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                 </a>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Updates Timeline */}
+        {user.updates?.length > 0 && (
+          <div style={{ marginBottom: '48px' }}>
+            <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>
+              UPDATES ({user.updates.length})
+            </div>
+            <div style={{ borderLeft: '2px solid rgba(74, 222, 128, 0.2)', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {user.updates.map((update) => (
+                <div key={update.id} style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '-27px', top: '6px', width: '10px', height: '10px', borderRadius: '50%', background: '#1c1917', border: '2px solid rgba(74, 222, 128, 0.4)' }} />
+                  <div style={{ color: '#d6d3d1', fontSize: '14px', lineHeight: 1.5 }}>{update.content}</div>
+                  <div style={{ fontSize: '11px', color: '#57534e', marginTop: '4px' }}>
+                    {new Date(update.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
