@@ -483,15 +483,16 @@ function getProfileByUsernameLocal(username) {
 
 function updateProfileLocal(userId, updates) {
   const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}')
-  const userEmail = Object.keys(users).find(email => users[email].id === userId)
+  const userKey = Object.keys(users).find(key => users[key].id === userId)
 
-  if (userEmail) {
-    users[userEmail] = { ...users[userEmail], ...updates }
-    localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
-    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userEmail]))
-    return users[userEmail]
+  if (!userKey) {
+    throw new Error('User not found in local storage. Please log out and log back in.')
   }
-  return null
+
+  users[userKey] = { ...users[userKey], ...updates }
+  localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
+  localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userKey]))
+  return users[userKey]
 }
 
 function getProjectsByUserIdLocal(userId) {
@@ -501,16 +502,17 @@ function getProjectsByUserIdLocal(userId) {
 
 function createProjectLocal(userId, project) {
   const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}')
-  const userEmail = Object.keys(users).find(email => users[email].id === userId)
+  const userKey = Object.keys(users).find(key => users[key].id === userId)
 
-  if (userEmail) {
-    const newProject = { ...project, id: Date.now().toString() }
-    users[userEmail].projects = [...(users[userEmail].projects || []), newProject]
-    localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
-    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userEmail]))
-    return newProject
+  if (!userKey) {
+    throw new Error('User not found in local storage. Please log out and log back in.')
   }
-  return null
+
+  const newProject = { ...project, id: Date.now().toString() }
+  users[userKey].projects = [...(users[userKey].projects || []), newProject]
+  localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
+  localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userKey]))
+  return newProject
 }
 
 function updateProjectLocal(projectId, updates) {

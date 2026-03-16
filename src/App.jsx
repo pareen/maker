@@ -239,7 +239,13 @@ const App = () => {
           mode="login"
           onSwitch={() => setCurrentView('signup')}
           onBack={() => setCurrentView('landing')}
-          onSuccess={(user) => { setCurrentUser(user); setCurrentView('dashboard'); }}
+          onSuccess={(user) => {
+            const source = user.aud ? 'supabase' : 'local';
+            authSourceRef.current = source;
+            setAuthMode(source);
+            setCurrentUser(user);
+            setCurrentView('dashboard');
+          }}
           showNotification={showNotification}
         />
       )}
@@ -249,7 +255,13 @@ const App = () => {
           mode="signup"
           onSwitch={() => setCurrentView('login')}
           onBack={() => setCurrentView('landing')}
-          onSuccess={(user) => { setCurrentUser(user); setCurrentView('dashboard'); }}
+          onSuccess={(user) => {
+            const source = user.aud ? 'supabase' : 'local';
+            authSourceRef.current = source;
+            setAuthMode(source);
+            setCurrentUser(user);
+            setCurrentView('dashboard');
+          }}
           showNotification={showNotification}
         />
       )}
@@ -521,6 +533,8 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
         onSuccess({ ...user, username, projects: [] });
       } else {
         const user = await db.signIn(email, password);
+        // Set auth mode BEFORE CRUD calls so they route to the correct backend
+        db.setAuthMode(user.aud ? 'supabase' : 'local');
         const profile = await db.getProfile(user.id);
         const projects = await db.getProjectsByUserId(user.id);
         showNotification('Welcome back!');
@@ -923,10 +937,21 @@ const ProjectModal = ({ project, onSave, onClose }) => {
   };
 
   const addLink = () => {
-    if (newLink && !formData.links.includes(newLink)) {
-      setFormData({ ...formData, links: [...formData.links, newLink] });
-      setNewLink('');
+    if (!newLink) return;
+    // Auto-prepend https:// if user typed a bare domain
+    let url = newLink.trim();
+    if (url && !url.match(/^https?:\/\//i)) {
+      url = 'https://' + url;
     }
+    try {
+      new URL(url); // validate URL format
+    } catch {
+      return; // silently reject invalid URLs
+    }
+    if (!formData.links.includes(url)) {
+      setFormData({ ...formData, links: [...formData.links, url] });
+    }
+    setNewLink('');
   };
 
   return (
