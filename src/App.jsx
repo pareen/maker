@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as db from './lib/database';
 import { setAuthMode } from './lib/database';
-import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection } from './lib/github';
+import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection, handleGitHubOAuthRedirect } from './lib/github';
 import { isSupabaseConfigured } from './lib/supabase';
 
 // ============================================
@@ -60,6 +60,10 @@ const App = () => {
           setCurrentView('dashboard');
           return;
         }
+
+        // Check for GitHub OAuth redirect (repo import, not login)
+        // This exchanges the code for a token and stores it in localStorage.
+        await handleGitHubOAuthRedirect();
 
         const user = await db.getCurrentUser();
         if (user) {
