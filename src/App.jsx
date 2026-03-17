@@ -4,6 +4,8 @@ import { setAuthMode } from './lib/database';
 import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection, handleGitHubOAuthRedirect } from './lib/github';
 import { isSupabaseConfigured } from './lib/supabase';
 
+const ensureUrl = (url) => url && !/^https?:\/\//i.test(url) ? `https://${url}` : url;
+
 // ============================================
 // MAKER PORTFOLIO - Full Functional App
 // ============================================
@@ -1809,27 +1811,27 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
             {Object.values(user.socials || {}).some(v => v) && (
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                 {user.socials?.twitter && (
-                  <a href={user.socials.twitter} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={ensureUrl(user.socials.twitter)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>𝕏</span> Twitter
                   </a>
                 )}
                 {user.socials?.github && (
-                  <a href={user.socials.github} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={ensureUrl(user.socials.github)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>◐</span> GitHub
                   </a>
                 )}
                 {user.socials?.linkedin && (
-                  <a href={user.socials.linkedin} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={ensureUrl(user.socials.linkedin)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>in</span> LinkedIn
                   </a>
                 )}
                 {user.socials?.substack && (
-                  <a href={user.socials.substack} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={ensureUrl(user.socials.substack)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>◉</span> Substack
                   </a>
                 )}
                 {user.socials?.website && (
-                  <a href={user.socials.website} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={ensureUrl(user.socials.website)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>↗</span> Website
                   </a>
                 )}
