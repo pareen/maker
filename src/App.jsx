@@ -33,7 +33,7 @@ const roles = [
 
 const App = () => {
   const [currentUser, setCurrentUser] = useState(null);
-  const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, dashboard, profile, editProfile, publicProfile
+  const [currentView, setCurrentView] = useState('loading'); // loading, landing, login, signup, dashboard, profile, editProfile, publicProfile
   const [viewingProfile, setViewingProfile] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [notification, setNotification] = useState(null);
@@ -78,10 +78,13 @@ const App = () => {
           if (authVersionRef.current !== version) return; // stale
           setCurrentUser({ ...user, projects });
           setCurrentView('dashboard');
+        } else {
+          setCurrentView('landing');
         }
       } catch (error) {
         if (authVersionRef.current !== version) return; // stale
         console.error('Error loading user:', error);
+        setCurrentView('landing');
         setNotification({ message: 'Login failed: ' + error.message, type: 'error' });
         setTimeout(() => setNotification(null), 5000);
       }
@@ -235,6 +238,12 @@ const App = () => {
           onClose={() => setShowShareModal(false)}
           showNotification={showNotification}
         />
+      )}
+
+      {currentView === 'loading' && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+          <div style={{ color: '#a8a29e', fontSize: '14px' }}>Loading...</div>
+        </div>
       )}
 
       {currentView === 'landing' && (
