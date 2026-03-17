@@ -104,11 +104,19 @@ const App = () => {
         const version = ++authVersionRef.current;
         authSourceRef.current = 'supabase';
         setAuthMode('supabase');
-        const profile = await db.getProfile(session.user.id);
-        const projects = await db.getProjectsByUserId(session.user.id);
-        if (authVersionRef.current !== version) return; // stale
-        setCurrentUser({ ...session.user, ...profile, projects });
-        setCurrentView('dashboard');
+        try {
+          const profile = await db.getProfile(session.user.id);
+          const projects = await db.getProjectsByUserId(session.user.id);
+          if (authVersionRef.current !== version) return; // stale
+          setCurrentUser({ ...session.user, ...profile, projects });
+          setCurrentView('dashboard');
+        } catch (err) {
+          console.error('Failed to load user data on sign-in:', err);
+          if (authVersionRef.current !== version) return;
+          // Still sign in with what we have so the user isn't stuck
+          setCurrentUser(session.user);
+          setCurrentView('dashboard');
+        }
       } else if (event === 'SIGNED_OUT') {
         // Only clear state if user was authenticated via Supabase.
         // localStorage users (Google OAuth) have no Supabase session,

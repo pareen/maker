@@ -188,6 +188,8 @@ function signInWithGoogleLocal(googleUser) {
 export async function signOut() {
   // Always clear localStorage (Google-authed users use it even with Supabase configured)
   signOutLocal()
+  // Clear persisted GitHub token so it doesn't linger after logout
+  localStorage.removeItem('makerPortfolio_githubToken')
 
   if (!isSupabaseConfigured()) return
 

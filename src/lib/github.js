@@ -84,6 +84,10 @@ export async function handleGitHubOAuthRedirect() {
     body: JSON.stringify({ code })
   });
 
+  if (!response.ok) {
+    throw new Error(`GitHub token exchange failed (${response.status})`);
+  }
+
   const data = await response.json();
 
   if (data.error || !data.access_token) {
