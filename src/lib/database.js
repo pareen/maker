@@ -337,21 +337,23 @@ export async function createProject(userId, project) {
     return createProjectLocal(userId, project)
   }
 
+  const row = {
+    user_id: userId,
+    name: project.name,
+    one_liner: project.oneLiner || null,
+    role: project.role || 'solo',
+    current_stage: project.currentStage || 'idea',
+    start_date: project.startDate || null,
+    end_date: project.endDate || null,
+    ongoing: project.ongoing ?? true,
+    domains: project.domains || [],
+    links: project.links || [],
+    outcome: project.outcome || null
+  }
+
   const { data, error } = await supabase
     .from('projects')
-    .insert({
-      user_id: userId,
-      name: project.name,
-      one_liner: project.oneLiner,
-      role: project.role,
-      current_stage: project.currentStage,
-      start_date: project.startDate || null,
-      end_date: project.endDate || null,
-      ongoing: project.ongoing,
-      domains: project.domains,
-      links: project.links,
-      outcome: project.outcome
-    })
+    .insert(row)
     .select()
     .single()
 
@@ -364,20 +366,22 @@ export async function updateProject(projectId, updates) {
     return updateProjectLocal(projectId, updates)
   }
 
+  const row = {
+    name: updates.name,
+    one_liner: updates.oneLiner || null,
+    role: updates.role || 'solo',
+    current_stage: updates.currentStage || 'idea',
+    start_date: updates.startDate || null,
+    end_date: updates.endDate || null,
+    ongoing: updates.ongoing ?? true,
+    domains: updates.domains || [],
+    links: updates.links || [],
+    outcome: updates.outcome || null
+  }
+
   const { data, error } = await supabase
     .from('projects')
-    .update({
-      name: updates.name,
-      one_liner: updates.oneLiner,
-      role: updates.role,
-      current_stage: updates.currentStage,
-      start_date: updates.startDate || null,
-      end_date: updates.endDate || null,
-      ongoing: updates.ongoing,
-      domains: updates.domains,
-      links: updates.links,
-      outcome: updates.outcome
-    })
+    .update(row)
     .eq('id', projectId)
     .select()
     .single()

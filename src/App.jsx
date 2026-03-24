@@ -142,7 +142,7 @@ const App = () => {
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
+    setTimeout(() => setNotification(null), type === 'error' ? 6000 : 3000);
   };
 
   const handleLogout = async () => {
@@ -748,7 +748,8 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
       setEditingProject(null);
     } catch (error) {
       console.error('Error saving project:', error);
-      showNotification('Error saving project', 'error');
+      const msg = error?.message || String(error);
+      showNotification('Error saving project: ' + msg, 'error');
     }
   };
 
