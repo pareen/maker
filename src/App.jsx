@@ -33,7 +33,8 @@ const roles = [
 
 const App = () => {
   const [currentUser, setCurrentUser] = useState(null);
-  const [currentView, setCurrentView] = useState('loading'); // loading, landing, login, signup, dashboard, profile, editProfile, publicProfile
+  const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, dashboard, profile, editProfile, publicProfile
+  const [authLoading, setAuthLoading] = useState(true);
   const [viewingProfile, setViewingProfile] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [notification, setNotification] = useState(null);
@@ -78,15 +79,15 @@ const App = () => {
           if (authVersionRef.current !== version) return; // stale
           setCurrentUser({ ...user, projects });
           setCurrentView('dashboard');
-        } else {
-          setCurrentView('landing');
         }
       } catch (error) {
-        if (authVersionRef.current !== version) return; // stale
         console.error('Error loading user:', error);
-        setCurrentView('landing');
-        setNotification({ message: 'Login failed: ' + error.message, type: 'error' });
-        setTimeout(() => setNotification(null), 5000);
+        if (authVersionRef.current === version) {
+          setNotification({ message: 'Login failed: ' + error.message, type: 'error' });
+          setTimeout(() => setNotification(null), 5000);
+        }
+      } finally {
+        setAuthLoading(false);
       }
     };
 
@@ -240,13 +241,13 @@ const App = () => {
         />
       )}
 
-      {currentView === 'loading' && (
+      {authLoading && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
           <div style={{ color: '#a8a29e', fontSize: '14px' }}>Loading...</div>
         </div>
       )}
 
-      {currentView === 'landing' && (
+      {!authLoading && currentView === 'landing' && (
         <LandingPage
           onLogin={() => setCurrentView('login')}
           onSignup={() => setCurrentView('signup')}
