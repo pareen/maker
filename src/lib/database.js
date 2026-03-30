@@ -356,18 +356,25 @@ export async function updateProfile(userId, updates) {
     return updateProfileLocal(userId, updates)
   }
 
+  // Only send fields that are actually present in the updates object.
+  // Sending undefined fields would null them out in the database.
+  const row = {}
+  if (updates.name !== undefined) row.name = updates.name
+  if (updates.bio !== undefined) row.bio = updates.bio
+  if (updates.firstMake !== undefined) {
+    row.first_make_description = updates.firstMake?.description
+    row.first_make_age = updates.firstMake?.age
+  }
+  if (updates.domains !== undefined) row.domains = updates.domains
+  if (updates.todayMaking !== undefined) row.today_making = updates.todayMaking
+  if (updates.socials !== undefined) row.socials = updates.socials
+  if (updates.embedFeed !== undefined) row.embed_feed = updates.embedFeed
+
+  if (Object.keys(row).length === 0) return // nothing to update
+
   const { data, error } = await supabase
     .from('profiles')
-    .update({
-      name: updates.name,
-      bio: updates.bio,
-      first_make_description: updates.firstMake?.description,
-      first_make_age: updates.firstMake?.age,
-      domains: updates.domains,
-      today_making: updates.todayMaking,
-      socials: updates.socials,
-      embed_feed: updates.embedFeed
-    })
+    .update(row)
     .eq('id', userId)
     .select()
     .single()
