@@ -20,7 +20,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
-        detectSessionInUrl: !isGoogleOAuthRedirect
+        detectSessionInUrl: !isGoogleOAuthRedirect,
+        persistSession: true,
+        autoRefreshToken: true
       }
     })
   : null
