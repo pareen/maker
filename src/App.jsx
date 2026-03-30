@@ -60,17 +60,6 @@ const App = () => {
     const loadUser = async () => {
       const version = ++authVersionRef.current;
       try {
-        // Check for Google OAuth redirect first
-        const googleUser = await db.handleGoogleOAuthRedirect();
-        if (googleUser) {
-          if (authVersionRef.current !== version) return; // stale
-          authSourceRef.current = 'local';
-          setAuthMode('local');
-          setCurrentUser({ ...googleUser, projects: googleUser.projects || [] });
-          setCurrentView('dashboard');
-          return;
-        }
-
         // Check for GitHub OAuth redirect (repo import, not login)
         // This exchanges the code for a token and stores it in localStorage.
         await handleGitHubOAuthRedirect();
@@ -118,6 +107,9 @@ const App = () => {
         authSourceRef.current = 'supabase';
         setAuthMode('supabase');
         try {
+          // Migrate any legacy localStorage data (from old Google OAuth flow)
+          await db.migrateLocalStorageData(session.user);
+
           const profile = await db.getProfile(session.user.id);
           const projects = await db.getProjectsByUserId(session.user.id);
           if (authVersionRef.current !== version) return; // stale
@@ -132,8 +124,6 @@ const App = () => {
         }
       } else if (event === 'SIGNED_OUT') {
         // Only clear state if user was authenticated via Supabase.
-        // localStorage users (Google OAuth) have no Supabase session,
-        // so SIGNED_OUT would fire spuriously and kick them out.
         if (authSourceRef.current === 'supabase') {
           authVersionRef.current++;
           authSourceRef.current = null;
