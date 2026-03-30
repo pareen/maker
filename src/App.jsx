@@ -686,6 +686,8 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [showGitHubImport, setShowGitHubImport] = useState(false);
+  const [updatesPage, setUpdatesPage] = useState(1);
+  const UPDATES_PER_PAGE = 10;
 
   // Load updates on mount
   useEffect(() => {
@@ -850,7 +852,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
           <div style={{ marginBottom: '32px' }}>
             <h2 style={{ fontSize: '12px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>UPDATES ({updates.length})</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-              {updates.map((update) => (
+              {updates.slice(0, updatesPage * UPDATES_PER_PAGE).map((update) => (
                 <div key={update.id} className="card" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
                   <div style={{ flex: 1 }}>
                     <span style={{ color: '#d6d3d1', fontSize: '14px' }}>{update.content}</span>
@@ -868,6 +870,15 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
                 </div>
               ))}
             </div>
+            {updates.length > updatesPage * UPDATES_PER_PAGE && (
+              <button
+                className="btn btn-ghost"
+                onClick={() => setUpdatesPage(p => p + 1)}
+                style={{ width: '100%', marginTop: '8px', fontSize: '13px' }}
+              >
+                Show more ({updates.length - updatesPage * UPDATES_PER_PAGE} remaining)
+              </button>
+            )}
           </div>
         )}
 
@@ -1768,6 +1779,8 @@ const TwitterEmbed = ({ username }) => {
 // PROFILE VIEW (Public)
 // ============================================
 const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
+  const [showAllUpdates, setShowAllUpdates] = useState(false);
+  const PROFILE_UPDATES_LIMIT = 5;
   const roleBreakdown = roles.map(role => ({
     ...role,
     count: user.projects.filter(p => p.role === role.key).length,
@@ -1925,7 +1938,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
               UPDATES ({user.updates.length})
             </div>
             <div style={{ borderLeft: '2px solid rgba(74, 222, 128, 0.2)', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {user.updates.map((update) => (
+              {(showAllUpdates ? user.updates : user.updates.slice(0, PROFILE_UPDATES_LIMIT)).map((update) => (
                 <div key={update.id} style={{ position: 'relative' }}>
                   <div style={{ position: 'absolute', left: '-27px', top: '6px', width: '10px', height: '10px', borderRadius: '50%', background: '#1c1917', border: '2px solid rgba(74, 222, 128, 0.4)' }} />
                   <div style={{ color: '#d6d3d1', fontSize: '14px', lineHeight: 1.5 }}>{update.content}</div>
@@ -1935,6 +1948,15 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                 </div>
               ))}
             </div>
+            {!showAllUpdates && user.updates.length > PROFILE_UPDATES_LIMIT && (
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowAllUpdates(true)}
+                style={{ marginTop: '12px', fontSize: '13px' }}
+              >
+                Show all {user.updates.length} updates
+              </button>
+            )}
           </div>
         )}
 
