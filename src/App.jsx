@@ -76,104 +76,104 @@ const App = () => {
     window.history[method](null, '', path);
   };
 
+  // Shared helper: load full user data (profile + projects) and set state
+  const loadFullUser = async (user, version) => {
+    const source = user.aud ? 'supabase' : 'local';
+    authSourceRef.current = source;
+    setAuthMode(source);
+    const profile = source === 'supabase' ? await db.getProfile(user.id) : null;
+    const projects = await db.getProjectsByUserId(user.id);
+    if (authVersionRef.current !== version) return null; // stale
+    const fullUser = { ...user, ...profile, projects };
+    setCurrentUser(fullUser);
+    return fullUser;
+  };
+
+  // Decide which view to show based on URL route after auth is known
+  const resolveRoute = (user) => {
+    const route = initialRoute.current;
+    if (route.view === 'publicProfile' && route.username) {
+      if (user?.username === route.username) {
+        setCurrentView('profile');
+      } else {
+        // Load the public profile — viewPublicProfile handles its own loading state
+        viewPublicProfile(route.username);
+      }
+    } else if (!user) {
+      if (route.view === 'login') setCurrentView('login');
+      else if (route.view === 'signup') setCurrentView('signup');
+      // else stays on 'landing' (default)
+    } else {
+      setCurrentView('dashboard');
+    }
+  };
+
   // Load user on mount and listen for auth changes
   useEffect(() => {
+    let initialLoadDone = false;
+
     const loadUser = async () => {
       const version = ++authVersionRef.current;
       try {
         // Check for GitHub OAuth redirect (repo import, not login)
-        // This exchanges the code for a token and stores it in localStorage.
         await handleGitHubOAuthRedirect();
 
         const user = await db.getCurrentUser();
-        if (user) {
-          if (authVersionRef.current !== version) return; // stale
-          // Supabase users have 'aud' field; localStorage users don't
-          const source = user.aud ? 'supabase' : 'local';
-          authSourceRef.current = source;
-          setAuthMode(source);
-          const projects = user.projects || await db.getProjectsByUserId(user.id);
-          if (authVersionRef.current !== version) return; // stale
-          setCurrentUser({ ...user, projects });
+        if (authVersionRef.current !== version) return; // stale
 
-          // If URL points to a public profile, show it; otherwise show dashboard
-          const route = initialRoute.current;
-          if (route.view === 'publicProfile' && route.username) {
-            // If it's the user's own profile, show their profile view
-            if (route.username === user.username) {
-              setCurrentView('profile');
-            } else {
-              viewPublicProfile(route.username);
-            }
-          } else {
-            setCurrentView('dashboard');
-          }
+        if (user) {
+          const fullUser = await loadFullUser(user, version);
+          if (!fullUser) return; // stale
+          resolveRoute(fullUser);
         } else {
-          // Not logged in — handle URL route
-          const route = initialRoute.current;
-          if (route.view === 'publicProfile' && route.username) {
-            viewPublicProfile(route.username);
-          } else if (route.view === 'login') {
-            setCurrentView('login');
-          } else if (route.view === 'signup') {
-            setCurrentView('signup');
-          }
+          resolveRoute(null);
         }
       } catch (error) {
         console.error('Error loading user:', error);
         if (authVersionRef.current === version) {
-          setNotification({ message: 'Login failed: ' + error.message, type: 'error' });
-          setTimeout(() => setNotification(null), 5000);
+          showNotification('Login failed: ' + error.message, 'error');
         }
       } finally {
+        initialLoadDone = true;
         setAuthLoading(false);
       }
     };
 
     loadUser();
 
-    // Listen for Supabase auth state changes.
-    // DO NOT handle INITIAL_SESSION here — loadUser() handles initial session
-    // restoration via getSession() (which auto-refreshes expired tokens).
-    // Handling INITIAL_SESSION here caused a race condition: it set
-    // authSourceRef='supabase' before async work finished, then SIGNED_OUT
-    // fired during that async work and kicked the user out (flickering).
+    // Listen for Supabase auth state changes (login/logout from other tabs, OAuth redirects)
     const { data: { subscription } } = db.onAuthStateChange(async (event, session) => {
-      // Always persist GitHub provider_token when available
+      // Persist GitHub provider_token when available
       if (session?.provider_token) {
         localStorage.setItem('makerPortfolio_githubToken', session.provider_token);
       }
 
       if (event === 'SIGNED_IN' && session?.user) {
-        // Explicit login (user action or cross-tab sign-in)
+        // Skip if loadUser hasn't finished yet — it will handle the session
+        if (!initialLoadDone) return;
+
         const version = ++authVersionRef.current;
         authSourceRef.current = 'supabase';
         setAuthMode('supabase');
         try {
-          // Migrate any legacy localStorage data (from old Google OAuth flow)
           await db.migrateLocalStorageData(session.user);
-
-          const profile = await db.getProfile(session.user.id);
-          const projects = await db.getProjectsByUserId(session.user.id);
-          if (authVersionRef.current !== version) return; // stale
-          setCurrentUser({ ...session.user, ...profile, projects });
+          const fullUser = await loadFullUser(session.user, version);
+          if (!fullUser) return; // stale
           setCurrentView('dashboard');
         } catch (err) {
           console.error('Failed to load user data on sign-in:', err);
           if (authVersionRef.current !== version) return;
-          // Still sign in with what we have so the user isn't stuck
           setCurrentUser(session.user);
           setCurrentView('dashboard');
         }
       } else if (event === 'SIGNED_OUT') {
-        // Only clear state if user was authenticated via Supabase.
         if (authSourceRef.current === 'supabase') {
           authVersionRef.current++;
           authSourceRef.current = null;
           setAuthMode(null);
           localStorage.removeItem('makerPortfolio_githubToken');
           setCurrentUser(null);
-          setCurrentView('landing');
+          navigate('landing');
         }
       }
     });
@@ -199,19 +199,26 @@ const App = () => {
     }
   };
 
+  const [profileLoading, setProfileLoading] = useState(false);
+
   const viewPublicProfile = async (username) => {
+    setProfileLoading(true);
+    setCurrentView('publicProfile');
+    window.history.pushState(null, '', `/${username}`);
     try {
       const user = await db.getProfileByUsername(username);
       if (user) {
         setViewingProfile(user);
-        setCurrentView('publicProfile');
-        window.history.pushState(null, '', `/${username}`);
       } else {
         showNotification('Profile not found', 'error');
+        navigate(currentUser ? 'dashboard' : 'landing', { replace: true });
       }
     } catch (error) {
       console.error('Error loading profile:', error);
       showNotification('Profile not found', 'error');
+      navigate(currentUser ? 'dashboard' : 'landing', { replace: true });
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -389,7 +396,13 @@ const App = () => {
         />
       )}
 
-      {currentView === 'publicProfile' && viewingProfile && (
+      {currentView === 'publicProfile' && profileLoading && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+          <div style={{ color: '#a8a29e', fontSize: '14px' }}>Loading profile...</div>
+        </div>
+      )}
+
+      {currentView === 'publicProfile' && !profileLoading && viewingProfile && (
         <ProfileView
           user={viewingProfile}
           isOwner={false}
@@ -774,11 +787,6 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
     };
     checkOAuthReturn();
   }, []);
-
-  const updateUser = async (updates) => {
-    await db.updateProfile(user.id, updates);
-    setUser({ ...user, ...updates });
-  };
 
   const postUpdate = async () => {
     if (!updateText.trim()) return;
