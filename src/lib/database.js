@@ -550,7 +550,13 @@ function updateProfileLocal(userId, updates) {
     throw new Error('User not found in local storage. Please log out and log back in.')
   }
 
-  users[userKey] = { ...users[userKey], ...updates }
+  // Only merge profile fields — never overwrite projects, id, email, etc.
+  const profileFields = ['name', 'bio', 'firstMake', 'domains', 'todayMaking', 'socials', 'embedFeed']
+  for (const field of profileFields) {
+    if (field in updates) {
+      users[userKey][field] = updates[field]
+    }
+  }
   localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
   localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userKey]))
   return users[userKey]

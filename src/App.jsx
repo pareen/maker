@@ -1,10 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as db from './lib/database';
-import { setAuthMode } from './lib/database';
+const { setAuthMode } = db;
 import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection, handleGitHubOAuthRedirect } from './lib/github';
 import { isSupabaseConfigured } from './lib/supabase';
 
-const ensureUrl = (url) => url && !/^https?:\/\//i.test(url) ? `https://${url}` : url;
+const ensureUrl = (url) => {
+  if (!url) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  // If it looks like a domain (contains a dot), prepend https://
+  if (url.includes('.')) return `https://${url}`;
+  // Otherwise it's just a username — return as-is (caller should handle)
+  return url;
+};
 
 // ============================================
 // MAKER PORTFOLIO - Full Functional App
@@ -703,9 +710,8 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   }, []);
 
   const updateUser = async (updates) => {
-    await db.updateProfile(user.id, { ...user, ...updates });
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
+    await db.updateProfile(user.id, updates);
+    setUser({ ...user, ...updates });
   };
 
   const postUpdate = async () => {
@@ -718,7 +724,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
       showNotification('Update posted!');
     } catch (error) {
       console.error('Error posting update:', error);
-      showNotification('Error posting update', 'error');
+      showNotification('Error posting update: ' + (error?.message || String(error)), 'error');
     }
   };
 
@@ -729,7 +735,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
       showNotification('Update deleted');
     } catch (error) {
       console.error('Error deleting update:', error);
-      showNotification('Error deleting update', 'error');
+      showNotification('Error deleting update: ' + (error?.message || String(error)), 'error');
     }
   };
 
@@ -754,15 +760,15 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
     }
   };
 
-  const deleteProject = async (projectId) => {
-    if (confirm('Delete this project?')) {
+  const deleteProject = async (projectId, projectName) => {
+    if (confirm(`Delete "${projectName || 'this project'}"?`)) {
       try {
         await db.deleteProject(projectId);
         setUser({ ...user, projects: user.projects.filter(p => p.id !== projectId) });
         showNotification('Project deleted');
       } catch (error) {
         console.error('Error deleting project:', error);
-        showNotification('Error deleting project', 'error');
+        showNotification('Error deleting project: ' + (error?.message || String(error)), 'error');
       }
     }
   };
@@ -887,7 +893,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
                   key={project.id}
                   project={project}
                   onEdit={() => { setEditingProject(project); setShowProjectModal(true); }}
-                  onDelete={() => deleteProject(project.id)}
+                  onDelete={() => deleteProject(project.id, project.name)}
                 />
               ))}
             </div>
@@ -982,7 +988,6 @@ const ProjectModal = ({ project, onSave, onClose }) => {
     startDate: new Date().toISOString().split('T')[0],
     endDate: '',
     ongoing: true,
-    stageData: {},
     domains: [],
     links: [],
     outcome: ''
@@ -997,14 +1002,18 @@ const ProjectModal = ({ project, onSave, onClose }) => {
   };
 
   const addDomain = () => {
-    if (newDomain && !formData.domains.includes(newDomain)) {
-      setFormData({ ...formData, domains: [...formData.domains, newDomain] });
+    const trimmed = newDomain.trim().toLowerCase();
+    if (trimmed && !formData.domains.some(d => d.toLowerCase() === trimmed)) {
+      setFormData({ ...formData, domains: [...formData.domains, trimmed] });
       setNewDomain('');
     }
   };
 
+  const [linkError, setLinkError] = useState('');
+
   const addLink = () => {
     if (!newLink) return;
+    setLinkError('');
     // Auto-prepend https:// if user typed a bare domain
     let url = newLink.trim();
     if (url && !url.match(/^https?:\/\//i)) {
@@ -1013,7 +1022,8 @@ const ProjectModal = ({ project, onSave, onClose }) => {
     try {
       new URL(url); // validate URL format
     } catch {
-      return; // silently reject invalid URLs
+      setLinkError('Invalid URL format');
+      return;
     }
     if (!formData.links.includes(url)) {
       setFormData({ ...formData, links: [...formData.links, url] });
@@ -1144,6 +1154,7 @@ const ProjectModal = ({ project, onSave, onClose }) => {
               />
               <button type="button" className="btn btn-secondary" onClick={addLink}>Add</button>
             </div>
+            {linkError && <div style={{ color: '#ef4444', fontSize: '12px', marginBottom: '4px' }}>{linkError}</div>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {formData.links.map(l => (
                 <div key={l} style={{ fontSize: '13px', color: '#a8a29e', display: 'flex', justifyContent: 'space-between' }}>
@@ -1537,13 +1548,14 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
       onBack();
     } catch (error) {
       console.error('Error saving profile:', error);
-      showNotification('Error saving profile', 'error');
+      showNotification('Error saving profile: ' + (error?.message || String(error)), 'error');
     }
   };
 
   const addDomain = () => {
-    if (newDomain && !formData.domains.includes(newDomain)) {
-      setFormData({ ...formData, domains: [...formData.domains, newDomain] });
+    const trimmed = newDomain.trim().toLowerCase();
+    if (trimmed && !formData.domains.some(d => d.toLowerCase() === trimmed)) {
+      setFormData({ ...formData, domains: [...formData.domains, trimmed] });
       setNewDomain('');
     }
   };
@@ -1721,9 +1733,10 @@ const TwitterEmbed = ({ username }) => {
 
   useEffect(() => {
     if (!containerRef.current) return;
+    const container = containerRef.current;
 
     // Clear any previous embed
-    containerRef.current.innerHTML = '';
+    container.innerHTML = '';
 
     // Create the timeline anchor that Twitter's widget.js looks for
     const anchor = document.createElement('a');
@@ -1733,17 +1746,19 @@ const TwitterEmbed = ({ username }) => {
     anchor.setAttribute('data-tweet-limit', '3');
     anchor.href = `https://twitter.com/${username}`;
     anchor.textContent = `Tweets by @${username}`;
-    containerRef.current.appendChild(anchor);
+    container.appendChild(anchor);
 
     // Load or re-run the Twitter widget script
     if (window.twttr?.widgets) {
-      window.twttr.widgets.load(containerRef.current);
+      window.twttr.widgets.load(container);
     } else {
       const script = document.createElement('script');
       script.src = 'https://platform.twitter.com/widgets.js';
       script.async = true;
-      containerRef.current.appendChild(script);
+      container.appendChild(script);
     }
+
+    return () => { container.innerHTML = ''; };
   }, [username]);
 
   return <div ref={containerRef} style={{ maxHeight: '500px', overflow: 'auto' }} />;
@@ -1822,27 +1837,27 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
             {Object.values(user.socials || {}).some(v => v) && (
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                 {user.socials?.twitter && (
-                  <a href={ensureUrl(user.socials.twitter)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={user.socials.twitter.includes('.') ? ensureUrl(user.socials.twitter) : `https://twitter.com/${user.socials.twitter.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>𝕏</span> Twitter
                   </a>
                 )}
                 {user.socials?.github && (
-                  <a href={ensureUrl(user.socials.github)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={user.socials.github.includes('.') ? ensureUrl(user.socials.github) : `https://github.com/${user.socials.github}`} target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>◐</span> GitHub
                   </a>
                 )}
                 {user.socials?.linkedin && (
-                  <a href={ensureUrl(user.socials.linkedin)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={user.socials.linkedin.includes('.') ? ensureUrl(user.socials.linkedin) : `https://linkedin.com/in/${user.socials.linkedin}`} target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>in</span> LinkedIn
                   </a>
                 )}
                 {user.socials?.substack && (
-                  <a href={ensureUrl(user.socials.substack)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={user.socials.substack.includes('.') ? ensureUrl(user.socials.substack) : `https://${user.socials.substack}.substack.com`} target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>◉</span> Substack
                   </a>
                 )}
                 {user.socials?.website && (
-                  <a href={ensureUrl(user.socials.website)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={ensureUrl(user.socials.website)} target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>↗</span> Website
                   </a>
                 )}
@@ -1895,7 +1910,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
             ) : (
               <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '24px', textAlign: 'center', color: '#57534e' }}>
                 <p style={{ marginBottom: '12px' }}>Substack feed from {user.embedFeed.url}</p>
-                <a href={user.embedFeed.url} target="_blank" rel="noopener" className="btn btn-secondary">
+                <a href={user.embedFeed.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
                   View on Substack ↗
                 </a>
               </div>
@@ -1977,7 +1992,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                           let hostname;
                           try { hostname = new URL(link).hostname; } catch { hostname = link; }
                           return (
-                            <a key={link} href={link} target="_blank" rel="noopener" style={{ color: '#fbbf24', fontSize: '13px' }}>↗ {hostname}</a>
+                            <a key={link} href={link} target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', fontSize: '13px' }}>↗ {hostname}</a>
                           );
                         })}
                       </div>
