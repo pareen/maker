@@ -73,11 +73,24 @@ CREATE POLICY "Users can delete their own projects"
   USING (auth.uid() = user_id);
 
 -- Function to handle new user signup
+-- Uses COALESCE to handle OAuth users who don't have 'username' in metadata
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO profiles (id, username)
-  VALUES (NEW.id, NEW.raw_user_meta_data->>'username');
+  VALUES (
+    NEW.id,
+    COALESCE(
+      NEW.raw_user_meta_data->>'username',
+      split_part(NEW.email, '@', 1),
+      'user_' || LEFT(NEW.id::text, 8)
+    )
+  );
+  RETURN NEW;
+EXCEPTION WHEN unique_violation THEN
+  -- Username collision: append random suffix
+  INSERT INTO profiles (id, username)
+  VALUES (NEW.id, split_part(NEW.email, '@', 1) || '_' || LEFT(md5(random()::text), 4));
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

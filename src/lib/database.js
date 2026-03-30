@@ -71,7 +71,10 @@ export async function signIn(email, password) {
   return data.user
 }
 
-// Helper to create profile on first authenticated access
+// Helper to create profile on first authenticated access.
+// The DB trigger `handle_new_user` fires on auth.users INSERT but may fail
+// for OAuth users (no username in metadata → NOT NULL violation). This
+// function acts as a safety net, creating the profile if the trigger missed it.
 async function ensureProfileExists(user) {
   const { data: existingProfile } = await supabase
     .from('profiles')
@@ -83,9 +86,23 @@ async function ensureProfileExists(user) {
     const username = user.user_metadata?.username ||
                      user.email?.split('@')[0] ||
                      `user_${user.id.slice(0, 8)}`
-    await supabase
+
+    // Use upsert to avoid race conditions (trigger may have partially succeeded)
+    const { error } = await supabase
       .from('profiles')
-      .insert({ id: user.id, username })
+      .upsert({ id: user.id, username }, { onConflict: 'id' })
+
+    if (error) {
+      // If username collision, append random suffix
+      if (error.code === '23505' && error.message?.includes('username')) {
+        const fallback = `${username}_${Math.random().toString(36).slice(2, 6)}`
+        await supabase
+          .from('profiles')
+          .upsert({ id: user.id, username: fallback }, { onConflict: 'id' })
+      } else {
+        throw error
+      }
+    }
   }
 }
 

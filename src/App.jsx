@@ -38,7 +38,17 @@ const roles = [
   { key: 'contributor', label: 'Contributor', color: '#22d3ee' },
 ];
 
+// Parse the URL path to determine initial view
+function getInitialRoute() {
+  const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+  if (path === 'login') return { view: 'login' };
+  if (path === 'signup') return { view: 'signup' };
+  if (path && path !== '' && !path.includes('/')) return { view: 'publicProfile', username: path };
+  return { view: null }; // null = determine after auth check
+}
+
 const App = () => {
+  const initialRoute = useRef(getInitialRoute());
   const [currentUser, setCurrentUser] = useState(null);
   const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, dashboard, profile, editProfile, publicProfile
   const [authLoading, setAuthLoading] = useState(true);
@@ -54,6 +64,17 @@ const App = () => {
   // Version counter to prevent stale async callbacks from overwriting newer state.
   // Every auth action increments this; async callbacks check it before applying state.
   const authVersionRef = useRef(0);
+
+  // Navigate helper: updates view state and browser URL
+  const navigate = (view, { username, replace = false } = {}) => {
+    setCurrentView(view);
+    let path = '/';
+    if (view === 'publicProfile' && username) path = `/${username}`;
+    else if (view === 'login') path = '/login';
+    else if (view === 'signup') path = '/signup';
+    const method = replace ? 'replaceState' : 'pushState';
+    window.history[method](null, '', path);
+  };
 
   // Load user on mount and listen for auth changes
   useEffect(() => {
@@ -74,7 +95,29 @@ const App = () => {
           const projects = user.projects || await db.getProjectsByUserId(user.id);
           if (authVersionRef.current !== version) return; // stale
           setCurrentUser({ ...user, projects });
-          setCurrentView('dashboard');
+
+          // If URL points to a public profile, show it; otherwise show dashboard
+          const route = initialRoute.current;
+          if (route.view === 'publicProfile' && route.username) {
+            // If it's the user's own profile, show their profile view
+            if (route.username === user.username) {
+              setCurrentView('profile');
+            } else {
+              viewPublicProfile(route.username);
+            }
+          } else {
+            setCurrentView('dashboard');
+          }
+        } else {
+          // Not logged in — handle URL route
+          const route = initialRoute.current;
+          if (route.view === 'publicProfile' && route.username) {
+            viewPublicProfile(route.username);
+          } else if (route.view === 'login') {
+            setCurrentView('login');
+          } else if (route.view === 'signup') {
+            setCurrentView('signup');
+          }
         }
       } catch (error) {
         console.error('Error loading user:', error);
@@ -150,7 +193,7 @@ const App = () => {
       authSourceRef.current = null;
       setAuthMode(null);
       setCurrentUser(null);
-      setCurrentView('landing');
+      navigate('landing');
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -162,12 +205,33 @@ const App = () => {
       if (user) {
         setViewingProfile(user);
         setCurrentView('publicProfile');
+        window.history.pushState(null, '', `/${username}`);
+      } else {
+        showNotification('Profile not found', 'error');
       }
     } catch (error) {
       console.error('Error loading profile:', error);
       showNotification('Profile not found', 'error');
     }
   };
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const handlePopState = () => {
+      const route = getInitialRoute();
+      if (route.view === 'publicProfile' && route.username) {
+        viewPublicProfile(route.username);
+      } else if (route.view === 'login') {
+        setCurrentView('login');
+      } else if (route.view === 'signup') {
+        setCurrentView('signup');
+      } else {
+        setCurrentView(currentUser ? 'dashboard' : 'landing');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentUser]);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0c0a09', color: '#e7e5e4', fontFamily: "'IBM Plex Mono', monospace" }}>
@@ -222,6 +286,17 @@ const App = () => {
 
         .ongoing-pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        @media (max-width: 768px) {
+          .desktop-grid { grid-template-columns: 1fr !important; }
+          .desktop-header { padding-left: 16px !important; padding-right: 16px !important; }
+          .desktop-header .header-actions { gap: 6px !important; }
+          .desktop-header .header-actions .btn { padding: 8px 12px !important; font-size: 12px !important; }
+          .desktop-content { padding-left: 16px !important; padding-right: 16px !important; }
+          .hero-title { font-size: 32px !important; }
+          .profile-name { font-size: 32px !important; }
+          .share-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
       {notification && (
@@ -246,16 +321,16 @@ const App = () => {
 
       {!authLoading && currentView === 'landing' && (
         <LandingPage
-          onLogin={() => setCurrentView('login')}
-          onSignup={() => setCurrentView('signup')}
+          onLogin={() => navigate('login')}
+          onSignup={() => navigate('signup')}
         />
       )}
 
       {currentView === 'login' && (
         <AuthPage
           mode="login"
-          onSwitch={() => setCurrentView('signup')}
-          onBack={() => setCurrentView('landing')}
+          onSwitch={() => navigate('signup', { replace: true })}
+          onBack={() => navigate('landing')}
           onSuccess={(user) => {
             const source = user.aud ? 'supabase' : 'local';
             authSourceRef.current = source;
@@ -270,8 +345,8 @@ const App = () => {
       {currentView === 'signup' && (
         <AuthPage
           mode="signup"
-          onSwitch={() => setCurrentView('login')}
-          onBack={() => setCurrentView('landing')}
+          onSwitch={() => navigate('login', { replace: true })}
+          onBack={() => navigate('landing')}
           onSuccess={(user) => {
             const source = user.aud ? 'supabase' : 'local';
             authSourceRef.current = source;
@@ -318,7 +393,7 @@ const App = () => {
         <ProfileView
           user={viewingProfile}
           isOwner={false}
-          onBack={() => { setViewingProfile(null); setCurrentView(currentUser ? 'dashboard' : 'landing'); }}
+          onBack={() => { setViewingProfile(null); navigate(currentUser ? 'dashboard' : 'landing'); }}
         />
       )}
     </div>
@@ -362,17 +437,17 @@ const LandingPage = ({ onLogin, onSignup }) => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600' }}>MAKER.PROFILE</div>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-ghost" onClick={onLogin}>Log in</button>
           <button className="btn btn-primary" onClick={onSignup}>Sign up</button>
         </div>
       </header>
 
       {/* Hero */}
-      <section style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <h1 style={{ fontSize: '56px', fontFamily: "'Newsreader', Georgia, serif", fontWeight: '500', marginBottom: '24px', letterSpacing: '-0.02em', maxWidth: '700px', lineHeight: 1.1, margin: '0 auto 24px' }}>
+      <section className="desktop-content" style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <h1 className="hero-title" style={{ fontSize: '56px', fontFamily: "'Newsreader', Georgia, serif", fontWeight: '500', marginBottom: '24px', letterSpacing: '-0.02em', maxWidth: '700px', lineHeight: 1.1, margin: '0 auto 24px' }}>
           The portfolio for people who make things
         </h1>
         <p style={{ fontSize: '18px', color: '#a8a29e', maxWidth: '500px', lineHeight: 1.6, marginBottom: '48px', margin: '0 auto 48px' }}>
@@ -399,7 +474,7 @@ const LandingPage = ({ onLogin, onSignup }) => {
         {/* Sample Profile Card */}
         <div style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '40px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '48px' }}>
+          <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '48px' }}>
             {/* Left: Profile Info */}
             <div>
               {/* Making Today */}
@@ -524,7 +599,7 @@ const LandingPage = ({ onLogin, onSignup }) => {
       {/* Footer */}
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px 40px', marginTop: 'auto', textAlign: 'center', fontSize: '12px', color: '#57534e' }}>
         Made by <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', textDecoration: 'none' }}>Pareen</a>.
-        Feedback, suggestions, or collab requests → <a href="https://twitter.com/messages/compose?recipient_id=Pareen" target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', textDecoration: 'underline' }}>Twitter DM</a>
+        Feedback, suggestions, or collab requests → <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', textDecoration: 'underline' }}>@Pareen on Twitter</a>
       </footer>
     </div>
   );
@@ -575,12 +650,11 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
           {mode === 'login' ? 'Log in to your maker profile' : 'Start tracking what you make'}
         </p>
 
-        <div id="google-signin-btn" style={{ display: 'flex', justifyContent: 'center' }} />
         <button
           className="btn"
-          onClick={() => {
+          onClick={async () => {
             try {
-              db.signInWithGoogle();
+              await db.signInWithGoogle();
             } catch (error) {
               showNotification(error.message, 'error');
             }
@@ -798,14 +872,14 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   return (
     <div style={{ minHeight: '100vh' }}>
       {/* Header */}
-      <header style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600' }}>MAKER.PROFILE</div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div className="header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button className="btn btn-secondary" onClick={onEditProfile}>Edit Profile</button>
           <button className="btn btn-primary" onClick={onShare} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>↗</span> Share Profile
+            <span>↗</span> Share
           </button>
-          <button className="btn btn-secondary" onClick={onViewProfile}>View Profile</button>
+          <button className="btn btn-secondary" onClick={onViewProfile}>View</button>
           <button className="btn btn-ghost" onClick={onLogout}>Log out</button>
         </div>
       </header>
@@ -1540,8 +1614,11 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
 const EditProfile = ({ user, setUser, onBack, showNotification }) => {
   const [formData, setFormData] = useState({ ...user });
   const [newDomain, setNewDomain] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
     try {
       await db.updateProfile(user.id, formData);
       setUser({ ...user, ...formData });
@@ -1550,6 +1627,8 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
     } catch (error) {
       console.error('Error saving profile:', error);
       showNotification('Error saving profile: ' + (error?.message || String(error)), 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -1565,7 +1644,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
     <div style={{ minHeight: '100vh' }}>
       <header style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <button className="btn btn-ghost" onClick={onBack}>← Back to Dashboard</button>
-        <button className="btn btn-primary" onClick={handleSave}>Save Changes</button>
+        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
       </header>
 
       <div style={{ padding: '40px', maxWidth: '700px', margin: '0 auto' }}>
@@ -1770,7 +1849,22 @@ const TwitterEmbed = ({ username }) => {
 // ============================================
 const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
   const [showAllUpdates, setShowAllUpdates] = useState(false);
+  const [updates, setUpdates] = useState(user.updates || []);
   const PROFILE_UPDATES_LIMIT = 5;
+
+  // Load updates for the logged-in user (they're not on the user object)
+  useEffect(() => {
+    if (isOwner && (!user.updates || user.updates.length === 0)) {
+      db.getUpdatesByUserId(user.id).then(setUpdates).catch(console.error);
+    }
+  }, [user.id, isOwner]);
+
+  // Update page title
+  useEffect(() => {
+    document.title = `${user.name || user.username} — Maker Portfolio`;
+    return () => { document.title = 'Maker Portfolio — The portfolio for people who make things'; };
+  }, [user.name, user.username]);
+
   const roleBreakdown = roles.map(role => ({
     ...role,
     count: user.projects.filter(p => p.role === role.key).length,
@@ -1804,7 +1898,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
 
       <div style={{ padding: '60px 40px', maxWidth: '1100px', margin: '0 auto' }}>
         {/* Profile Header */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '60px', marginBottom: '60px' }}>
+        <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '60px', marginBottom: '60px' }}>
           <div>
             {/* Latest Update */}
             {user.todayMaking && (
@@ -1814,7 +1908,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
               </div>
             )}
 
-            <h1 style={{ fontSize: '48px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '12px' }}>
+            <h1 className="profile-name" style={{ fontSize: '48px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '12px' }}>
               {user.name || user.username}
             </h1>
             {user.bio && <p style={{ fontSize: '18px', color: '#a8a29e', marginBottom: '32px', lineHeight: 1.5 }}>{user.bio}</p>}
@@ -1922,13 +2016,13 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         )}
 
         {/* Updates Timeline */}
-        {user.updates?.length > 0 && (
+        {updates?.length > 0 && (
           <div style={{ marginBottom: '48px' }}>
             <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>
-              UPDATES ({user.updates.length})
+              UPDATES ({updates.length})
             </div>
             <div style={{ borderLeft: '2px solid rgba(74, 222, 128, 0.2)', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {(showAllUpdates ? user.updates : user.updates.slice(0, PROFILE_UPDATES_LIMIT)).map((update) => (
+              {(showAllUpdates ? updates : updates.slice(0, PROFILE_UPDATES_LIMIT)).map((update) => (
                 <div key={update.id} style={{ position: 'relative' }}>
                   <div style={{ position: 'absolute', left: '-27px', top: '6px', width: '10px', height: '10px', borderRadius: '50%', background: '#1c1917', border: '2px solid rgba(74, 222, 128, 0.4)' }} />
                   <div style={{ color: '#d6d3d1', fontSize: '14px', lineHeight: 1.5 }}>{update.content}</div>
@@ -1938,13 +2032,13 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                 </div>
               ))}
             </div>
-            {!showAllUpdates && user.updates.length > PROFILE_UPDATES_LIMIT && (
+            {!showAllUpdates && updates.length > PROFILE_UPDATES_LIMIT && (
               <button
                 className="btn btn-ghost"
                 onClick={() => setShowAllUpdates(true)}
                 style={{ marginTop: '12px', fontSize: '13px' }}
               >
-                Show all {user.updates.length} updates
+                Show all {updates.length} updates
               </button>
             )}
           </div>
@@ -2058,7 +2152,7 @@ const ShareModal = ({ username, onClose, showNotification }) => {
         </div>
 
         {/* Share Options */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div className="share-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           {shareOptions.map(option => (
             <button key={option.name} className="social-btn" onClick={option.action}>
               <span style={{ fontSize: '18px', width: '24px', textAlign: 'center' }}>{option.icon}</span>
