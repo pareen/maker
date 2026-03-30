@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured, _savedHash } from './supabase'
+import { supabase, isSupabaseConfigured } from './supabase'
 
 // Track whether the current user authenticated via Supabase or localStorage.
 // Google OAuth users are stored in localStorage even when Supabase is configured,
@@ -89,100 +89,126 @@ async function ensureProfileExists(user) {
   }
 }
 
-// Redirect to Google OAuth (no popups — works reliably everywhere)
-export function signInWithGoogle() {
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
-  if (!clientId) {
-    throw new Error('VITE_GOOGLE_CLIENT_ID is not set')
+// Redirect to Google OAuth via Supabase (no popups — works reliably everywhere)
+export async function signInWithGoogle() {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase is not configured. Google sign-in requires Supabase.')
   }
 
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: window.location.origin,
-    response_type: 'token',
-    scope: 'openid email profile',
-    prompt: 'select_account',
-    state: 'google_oauth'
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin,
+      queryParams: {
+        prompt: 'select_account'
+      }
+    }
   })
 
-  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
+  if (error) throw error
+  return data
 }
 
-// Called on page load to complete Google OAuth redirect flow.
-// Uses _savedHash (captured before Supabase's createClient can consume it)
-// and checks for state=google_oauth to distinguish Google from Supabase redirects.
-export async function handleGoogleOAuthRedirect() {
-  const hash = _savedHash
-  if (!hash || !hash.includes('access_token')) return null
+// Migrate legacy localStorage Google OAuth data to Supabase.
+// Called after a Supabase Google sign-in to check if this user had
+// data stored in localStorage from the old custom Google OAuth flow.
+export async function migrateLocalStorageData(supabaseUser) {
+  if (!supabaseUser?.email) return false
 
-  const params = new URLSearchParams(hash.substring(1))
-
-  // Only handle redirects we initiated (state=google_oauth).
-  // Supabase OAuth redirects won't have this — let Supabase handle those.
-  if (params.get('state') !== 'google_oauth') return null
-
-  const accessToken = params.get('access_token')
-  if (!accessToken) return null
-
-  // This is our Google redirect — clear the hash so Supabase doesn't also try to process it
-  window.history.replaceState(null, '', window.location.pathname)
-
-  const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-    headers: { Authorization: `Bearer ${accessToken}` }
-  })
-
-  if (!res.ok) return null
-
-  const userInfo = await res.json()
-  if (!userInfo.sub) return null
-
-  const googleUser = {
-    id: userInfo.sub,
-    email: userInfo.email || '',
-    name: userInfo.name || '',
-    picture: userInfo.picture || ''
-  }
-
-  return signInWithGoogleLocal(googleUser)
-}
-
-function signInWithGoogleLocal(googleUser) {
   const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}')
-  const googleKey = `google_${googleUser.id}`
 
-  if (users[googleKey]) {
-    // Existing user — update name/picture from Google in case they changed
-    users[googleKey].name = users[googleKey].name || googleUser.name
-    users[googleKey].picture = googleUser.picture
-    localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
-    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[googleKey]))
-    return users[googleKey]
+  // Find legacy data by matching email or Google sub ID
+  const googleSub = supabaseUser.user_metadata?.sub
+  const legacyKey = googleSub ? `google_${googleSub}` : null
+  let legacyUser = legacyKey ? users[legacyKey] : null
+
+  // Also try matching by email across all localStorage users
+  if (!legacyUser) {
+    const emailKey = Object.keys(users).find(key => users[key].email === supabaseUser.email)
+    if (emailKey) legacyUser = users[emailKey]
   }
 
-  // New user
-  const username = googleUser.email
-    ? googleUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
-    : `user_${googleUser.id.slice(-8)}`
-  const newUser = {
-    id: googleUser.id,
-    email: googleUser.email,
-    username,
-    name: googleUser.name,
-    picture: googleUser.picture,
-    bio: '',
-    firstMake: { description: '', age: '' },
-    domains: [],
-    socials: { twitter: '', github: '', linkedin: '', substack: '', website: '' },
-    embedFeed: { type: null, url: '' },
-    projects: [],
-    todayMaking: '',
-    createdAt: new Date().toISOString()
-  }
+  if (!legacyUser) return false // No legacy data to migrate
 
-  users[googleKey] = newUser
-  localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
-  localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(newUser))
-  return newUser
+  console.log('Migrating localStorage data for', supabaseUser.email)
+
+  try {
+    // Migrate profile data (name, bio, socials, etc.)
+    const profileFields = {}
+    if (legacyUser.name) profileFields.name = legacyUser.name
+    if (legacyUser.bio) profileFields.bio = legacyUser.bio
+    if (legacyUser.firstMake?.description) {
+      profileFields.first_make_description = legacyUser.firstMake.description
+      profileFields.first_make_age = legacyUser.firstMake.age || ''
+    }
+    if (legacyUser.domains?.length > 0) profileFields.domains = legacyUser.domains
+    if (legacyUser.todayMaking) profileFields.today_making = legacyUser.todayMaking
+    if (legacyUser.socials) profileFields.socials = legacyUser.socials
+    if (legacyUser.embedFeed?.type) profileFields.embed_feed = legacyUser.embedFeed
+
+    if (Object.keys(profileFields).length > 0) {
+      await supabase.from('profiles').update(profileFields).eq('id', supabaseUser.id)
+    }
+
+    // Migrate projects
+    if (legacyUser.projects?.length > 0) {
+      for (const project of legacyUser.projects) {
+        await supabase.from('projects').insert({
+          user_id: supabaseUser.id,
+          name: project.name,
+          one_liner: project.oneLiner || null,
+          role: project.role || 'solo',
+          current_stage: project.currentStage || 'idea',
+          start_date: project.startDate || null,
+          end_date: project.endDate || null,
+          ongoing: project.ongoing ?? true,
+          domains: project.domains || [],
+          links: project.links || [],
+          outcome: project.outcome || null
+        })
+      }
+    }
+
+    // Migrate updates
+    const legacyUpdates = JSON.parse(localStorage.getItem('makerPortfolio_updates') || '{}')
+    const userUpdates = legacyUpdates[legacyUser.id] || []
+    if (userUpdates.length > 0) {
+      for (const update of userUpdates) {
+        await supabase.from('updates').insert({
+          user_id: supabaseUser.id,
+          content: update.content,
+          created_at: update.created_at
+        })
+      }
+    }
+
+    // Clean up localStorage after successful migration
+    const updatedUsers = { ...users }
+    // Remove all keys matching this user
+    for (const key of Object.keys(updatedUsers)) {
+      if (updatedUsers[key].email === supabaseUser.email) {
+        delete updatedUsers[key]
+      }
+    }
+    if (legacyKey && updatedUsers[legacyKey]) {
+      delete updatedUsers[legacyKey]
+    }
+    localStorage.setItem('makerPortfolio_users', JSON.stringify(updatedUsers))
+    localStorage.removeItem('makerPortfolio_currentUser')
+
+    // Clean up legacy updates
+    if (legacyUpdates[legacyUser.id]) {
+      delete legacyUpdates[legacyUser.id]
+      localStorage.setItem('makerPortfolio_updates', JSON.stringify(legacyUpdates))
+    }
+
+    console.log('Migration complete for', supabaseUser.email)
+    return true
+  } catch (error) {
+    console.error('Migration failed (data preserved in localStorage):', error)
+    // Don't delete localStorage data if migration failed
+    return false
+  }
 }
 
 export async function signOut() {
