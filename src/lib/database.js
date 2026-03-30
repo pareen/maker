@@ -1,5 +1,17 @@
 import { supabase, isSupabaseConfigured, _savedHash } from './supabase'
 
+// Track whether the current user authenticated via Supabase or localStorage.
+// Google OAuth users are stored in localStorage even when Supabase is configured,
+// so CRUD functions must route based on auth mode, not just isSupabaseConfigured().
+let _authMode = null // 'supabase' | 'local' | null
+export function setAuthMode(mode) { _authMode = mode }
+export function getAuthMode() { return _authMode }
+
+// Use Supabase for CRUD operations only if configured AND user has a Supabase session
+function useSupabase() {
+  return isSupabaseConfigured() && _authMode === 'supabase'
+}
+
 // ============================================
 // AUTH FUNCTIONS
 // ============================================
@@ -176,6 +188,8 @@ function signInWithGoogleLocal(googleUser) {
 export async function signOut() {
   // Always clear localStorage (Google-authed users use it even with Supabase configured)
   signOutLocal()
+  // Clear persisted GitHub token so it doesn't linger after logout
+  localStorage.removeItem('makerPortfolio_githubToken')
 
   if (!isSupabaseConfigured()) return
 
@@ -220,7 +234,7 @@ export function onAuthStateChange(callback) {
 // ============================================
 
 export async function getProfile(userId) {
-  if (!isSupabaseConfigured()) {
+  if (!useSupabase()) {
     return getProfileLocal(userId)
   }
 
@@ -235,22 +249,25 @@ export async function getProfile(userId) {
 }
 
 export async function getProfileByUsername(username) {
-  if (!isSupabaseConfigured()) {
-    return getProfileByUsernameLocal(username)
+  // Public profile lookup: check both Supabase and localStorage.
+  // The viewed user might be stored in either backend.
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('username', username)
+      .single()
+
+    if (data && !error) {
+      const profile = profileFromDb(data)
+      const projects = await getProjectsByUserId(data.id)
+      const updates = await getUpdatesByUserId(data.id)
+      return { ...profile, projects, updates }
+    }
   }
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('username', username)
-    .single()
-
-  if (error) throw error
-
-  // Also fetch projects
-  const profile = profileFromDb(data)
-  const projects = await getProjectsByUserId(data.id)
-  return { ...profile, projects }
+  // Fall back to localStorage (covers Google OAuth users and no-Supabase setups)
+  return getProfileByUsernameLocal(username)
 }
 
 // Convert DB snake_case profile to app camelCase format
@@ -272,7 +289,7 @@ function profileFromDb(dbProfile) {
 }
 
 export async function updateProfile(userId, updates) {
-  if (!isSupabaseConfigured()) {
+  if (!useSupabase()) {
     return updateProfileLocal(userId, updates)
   }
 
@@ -301,7 +318,7 @@ export async function updateProfile(userId, updates) {
 // ============================================
 
 export async function getProjectsByUserId(userId) {
-  if (!isSupabaseConfigured()) {
+  if (!useSupabase()) {
     return getProjectsByUserIdLocal(userId)
   }
 
@@ -316,25 +333,27 @@ export async function getProjectsByUserId(userId) {
 }
 
 export async function createProject(userId, project) {
-  if (!isSupabaseConfigured()) {
+  if (!useSupabase()) {
     return createProjectLocal(userId, project)
+  }
+
+  const row = {
+    user_id: userId,
+    name: project.name,
+    one_liner: project.oneLiner || null,
+    role: project.role || 'solo',
+    current_stage: project.currentStage || 'idea',
+    start_date: project.startDate || null,
+    end_date: project.endDate || null,
+    ongoing: project.ongoing ?? true,
+    domains: project.domains || [],
+    links: project.links || [],
+    outcome: project.outcome || null
   }
 
   const { data, error } = await supabase
     .from('projects')
-    .insert({
-      user_id: userId,
-      name: project.name,
-      one_liner: project.oneLiner,
-      role: project.role,
-      current_stage: project.currentStage,
-      start_date: project.startDate || null,
-      end_date: project.endDate || null,
-      ongoing: project.ongoing,
-      domains: project.domains,
-      links: project.links,
-      outcome: project.outcome
-    })
+    .insert(row)
     .select()
     .single()
 
@@ -343,24 +362,26 @@ export async function createProject(userId, project) {
 }
 
 export async function updateProject(projectId, updates) {
-  if (!isSupabaseConfigured()) {
+  if (!useSupabase()) {
     return updateProjectLocal(projectId, updates)
+  }
+
+  const row = {
+    name: updates.name,
+    one_liner: updates.oneLiner || null,
+    role: updates.role || 'solo',
+    current_stage: updates.currentStage || 'idea',
+    start_date: updates.startDate || null,
+    end_date: updates.endDate || null,
+    ongoing: updates.ongoing ?? true,
+    domains: updates.domains || [],
+    links: updates.links || [],
+    outcome: updates.outcome || null
   }
 
   const { data, error } = await supabase
     .from('projects')
-    .update({
-      name: updates.name,
-      one_liner: updates.oneLiner,
-      role: updates.role,
-      current_stage: updates.currentStage,
-      start_date: updates.startDate || null,
-      end_date: updates.endDate || null,
-      ongoing: updates.ongoing,
-      domains: updates.domains,
-      links: updates.links,
-      outcome: updates.outcome
-    })
+    .update(row)
     .eq('id', projectId)
     .select()
     .single()
@@ -370,7 +391,7 @@ export async function updateProject(projectId, updates) {
 }
 
 export async function deleteProject(projectId) {
-  if (!isSupabaseConfigured()) {
+  if (!useSupabase()) {
     return deleteProjectLocal(projectId)
   }
 
@@ -378,6 +399,60 @@ export async function deleteProject(projectId) {
     .from('projects')
     .delete()
     .eq('id', projectId)
+
+  if (error) throw error
+}
+
+// ============================================
+// UPDATE FUNCTIONS (timeline / feed)
+// ============================================
+
+export async function getUpdatesByUserId(userId) {
+  if (!useSupabase()) {
+    return getUpdatesByUserIdLocal(userId)
+  }
+
+  const { data, error } = await supabase
+    .from('updates')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data
+}
+
+export async function createUpdate(userId, content) {
+  if (!useSupabase()) {
+    return createUpdateLocal(userId, content)
+  }
+
+  const { data, error } = await supabase
+    .from('updates')
+    .insert({ user_id: userId, content })
+    .select()
+    .single()
+
+  if (error) throw error
+
+  // Also update today_making on the profile so the latest update shows there
+  await supabase
+    .from('profiles')
+    .update({ today_making: content })
+    .eq('id', userId)
+
+  return data
+}
+
+export async function deleteUpdate(updateId) {
+  if (!useSupabase()) {
+    return deleteUpdateLocal(updateId)
+  }
+
+  const { error } = await supabase
+    .from('updates')
+    .delete()
+    .eq('id', updateId)
 
   if (error) throw error
 }
@@ -469,15 +544,16 @@ function getProfileByUsernameLocal(username) {
 
 function updateProfileLocal(userId, updates) {
   const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}')
-  const userEmail = Object.keys(users).find(email => users[email].id === userId)
+  const userKey = Object.keys(users).find(key => users[key].id === userId)
 
-  if (userEmail) {
-    users[userEmail] = { ...users[userEmail], ...updates }
-    localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
-    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userEmail]))
-    return users[userEmail]
+  if (!userKey) {
+    throw new Error('User not found in local storage. Please log out and log back in.')
   }
-  return null
+
+  users[userKey] = { ...users[userKey], ...updates }
+  localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
+  localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userKey]))
+  return users[userKey]
 }
 
 function getProjectsByUserIdLocal(userId) {
@@ -487,16 +563,17 @@ function getProjectsByUserIdLocal(userId) {
 
 function createProjectLocal(userId, project) {
   const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}')
-  const userEmail = Object.keys(users).find(email => users[email].id === userId)
+  const userKey = Object.keys(users).find(key => users[key].id === userId)
 
-  if (userEmail) {
-    const newProject = { ...project, id: Date.now().toString() }
-    users[userEmail].projects = [...(users[userEmail].projects || []), newProject]
-    localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
-    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userEmail]))
-    return newProject
+  if (!userKey) {
+    throw new Error('User not found in local storage. Please log out and log back in.')
   }
-  return null
+
+  const newProject = { ...project, id: Date.now().toString() }
+  users[userKey].projects = [...(users[userKey].projects || []), newProject]
+  localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
+  localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userKey]))
+  return newProject
 }
 
 function updateProjectLocal(projectId, updates) {
@@ -504,14 +581,14 @@ function updateProjectLocal(projectId, updates) {
   if (!currentUser) return null
 
   const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}')
-  const userEmail = currentUser.email
+  const userKey = Object.keys(users).find(key => users[key].id === currentUser.id)
 
-  if (users[userEmail]) {
-    users[userEmail].projects = users[userEmail].projects.map(p =>
+  if (userKey && users[userKey]) {
+    users[userKey].projects = users[userKey].projects.map(p =>
       p.id === projectId ? { ...p, ...updates } : p
     )
     localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
-    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userEmail]))
+    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userKey]))
     return updates
   }
   return null
@@ -522,11 +599,42 @@ function deleteProjectLocal(projectId) {
   if (!currentUser) return
 
   const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}')
-  const userEmail = currentUser.email
+  const userKey = Object.keys(users).find(key => users[key].id === currentUser.id)
 
-  if (users[userEmail]) {
-    users[userEmail].projects = users[userEmail].projects.filter(p => p.id !== projectId)
+  if (userKey && users[userKey]) {
+    users[userKey].projects = users[userKey].projects.filter(p => p.id !== projectId)
     localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
-    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userEmail]))
+    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userKey]))
   }
+}
+
+function getUpdatesByUserIdLocal(userId) {
+  const updates = JSON.parse(localStorage.getItem('makerPortfolio_updates') || '{}')
+  return (updates[userId] || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+}
+
+function createUpdateLocal(userId, content) {
+  const updates = JSON.parse(localStorage.getItem('makerPortfolio_updates') || '{}')
+  const newUpdate = { id: Date.now().toString(), user_id: userId, content, created_at: new Date().toISOString() }
+  updates[userId] = [newUpdate, ...(updates[userId] || [])]
+  localStorage.setItem('makerPortfolio_updates', JSON.stringify(updates))
+
+  // Also update todayMaking on the user profile
+  const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}')
+  const userKey = Object.keys(users).find(key => users[key].id === userId)
+  if (userKey) {
+    users[userKey].todayMaking = content
+    localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
+    localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userKey]))
+  }
+
+  return newUpdate
+}
+
+function deleteUpdateLocal(updateId) {
+  const updates = JSON.parse(localStorage.getItem('makerPortfolio_updates') || '{}')
+  for (const userId of Object.keys(updates)) {
+    updates[userId] = updates[userId].filter(u => u.id !== updateId)
+  }
+  localStorage.setItem('makerPortfolio_updates', JSON.stringify(updates))
 }

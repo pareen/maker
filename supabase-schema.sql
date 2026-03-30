@@ -106,6 +106,30 @@ CREATE TRIGGER projects_updated_at
   BEFORE UPDATE ON projects
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+-- Updates table (timeline / social feed of maker updates)
+CREATE TABLE updates (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE updates ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public updates are viewable by everyone"
+  ON updates FOR SELECT
+  USING (true);
+
+CREATE POLICY "Users can insert their own updates"
+  ON updates FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own updates"
+  ON updates FOR DELETE
+  USING (auth.uid() = user_id);
+
 -- Create index for faster username lookups
 CREATE INDEX profiles_username_idx ON profiles(username);
 CREATE INDEX projects_user_id_idx ON projects(user_id);
+CREATE INDEX updates_user_id_idx ON updates(user_id);
+CREATE INDEX updates_created_at_idx ON updates(created_at DESC);

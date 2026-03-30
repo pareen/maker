@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as db from './lib/database';
-import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection } from './lib/github';
+import { setAuthMode } from './lib/database';
+import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection, handleGitHubOAuthRedirect } from './lib/github';
 import { isSupabaseConfigured } from './lib/supabase';
+
+const ensureUrl = (url) => url && !/^https?:\/\//i.test(url) ? `https://${url}` : url;
 
 // ============================================
 // MAKER PORTFOLIO - Full Functional App
@@ -30,7 +33,7 @@ const roles = [
 
 const App = () => {
   const [currentUser, setCurrentUser] = useState(null);
-  const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, dashboard, profile, editProfile, publicProfile
+  const [currentView, setCurrentView] = useState('loading'); // loading, landing, login, signup, dashboard, profile, editProfile, publicProfile
   const [viewingProfile, setViewingProfile] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [notification, setNotification] = useState(null);
@@ -40,29 +43,48 @@ const App = () => {
   // users who authenticated via Google OAuth (localStorage-only).
   const authSourceRef = useRef(null); // 'supabase' | 'local' | null
 
+  // Version counter to prevent stale async callbacks from overwriting newer state.
+  // Every auth action increments this; async callbacks check it before applying state.
+  const authVersionRef = useRef(0);
+
   // Load user on mount and listen for auth changes
   useEffect(() => {
     const loadUser = async () => {
+      const version = ++authVersionRef.current;
       try {
         // Check for Google OAuth redirect first
         const googleUser = await db.handleGoogleOAuthRedirect();
         if (googleUser) {
+          if (authVersionRef.current !== version) return; // stale
           authSourceRef.current = 'local';
+          setAuthMode('local');
           setCurrentUser({ ...googleUser, projects: googleUser.projects || [] });
           setCurrentView('dashboard');
           return;
         }
 
+        // Check for GitHub OAuth redirect (repo import, not login)
+        // This exchanges the code for a token and stores it in localStorage.
+        await handleGitHubOAuthRedirect();
+
         const user = await db.getCurrentUser();
         if (user) {
+          if (authVersionRef.current !== version) return; // stale
           // Supabase users have 'aud' field; localStorage users don't
-          authSourceRef.current = user.aud ? 'supabase' : 'local';
+          const source = user.aud ? 'supabase' : 'local';
+          authSourceRef.current = source;
+          setAuthMode(source);
           const projects = user.projects || await db.getProjectsByUserId(user.id);
+          if (authVersionRef.current !== version) return; // stale
           setCurrentUser({ ...user, projects });
           setCurrentView('dashboard');
+        } else {
+          setCurrentView('landing');
         }
       } catch (error) {
+        if (authVersionRef.current !== version) return; // stale
         console.error('Error loading user:', error);
+        setCurrentView('landing');
         setNotification({ message: 'Login failed: ' + error.message, type: 'error' });
         setTimeout(() => setNotification(null), 5000);
       }
@@ -70,26 +92,44 @@ const App = () => {
 
     loadUser();
 
-    // Listen for auth state changes (Supabase)
-    // INITIAL_SESSION fires on first load in Supabase JS v2 (not SIGNED_IN),
-    // so we must handle it to restore the session after page reloads.
+    // Listen for Supabase auth state changes.
+    // DO NOT handle INITIAL_SESSION here — loadUser() handles initial session
+    // restoration via getSession() (which auto-refreshes expired tokens).
+    // Handling INITIAL_SESSION here caused a race condition: it set
+    // authSourceRef='supabase' before async work finished, then SIGNED_OUT
+    // fired during that async work and kicked the user out (flickering).
     const { data: { subscription } } = db.onAuthStateChange(async (event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
-        // Store GitHub provider_token so it survives page refreshes
-        if (session.provider_token) {
-          localStorage.setItem('makerPortfolio_githubToken', session.provider_token);
-        }
+      // Always persist GitHub provider_token when available
+      if (session?.provider_token) {
+        localStorage.setItem('makerPortfolio_githubToken', session.provider_token);
+      }
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Explicit login (user action or cross-tab sign-in)
+        const version = ++authVersionRef.current;
         authSourceRef.current = 'supabase';
-        const profile = await db.getProfile(session.user.id);
-        const projects = await db.getProjectsByUserId(session.user.id);
-        setCurrentUser({ ...session.user, ...profile, projects });
-        setCurrentView('dashboard');
+        setAuthMode('supabase');
+        try {
+          const profile = await db.getProfile(session.user.id);
+          const projects = await db.getProjectsByUserId(session.user.id);
+          if (authVersionRef.current !== version) return; // stale
+          setCurrentUser({ ...session.user, ...profile, projects });
+          setCurrentView('dashboard');
+        } catch (err) {
+          console.error('Failed to load user data on sign-in:', err);
+          if (authVersionRef.current !== version) return;
+          // Still sign in with what we have so the user isn't stuck
+          setCurrentUser(session.user);
+          setCurrentView('dashboard');
+        }
       } else if (event === 'SIGNED_OUT') {
         // Only clear state if user was authenticated via Supabase.
         // localStorage users (Google OAuth) have no Supabase session,
         // so SIGNED_OUT would fire spuriously and kick them out.
         if (authSourceRef.current === 'supabase') {
+          authVersionRef.current++;
           authSourceRef.current = null;
+          setAuthMode(null);
           localStorage.removeItem('makerPortfolio_githubToken');
           setCurrentUser(null);
           setCurrentView('landing');
@@ -102,7 +142,7 @@ const App = () => {
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
+    setTimeout(() => setNotification(null), type === 'error' ? 6000 : 3000);
   };
 
   const handleLogout = async () => {
@@ -110,6 +150,7 @@ const App = () => {
       await db.signOut();
       localStorage.removeItem('makerPortfolio_githubToken');
       authSourceRef.current = null;
+      setAuthMode(null);
       setCurrentUser(null);
       setCurrentView('landing');
     } catch (error) {
@@ -199,6 +240,12 @@ const App = () => {
         />
       )}
 
+      {currentView === 'loading' && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+          <div style={{ color: '#a8a29e', fontSize: '14px' }}>Loading...</div>
+        </div>
+      )}
+
       {currentView === 'landing' && (
         <LandingPage
           onLogin={() => setCurrentView('login')}
@@ -211,7 +258,13 @@ const App = () => {
           mode="login"
           onSwitch={() => setCurrentView('signup')}
           onBack={() => setCurrentView('landing')}
-          onSuccess={(user) => { setCurrentUser(user); setCurrentView('dashboard'); }}
+          onSuccess={(user) => {
+            const source = user.aud ? 'supabase' : 'local';
+            authSourceRef.current = source;
+            setAuthMode(source);
+            setCurrentUser(user);
+            setCurrentView('dashboard');
+          }}
           showNotification={showNotification}
         />
       )}
@@ -221,7 +274,13 @@ const App = () => {
           mode="signup"
           onSwitch={() => setCurrentView('login')}
           onBack={() => setCurrentView('landing')}
-          onSuccess={(user) => { setCurrentUser(user); setCurrentView('dashboard'); }}
+          onSuccess={(user) => {
+            const source = user.aud ? 'supabase' : 'local';
+            authSourceRef.current = source;
+            setAuthMode(source);
+            setCurrentUser(user);
+            setCurrentView('dashboard');
+          }}
           showNotification={showNotification}
         />
       )}
@@ -493,6 +552,8 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
         onSuccess({ ...user, username, projects: [] });
       } else {
         const user = await db.signIn(email, password);
+        // Set auth mode BEFORE CRUD calls so they route to the correct backend
+        db.setAuthMode(user.aud ? 'supabase' : 'local');
         const profile = await db.getProfile(user.id);
         const projects = await db.getProjectsByUserId(user.id);
         showNotification('Welcome back!');
@@ -612,10 +673,16 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
 // DASHBOARD
 // ============================================
 const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onShare, showNotification }) => {
-  const [todayMaking, setTodayMaking] = useState(user.todayMaking || '');
+  const [updateText, setUpdateText] = useState('');
+  const [updates, setUpdates] = useState([]);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [showGitHubImport, setShowGitHubImport] = useState(false);
+
+  // Load updates on mount
+  useEffect(() => {
+    db.getUpdatesByUserId(user.id).then(setUpdates).catch(console.error);
+  }, [user.id]);
 
   // Auto-open GitHub import if user just completed OAuth and has no projects
   useEffect(() => {
@@ -640,13 +707,28 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
     setUser(updatedUser);
   };
 
-  const saveTodayMaking = async () => {
+  const postUpdate = async () => {
+    if (!updateText.trim()) return;
     try {
-      await updateUser({ todayMaking });
-      showNotification('Updated!');
+      const newUpdate = await db.createUpdate(user.id, updateText.trim());
+      setUpdates([newUpdate, ...updates]);
+      setUser({ ...user, todayMaking: updateText.trim() });
+      setUpdateText('');
+      showNotification('Update posted!');
     } catch (error) {
-      console.error('Error updating:', error);
-      showNotification('Error saving update', 'error');
+      console.error('Error posting update:', error);
+      showNotification('Error posting update', 'error');
+    }
+  };
+
+  const handleDeleteUpdate = async (updateId) => {
+    try {
+      await db.deleteUpdate(updateId);
+      setUpdates(updates.filter(u => u.id !== updateId));
+      showNotification('Update deleted');
+    } catch (error) {
+      console.error('Error deleting update:', error);
+      showNotification('Error deleting update', 'error');
     }
   };
 
@@ -666,7 +748,8 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
       setEditingProject(null);
     } catch (error) {
       console.error('Error saving project:', error);
-      showNotification('Error saving project', 'error');
+      const msg = error?.message || String(error);
+      showNotification('Error saving project: ' + msg, 'error');
     }
   };
 
@@ -737,24 +820,49 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
           <p style={{ color: '#78716c' }}>What are you making today?</p>
         </div>
 
-        {/* Today's Making */}
+        {/* Post Update */}
         <div className="card" style={{ padding: '24px', marginBottom: '32px' }}>
           <div style={{ display: 'flex', gap: '12px' }}>
             <input
               className="input"
-              placeholder="Working on the landing page for my new app..."
-              value={todayMaking}
-              onChange={(e) => setTodayMaking(e.target.value)}
+              placeholder="What are you making today?"
+              value={updateText}
+              onChange={(e) => setUpdateText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && postUpdate()}
               style={{ flex: 1 }}
             />
-            <button className="btn btn-primary" onClick={saveTodayMaking}>Update</button>
+            <button className="btn btn-primary" onClick={postUpdate}>Post</button>
           </div>
-          {user.todayMaking && (
-            <div style={{ marginTop: '12px', fontSize: '12px', color: '#57534e' }}>
-              This shows on your public profile
-            </div>
-          )}
+          <div style={{ marginTop: '8px', fontSize: '12px', color: '#57534e' }}>
+            Latest update shows on your public profile. All updates are saved as a timeline.
+          </div>
         </div>
+
+        {/* Updates Timeline */}
+        {updates.length > 0 && (
+          <div style={{ marginBottom: '32px' }}>
+            <h2 style={{ fontSize: '12px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>UPDATES ({updates.length})</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+              {updates.map((update) => (
+                <div key={update.id} className="card" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ color: '#d6d3d1', fontSize: '14px' }}>{update.content}</span>
+                    <div style={{ fontSize: '11px', color: '#57534e', marginTop: '6px' }}>
+                      {new Date(update.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {' · '}
+                      {new Date(update.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteUpdate(update.id)}
+                    style={{ background: 'none', border: 'none', color: '#57534e', cursor: 'pointer', fontSize: '16px', padding: '2px 6px', lineHeight: 1 }}
+                    title="Delete update"
+                  >×</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Projects */}
         <div>
@@ -895,10 +1003,21 @@ const ProjectModal = ({ project, onSave, onClose }) => {
   };
 
   const addLink = () => {
-    if (newLink && !formData.links.includes(newLink)) {
-      setFormData({ ...formData, links: [...formData.links, newLink] });
-      setNewLink('');
+    if (!newLink) return;
+    // Auto-prepend https:// if user typed a bare domain
+    let url = newLink.trim();
+    if (url && !url.match(/^https?:\/\//i)) {
+      url = 'https://' + url;
     }
+    try {
+      new URL(url); // validate URL format
+    } catch {
+      return; // silently reject invalid URLs
+    }
+    if (!formData.links.includes(url)) {
+      setFormData({ ...formData, links: [...formData.links, url] });
+    }
+    setNewLink('');
   };
 
   return (
@@ -1204,7 +1323,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
 
         {step === 'input' && (
           <>
-            {isSupabaseConfigured() && (
+            {(isSupabaseConfigured() || import.meta.env.VITE_GITHUB_CLIENT_ID) && (
               <div style={{ marginBottom: '24px' }}>
                 <button
                   className="btn btn-primary"
@@ -1668,10 +1787,10 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         {/* Profile Header */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '60px', marginBottom: '60px' }}>
           <div>
-            {/* Today Making */}
+            {/* Latest Update */}
             {user.todayMaking && (
               <div style={{ marginBottom: '24px', padding: '12px 16px', background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '8px' }}>
-                <span style={{ fontSize: '11px', color: '#4ade80', fontWeight: '500' }}>MAKING TODAY: </span>
+                <span style={{ fontSize: '11px', color: '#4ade80', fontWeight: '500' }}>LATEST: </span>
                 <span style={{ color: '#a8a29e' }}>{user.todayMaking}</span>
               </div>
             )}
@@ -1702,27 +1821,27 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
             {Object.values(user.socials || {}).some(v => v) && (
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                 {user.socials?.twitter && (
-                  <a href={user.socials.twitter} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={ensureUrl(user.socials.twitter)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>𝕏</span> Twitter
                   </a>
                 )}
                 {user.socials?.github && (
-                  <a href={user.socials.github} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={ensureUrl(user.socials.github)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>◐</span> GitHub
                   </a>
                 )}
                 {user.socials?.linkedin && (
-                  <a href={user.socials.linkedin} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={ensureUrl(user.socials.linkedin)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>in</span> LinkedIn
                   </a>
                 )}
                 {user.socials?.substack && (
-                  <a href={user.socials.substack} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={ensureUrl(user.socials.substack)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>◉</span> Substack
                   </a>
                 )}
                 {user.socials?.website && (
-                  <a href={user.socials.website} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={ensureUrl(user.socials.website)} target="_blank" rel="noopener" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>↗</span> Website
                   </a>
                 )}
@@ -1783,6 +1902,26 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
           </div>
         )}
 
+        {/* Updates Timeline */}
+        {user.updates?.length > 0 && (
+          <div style={{ marginBottom: '48px' }}>
+            <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>
+              UPDATES ({user.updates.length})
+            </div>
+            <div style={{ borderLeft: '2px solid rgba(74, 222, 128, 0.2)', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {user.updates.map((update) => (
+                <div key={update.id} style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '-27px', top: '6px', width: '10px', height: '10px', borderRadius: '50%', background: '#1c1917', border: '2px solid rgba(74, 222, 128, 0.4)' }} />
+                  <div style={{ color: '#d6d3d1', fontSize: '14px', lineHeight: 1.5 }}>{update.content}</div>
+                  <div style={{ fontSize: '11px', color: '#57534e', marginTop: '4px' }}>
+                    {new Date(update.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Projects */}
         <div>
           <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>
@@ -1833,9 +1972,13 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                     {/* Project links */}
                     {project.links?.length > 0 && (
                       <div style={{ marginTop: '12px', display: 'flex', gap: '16px' }}>
-                        {project.links.map(link => (
-                          <a key={link} href={link} target="_blank" rel="noopener" style={{ color: '#fbbf24', fontSize: '13px' }}>↗ {new URL(link).hostname}</a>
-                        ))}
+                        {project.links.map(link => {
+                          let hostname;
+                          try { hostname = new URL(link).hostname; } catch { hostname = link; }
+                          return (
+                            <a key={link} href={link} target="_blank" rel="noopener" style={{ color: '#fbbf24', fontSize: '13px' }}>↗ {hostname}</a>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

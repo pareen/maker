@@ -22,23 +22,80 @@ async function getGitHubToken() {
 }
 
 /**
- * Sign in with GitHub OAuth via Supabase
+ * Start the GitHub OAuth flow.
+ * If Supabase is configured, use Supabase's OAuth provider.
+ * Otherwise, use direct GitHub OAuth redirect flow.
  */
 export async function signInWithGitHub() {
-  if (!isSupabaseConfigured()) {
-    throw new Error('Supabase not configured. GitHub OAuth requires Supabase.');
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        scopes: 'repo',
+        redirectTo: window.location.origin
+      }
+    });
+    if (error) throw error;
+    return data;
   }
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'github',
-    options: {
-      scopes: 'repo',
-      redirectTo: window.location.origin
-    }
+  // Direct GitHub OAuth flow
+  const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+  if (!clientId) {
+    throw new Error('VITE_GITHUB_CLIENT_ID is not set');
+  }
+
+  // Save current location so we can restore after redirect
+  sessionStorage.setItem('makerPortfolio_githubRedirect', 'true');
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    scope: 'repo',
+    redirect_uri: window.location.origin,
+    state: 'github_oauth'
   });
 
-  if (error) throw error;
-  return data;
+  window.location.href = `https://github.com/login/oauth/authorize?${params}`;
+}
+
+/**
+ * Handle GitHub OAuth redirect callback.
+ * Called on page load to check for ?code= from GitHub.
+ * Exchanges the code for an access token via our proxy.
+ */
+export async function handleGitHubOAuthRedirect() {
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+
+  if (!code || state !== 'github_oauth') return false;
+  if (!sessionStorage.getItem('makerPortfolio_githubRedirect')) return false;
+
+  // Clean up URL and flag
+  sessionStorage.removeItem('makerPortfolio_githubRedirect');
+  window.history.replaceState(null, '', window.location.pathname);
+
+  // Exchange code for token via our proxy (dev server or production worker)
+  const proxyUrl = import.meta.env.VITE_GITHUB_PROXY_URL || '/api/github/token';
+
+  const response = await fetch(proxyUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code })
+  });
+
+  if (!response.ok) {
+    throw new Error(`GitHub token exchange failed (${response.status})`);
+  }
+
+  const data = await response.json();
+
+  if (data.error || !data.access_token) {
+    throw new Error(data.error_description || data.error || 'GitHub OAuth failed');
+  }
+
+  localStorage.setItem('makerPortfolio_githubToken', data.access_token);
+  return true;
 }
 
 /**
@@ -79,6 +136,13 @@ export async function fetchAuthenticatedRepos() {
 export async function getGitHubConnection() {
   const token = await getGitHubToken();
   return token ? { connected: true } : null;
+}
+
+/**
+ * Disconnect GitHub (clear stored token)
+ */
+export function disconnectGitHub() {
+  localStorage.removeItem('makerPortfolio_githubToken');
 }
 
 /**
