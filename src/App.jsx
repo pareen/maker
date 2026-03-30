@@ -796,8 +796,12 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
 
   const handleDeleteUpdate = async (updateId) => {
     try {
-      await db.deleteUpdate(updateId);
-      setUpdates(updates.filter(u => u.id !== updateId));
+      await db.deleteUpdate(updateId, user.id);
+      const remaining = updates.filter(u => u.id !== updateId);
+      setUpdates(remaining);
+      // Sync todayMaking in local state
+      const latestContent = remaining[0]?.content || '';
+      setUser(u => ({ ...u, todayMaking: latestContent }));
       showNotification('Update deleted');
     } catch (error) {
       console.error('Error deleting update:', error);
@@ -841,19 +845,26 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
 
   const importGitHubProjects = async (projects) => {
     const createdProjects = [];
+    const existingIds = new Set(user.projects.map(p => p.id));
     for (const project of projects) {
       try {
         const { _github, ...projectData } = project;
-        const newProject = await db.createProject(user.id, projectData);
-        createdProjects.push(newProject);
+        const result = await db.createProject(user.id, projectData);
+        // createProject returns existing project if deduped — only count truly new ones
+        if (!existingIds.has(result.id)) {
+          createdProjects.push(result);
+        }
       } catch (error) {
         console.error(`Failed to import project ${project.name}:`, error);
       }
     }
-    if (createdProjects.length === 0) {
-      throw new Error('Failed to import any projects');
+    if (createdProjects.length === 0 && projects.length > 0) {
+      showNotification('All selected repos are already imported', 'error');
+      return [];
     }
-    setUser({ ...user, projects: [...user.projects, ...createdProjects] });
+    if (createdProjects.length > 0) {
+      setUser({ ...user, projects: [...user.projects, ...createdProjects] });
+    }
     return createdProjects;
   };
 
@@ -1354,6 +1365,10 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
     setLoading(true);
     try {
       const projects = await onImport(selected);
+      if (projects.length === 0) {
+        // All were duplicates — close without review
+        return;
+      }
       setImportedProjects(projects);
       setReviewIndex(0);
       setReviewData({ ...projects[0] });
@@ -1463,7 +1478,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', maxHeight: '400px', overflow: 'auto' }}>
               {repos.map((repo, index) => {
                 const alreadyImported = existingProjects.some(p =>
-                  p.name === repo.name || p.links?.some(l => repo.links?.includes(l))
+                  p.links?.some(l => repo.links?.includes(l)) || p.links?.includes(repo.githubUrl)
                 );
                 return (
                   <div

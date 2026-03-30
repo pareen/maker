@@ -205,6 +205,7 @@ export function mapRepoToProject(repo) {
     ongoing: !repo.archived,
     domains,
     links,
+    githubUrl: repo.html_url, // Canonical GitHub URL for dedup
     outcome: '',
     // Metadata for display in selection UI (not saved to DB)
     _github: {

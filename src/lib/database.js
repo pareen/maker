@@ -167,9 +167,21 @@ export async function migrateLocalStorageData(supabaseUser) {
       await supabase.from('profiles').update(profileFields).eq('id', supabaseUser.id)
     }
 
-    // Migrate projects
+    // Migrate projects (skip any that already exist by matching GitHub URL or name)
     if (legacyUser.projects?.length > 0) {
+      const { data: existingProjects } = await supabase
+        .from('projects')
+        .select('name, links')
+        .eq('user_id', supabaseUser.id)
+
+      const existingLinks = new Set((existingProjects || []).flatMap(p => p.links || []))
+      const existingNames = new Set((existingProjects || []).map(p => p.name))
+
       for (const project of legacyUser.projects) {
+        // Skip if any link already exists, or if same name already imported
+        const hasOverlap = project.links?.some(l => existingLinks.has(l))
+        if (hasOverlap || existingNames.has(project.name)) continue
+
         await supabase.from('projects').insert({
           user_id: supabaseUser.id,
           name: project.name,
@@ -186,16 +198,24 @@ export async function migrateLocalStorageData(supabaseUser) {
       }
     }
 
-    // Migrate updates
-    const legacyUpdates = JSON.parse(localStorage.getItem('makerPortfolio_updates') || '{}')
-    const userUpdates = legacyUpdates[legacyUser.id] || []
-    if (userUpdates.length > 0) {
-      for (const update of userUpdates) {
-        await supabase.from('updates').insert({
-          user_id: supabaseUser.id,
-          content: update.content,
-          created_at: update.created_at
-        })
+    // Migrate updates (skip if user already has updates — prevents re-migration duplication)
+    const { data: existingUpdates } = await supabase
+      .from('updates')
+      .select('id')
+      .eq('user_id', supabaseUser.id)
+      .limit(1)
+
+    if (!existingUpdates?.length) {
+      const legacyUpdates = JSON.parse(localStorage.getItem('makerPortfolio_updates') || '{}')
+      const userUpdates = legacyUpdates[legacyUser.id] || []
+      if (userUpdates.length > 0) {
+        for (const update of userUpdates) {
+          await supabase.from('updates').insert({
+            user_id: supabaseUser.id,
+            content: update.content,
+            created_at: update.created_at
+          })
+        }
       }
     }
 
@@ -380,6 +400,27 @@ export async function createProject(userId, project) {
     return createProjectLocal(userId, project)
   }
 
+  // Deduplicate: if this project has a GitHub URL, check if user already has it
+  const githubUrl = project.githubUrl || project.links?.find(l => l.match(/^https?:\/\/github\.com\//i))
+  if (githubUrl) {
+    const { data: existing } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('user_id', userId)
+      .contains('links', [githubUrl])
+      .limit(1)
+
+    if (existing?.length > 0) {
+      // Already imported — return the existing project instead of creating a duplicate
+      const { data: full } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', existing[0].id)
+        .single()
+      return projectFromDb(full)
+    }
+  }
+
   const row = {
     user_id: userId,
     name: project.name,
@@ -487,9 +528,9 @@ export async function createUpdate(userId, content) {
   return data
 }
 
-export async function deleteUpdate(updateId) {
+export async function deleteUpdate(updateId, userId) {
   if (!useSupabase()) {
-    return deleteUpdateLocal(updateId)
+    return deleteUpdateLocal(updateId, userId)
   }
 
   const { error } = await supabase
@@ -498,6 +539,21 @@ export async function deleteUpdate(updateId) {
     .eq('id', updateId)
 
   if (error) throw error
+
+  // Update todayMaking to the next most recent update (or clear it)
+  if (userId) {
+    const { data: latest } = await supabase
+      .from('updates')
+      .select('content')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    await supabase
+      .from('profiles')
+      .update({ today_making: latest?.[0]?.content || '' })
+      .eq('id', userId)
+  }
 }
 
 // Helper to convert DB format to app format
@@ -618,6 +674,15 @@ function createProjectLocal(userId, project) {
     throw new Error('User not found in local storage. Please log out and log back in.')
   }
 
+  // Dedup: check for overlapping GitHub URLs in existing projects
+  const githubUrl = project.githubUrl || project.links?.find(l => l.match(/^https?:\/\/github\.com\//i))
+  if (githubUrl) {
+    const existing = (users[userKey].projects || []).find(p =>
+      p.links?.includes(githubUrl)
+    )
+    if (existing) return existing
+  }
+
   const newProject = { ...project, id: Date.now().toString() }
   users[userKey].projects = [...(users[userKey].projects || []), newProject]
   localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
@@ -680,10 +745,22 @@ function createUpdateLocal(userId, content) {
   return newUpdate
 }
 
-function deleteUpdateLocal(updateId) {
+function deleteUpdateLocal(updateId, userId) {
   const updates = JSON.parse(localStorage.getItem('makerPortfolio_updates') || '{}')
-  for (const userId of Object.keys(updates)) {
-    updates[userId] = updates[userId].filter(u => u.id !== updateId)
+  for (const uid of Object.keys(updates)) {
+    updates[uid] = updates[uid].filter(u => u.id !== updateId)
   }
   localStorage.setItem('makerPortfolio_updates', JSON.stringify(updates))
+
+  // Update todayMaking to the next most recent update
+  if (userId) {
+    const remaining = (updates[userId] || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    const users = JSON.parse(localStorage.getItem('makerPortfolio_users') || '{}')
+    const userKey = Object.keys(users).find(key => users[key].id === userId)
+    if (userKey) {
+      users[userKey].todayMaking = remaining[0]?.content || ''
+      localStorage.setItem('makerPortfolio_users', JSON.stringify(users))
+      localStorage.setItem('makerPortfolio_currentUser', JSON.stringify(users[userKey]))
+    }
+  }
 }
