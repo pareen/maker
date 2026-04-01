@@ -959,7 +959,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
     try {
       const newUpdate = await db.createUpdate(user.id, updateText.trim());
       setUpdates([newUpdate, ...updates]);
-      setUser({ ...user, todayMaking: updateText.trim() });
+      setUser(prev => ({ ...prev, todayMaking: updateText.trim() }));
       setUpdateText('');
       showNotification('Update posted!');
     } catch (error) {
@@ -987,12 +987,11 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
     try {
       if (editingProject) {
         await db.updateProject(project.id, project);
-        const updatedProjects = user.projects.map(p => p.id === project.id ? project : p);
-        setUser({ ...user, projects: updatedProjects });
+        setUser(prev => ({ ...prev, projects: prev.projects.map(p => p.id === project.id ? project : p) }));
         showNotification('Project updated!');
       } else {
         const newProject = await db.createProject(user.id, project);
-        setUser({ ...user, projects: [...user.projects, newProject] });
+        setUser(prev => ({ ...prev, projects: [...prev.projects, newProject] }));
         showNotification('Project added!');
       }
       setShowProjectModal(false);
@@ -1008,7 +1007,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
     if (confirm(`Delete "${projectName || 'this project'}"?`)) {
       try {
         await db.deleteProject(projectId);
-        setUser({ ...user, projects: user.projects.filter(p => p.id !== projectId) });
+        setUser(prev => ({ ...prev, projects: prev.projects.filter(p => p.id !== projectId) }));
         showNotification('Project deleted');
       } catch (error) {
         console.error('Error deleting project:', error);
@@ -1037,7 +1036,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
       return [];
     }
     if (createdProjects.length > 0) {
-      setUser({ ...user, projects: [...user.projects, ...createdProjects] });
+      setUser(prev => ({ ...prev, projects: [...prev.projects, ...createdProjects] }));
     }
     return createdProjects;
   };
@@ -1257,10 +1256,17 @@ const ProjectModal = ({ project, onSave, onClose }) => {
 
   const [newDomain, setNewDomain] = useState('');
   const [newLink, setNewLink] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(formData);
+    if (saving) return;
+    setSaving(true);
+    try {
+      await onSave(formData);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const addDomain = () => {
@@ -1440,7 +1446,7 @@ const ProjectModal = ({ project, onSave, onClose }) => {
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary">Save Project</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Project'}</button>
           </div>
         </form>
       </div>
