@@ -375,7 +375,7 @@ const App = () => {
           onSuccess={async (user) => {
             const version = ++authVersionRef.current;
             const fullUser = await loadFullUser(user, version);
-            if (fullUser) setCurrentView('dashboard');
+            if (fullUser) setCurrentView('onboarding');
           }}
           showNotification={showNotification}
         />
@@ -391,6 +391,15 @@ const App = () => {
           onShare={() => setShowShareModal(true)}
           onAdmin={db.isAdmin(currentUser.id) ? () => navigate('admin') : null}
           onMakers={() => navigate('makers')}
+          showNotification={showNotification}
+        />
+      )}
+
+      {currentView === 'onboarding' && currentUser && (
+        <Onboarding
+          user={currentUser}
+          setUser={setCurrentUser}
+          onComplete={() => setCurrentView('dashboard')}
           showNotification={showNotification}
         />
       )}
@@ -470,6 +479,13 @@ const sampleMaker = {
   ]
 };
 
+const builderQuotes = [
+  { quote: "Learn to sell. Learn to build. If you can do both, you will be unstoppable.", author: "Naval Ravikant", role: "Entrepreneur & Angel Investor" },
+  { quote: "Real artists ship.", author: "Steve Jobs", role: "Co-founder, Apple" },
+  { quote: "Make something people want.", author: "Paul Graham", role: "Co-founder, Y Combinator" },
+  { quote: "If you're not embarrassed by the first version of your product, you've launched too late.", author: "Reid Hoffman", role: "Co-founder, LinkedIn" },
+];
+
 const LandingPage = ({ onLogin, onSignup, onMakers }) => {
   const sampleRoleBreakdown = roles.map(role => ({
     ...role,
@@ -487,7 +503,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers }) => {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600' }}>MAKER.PROFILE</div>
+        <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600' }}>MAKERLY</div>
         <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-ghost" onClick={onMakers}>Browse Makers</button>
           <button className="btn btn-ghost" onClick={onLogin}>Log in</button>
@@ -496,21 +512,134 @@ const LandingPage = ({ onLogin, onSignup, onMakers }) => {
       </header>
 
       {/* Hero */}
-      <section className="desktop-content" style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <h1 className="hero-title" style={{ fontSize: '56px', fontFamily: "'Newsreader', Georgia, serif", fontWeight: '500', marginBottom: '24px', letterSpacing: '-0.02em', maxWidth: '700px', lineHeight: 1.1, margin: '0 auto 24px' }}>
-          The portfolio for people who make things
+      <section className="desktop-content" style={{ padding: '100px 40px 80px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ fontSize: '13px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500', marginBottom: '24px' }}>FOR THE ONES WHO BUILD</div>
+        <h1 className="hero-title" style={{ fontSize: '60px', fontFamily: "'Newsreader', Georgia, serif", fontWeight: '500', letterSpacing: '-0.02em', maxWidth: '750px', lineHeight: 1.05, margin: '0 auto 28px' }}>
+          Resumes are dead.<br />
+          <span style={{ color: '#78716c' }}>Show what you've made.</span>
         </h1>
-        <p style={{ fontSize: '18px', color: '#a8a29e', maxWidth: '500px', lineHeight: 1.6, marginBottom: '48px', margin: '0 auto 48px' }}>
-          Not a resume. Not a LinkedIn. A living record of everything you've built — from Lego sets to IPOs.
+        <p style={{ fontSize: '18px', color: '#a8a29e', maxWidth: '520px', lineHeight: 1.6, margin: '0 auto 48px' }}>
+          In the AI era, you are what you build. Your Makerly profile is the living proof —
+          bigger than any resume or LinkedIn will ever be.
         </p>
         <button className="btn btn-primary" style={{ padding: '16px 48px', fontSize: '16px' }} onClick={onSignup}>
           Start your maker profile
         </button>
+      </section>
 
-        <div style={{ marginTop: '60px', display: 'flex', gap: '48px', color: '#57534e', fontSize: '13px', justifyContent: 'center' }}>
-          <div><span style={{ color: '#fbbf24', fontSize: '24px', fontWeight: '600' }}>10</span><br/>stages tracked</div>
-          <div><span style={{ color: '#fbbf24', fontSize: '24px', fontWeight: '600' }}>∞</span><br/>types of makes</div>
-          <div><span style={{ color: '#fbbf24', fontSize: '24px', fontWeight: '600' }}>0</span><br/>bullshit</div>
+      {/* The Contrast: LinkedIn vs Makerly */}
+      <section style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif" }}>Cool people don't send resumes.</h2>
+            <p style={{ color: '#57534e', fontSize: '14px', marginTop: '8px' }}>They send their Makerly.</p>
+          </div>
+
+          <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            {/* LinkedIn/Resume side */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '32px', opacity: 0.6 }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#57534e', marginBottom: '24px', fontWeight: '500' }}>WHAT A RESUME SHOWS</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '14px', color: '#78716c' }}>Software Engineer</div>
+                  <div style={{ fontSize: '12px', color: '#57534e' }}>Some Corp · 2022 — Present</div>
+                </div>
+                <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '14px', color: '#78716c' }}>Junior Developer</div>
+                  <div style={{ fontSize: '12px', color: '#57534e' }}>Another Inc · 2020 — 2022</div>
+                </div>
+                <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '14px', color: '#78716c' }}>B.Tech Computer Science</div>
+                  <div style={{ fontSize: '12px', color: '#57534e' }}>Some University · 2020</div>
+                </div>
+                <div style={{ padding: '8px 16px', fontSize: '12px', color: '#57534e', fontStyle: 'italic' }}>
+                  Skills: JavaScript, React, Node.js, "Team Player"
+                </div>
+              </div>
+              <div style={{ marginTop: '20px', fontSize: '13px', color: '#57534e', textAlign: 'center', fontStyle: 'italic' }}>Where you worked. What title you held. Yawn.</div>
+            </div>
+
+            {/* Makerly side */}
+            <div style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.05) 0%, rgba(251,191,36,0.01) 100%)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '16px', padding: '32px' }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', marginBottom: '24px', fontWeight: '500' }}>WHAT MAKERLY SHOWS</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ padding: '12px 16px', background: 'rgba(251,191,36,0.05)', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.1)' }}>
+                  <div style={{ fontSize: '14px', color: '#e7e5e4' }}>6 things built — 2 ongoing</div>
+                  <div style={{ fontSize: '12px', color: '#a8a29e' }}>Solo, co-founder, early team</div>
+                </div>
+                <div style={{ padding: '12px 16px', background: 'rgba(251,191,36,0.05)', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.1)' }}>
+                  <div style={{ fontSize: '14px', color: '#e7e5e4' }}>Reached paying users twice</div>
+                  <div style={{ fontSize: '12px', color: '#a8a29e' }}>From idea → IPO, tracked at every stage</div>
+                </div>
+                <div style={{ padding: '12px 16px', background: 'rgba(251,191,36,0.05)', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.1)' }}>
+                  <div style={{ fontSize: '14px', color: '#e7e5e4' }}>First make: cardboard marble run, age 8</div>
+                  <div style={{ fontSize: '12px', color: '#a8a29e' }}>Where it all started</div>
+                </div>
+                <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80' }} />
+                  <span style={{ fontSize: '13px', color: '#4ade80' }}>Right now: building a CLI tool</span>
+                </div>
+              </div>
+              <div style={{ marginTop: '20px', fontSize: '13px', color: '#fbbf24', textAlign: 'center', fontWeight: '500' }}>What you built. How far it went. What's next.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Everything Counts */}
+      <section style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '28px' }}>
+            Everything counts.
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+            {[
+              "A Lego set you built at age 7.",
+              "A Chrome extension 3 people used.",
+              "A startup that failed in 4 months.",
+              "A weekend hack that accidentally went viral.",
+              "A robot made from cardboard and tape.",
+              "An app your friends actually use.",
+            ].map((line, i) => (
+              <div key={i} style={{ padding: '14px 20px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', fontSize: '15px', color: '#a8a29e', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ color: '#fbbf24', fontSize: '18px' }}>+</span>
+                {line}
+              </div>
+            ))}
+          </div>
+          <p style={{ color: '#57534e', fontSize: '14px', marginTop: '28px', lineHeight: 1.6 }}>
+            Most platforms only show wins. Makerly shows the whole journey.<br />
+            <span style={{ color: '#a8a29e' }}>Because makers aren't defined by one thing — they're defined by everything they've made.</span>
+          </p>
+        </div>
+      </section>
+
+      {/* Quotes */}
+      <section style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500' }}>THE BUILDER ETHOS</span>
+            <h2 style={{ fontSize: '28px', fontFamily: "'Newsreader', Georgia, serif", marginTop: '12px' }}>The world runs on people who make things.</h2>
+          </div>
+
+          <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            {builderQuotes.map((q, i) => (
+              <div key={i} style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '16px',
+                padding: '28px'
+              }}>
+                <p style={{ fontSize: '16px', fontFamily: "'Newsreader', Georgia, serif", color: '#e7e5e4', lineHeight: 1.5, marginBottom: '16px' }}>
+                  "{q.quote}"
+                </p>
+                <div>
+                  <div style={{ fontSize: '13px', color: '#a8a29e', fontWeight: '500' }}>{q.author}</div>
+                  <div style={{ fontSize: '11px', color: '#57534e' }}>{q.role}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -518,7 +647,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers }) => {
       <section style={{ padding: '80px 40px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500' }}>EXAMPLE PROFILE</span>
-          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginTop: '12px' }}>See what a maker profile looks like</h2>
+          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginTop: '12px' }}>This is Priya. She's made 6 things.<br /><span style={{ color: '#78716c' }}>Some worked, some didn't. That's the point.</span></h2>
         </div>
 
         {/* Sample Profile Card */}
@@ -2177,6 +2306,228 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px 40px', marginTop: '60px', textAlign: 'center', fontSize: '12px', color: '#57534e' }}>
         Built with MAKER.PROFILE
       </footer>
+    </div>
+  );
+};
+
+// ============================================
+// ONBOARDING (post-signup)
+// ============================================
+const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState(user.name || '');
+  const [firstMakeDesc, setFirstMakeDesc] = useState('');
+  const [firstMakeAge, setFirstMakeAge] = useState('');
+  const [todayMaking, setTodayMaking] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleFinish = async () => {
+    setSaving(true);
+    try {
+      const updates = {};
+      if (name.trim()) updates.name = name.trim();
+      if (firstMakeDesc.trim() || firstMakeAge.trim()) {
+        updates.firstMake = { description: firstMakeDesc.trim(), age: firstMakeAge.trim() };
+      }
+      if (todayMaking.trim()) updates.todayMaking = todayMaking.trim();
+
+      if (Object.keys(updates).length > 0) {
+        await db.updateProfile(user.id, updates);
+        setUser(prev => ({ ...prev, ...updates }));
+      }
+      onComplete();
+    } catch (err) {
+      console.error('Onboarding save error:', err);
+      showNotification('Failed to save — you can fill this in later', 'error');
+      onComplete();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const steps = [
+    // Step 0: Welcome / Name
+    () => (
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '64px', marginBottom: '16px' }}>&#9733;</div>
+        <div style={{
+          width: '80px', height: '4px', borderRadius: '2px', margin: '0 auto 32px',
+          background: 'linear-gradient(90deg, #fbbf24, #f472b6, #a78bfa)'
+        }} />
+        <h1 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '12px' }}>
+          Welcome to Makerly.
+        </h1>
+        <p style={{ color: '#78716c', fontSize: '15px', lineHeight: 1.6, marginBottom: '40px', maxWidth: '400px', margin: '0 auto 40px' }}>
+          You just joined a community of people who build things.<br />
+          Let's set up your profile in 60 seconds.
+        </p>
+        <div style={{ maxWidth: '360px', margin: '0 auto' }}>
+          <label style={{ display: 'block', fontSize: '12px', color: '#57534e', letterSpacing: '0.1em', marginBottom: '8px', textAlign: 'left' }}>WHAT SHOULD WE CALL YOU?</label>
+          <input
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="Your name"
+            autoFocus
+            style={{
+              width: '100%',
+              padding: '16px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '12px',
+              color: '#e7e5e4',
+              fontSize: '18px',
+              textAlign: 'center'
+            }}
+            onKeyDown={e => e.key === 'Enter' && name.trim() && setStep(1)}
+          />
+        </div>
+        <button
+          className="btn btn-primary"
+          onClick={() => setStep(1)}
+          disabled={!name.trim()}
+          style={{ marginTop: '32px', padding: '14px 48px', fontSize: '15px' }}
+        >
+          Next
+        </button>
+      </div>
+    ),
+
+    // Step 1: First Make (the emotional hook)
+    () => (
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '64px', marginBottom: '16px' }}>&#10024;</div>
+        <div style={{
+          width: '80px', height: '4px', borderRadius: '2px', margin: '0 auto 32px',
+          background: 'linear-gradient(90deg, #fbbf24 33%, rgba(255,255,255,0.1) 33%)'
+        }} />
+        <h1 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '12px' }}>
+          What was the first thing you ever made?
+        </h1>
+        <p style={{ color: '#78716c', fontSize: '14px', lineHeight: 1.6, marginBottom: '36px', maxWidth: '440px', margin: '0 auto 36px' }}>
+          A paper airplane. A birthday card. A birdhouse. A terrible website.<br />
+          <span style={{ color: '#a8a29e' }}>This is where it all started.</span>
+        </p>
+        <div style={{ maxWidth: '400px', margin: '0 auto', textAlign: 'left' }}>
+          <textarea
+            value={firstMakeDesc}
+            onChange={e => setFirstMakeDesc(e.target.value)}
+            placeholder="I built a..."
+            autoFocus
+            rows={3}
+            style={{
+              width: '100%',
+              padding: '16px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '12px',
+              color: '#e7e5e4',
+              fontSize: '15px',
+              resize: 'none',
+              lineHeight: 1.5
+            }}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
+            <label style={{ fontSize: '12px', color: '#57534e', whiteSpace: 'nowrap' }}>HOW OLD WERE YOU?</label>
+            <input
+              type="text"
+              value={firstMakeAge}
+              onChange={e => setFirstMakeAge(e.target.value)}
+              placeholder="e.g. 7"
+              style={{
+                width: '80px',
+                padding: '12px',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '10px',
+                color: '#e7e5e4',
+                fontSize: '15px',
+                textAlign: 'center'
+              }}
+            />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '32px' }}>
+          <button className="btn btn-ghost" onClick={() => setStep(0)}>Back</button>
+          <button
+            className="btn btn-primary"
+            onClick={() => setStep(2)}
+            style={{ padding: '14px 48px', fontSize: '15px' }}
+          >
+            {firstMakeDesc.trim() ? 'Next' : 'Skip'}
+          </button>
+        </div>
+      </div>
+    ),
+
+    // Step 2: What are you making right now?
+    () => (
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '64px', marginBottom: '16px' }}>&#9889;</div>
+        <div style={{
+          width: '80px', height: '4px', borderRadius: '2px', margin: '0 auto 32px',
+          background: 'linear-gradient(90deg, #fbbf24 66%, rgba(255,255,255,0.1) 66%)'
+        }} />
+        <h1 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '12px' }}>
+          What are you making right now?
+        </h1>
+        <p style={{ color: '#78716c', fontSize: '14px', lineHeight: 1.6, marginBottom: '36px', maxWidth: '440px', margin: '0 auto 36px' }}>
+          Could be anything. An app, a song, a zine, a robot, a business.<br />
+          <span style={{ color: '#a8a29e' }}>This shows up live on your profile.</span>
+        </p>
+        <div style={{ maxWidth: '400px', margin: '0 auto' }}>
+          <input
+            type="text"
+            value={todayMaking}
+            onChange={e => setTodayMaking(e.target.value)}
+            placeholder="Building a..."
+            autoFocus
+            style={{
+              width: '100%',
+              padding: '16px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '12px',
+              color: '#e7e5e4',
+              fontSize: '18px',
+              textAlign: 'center'
+            }}
+            onKeyDown={e => e.key === 'Enter' && handleFinish()}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '32px' }}>
+          <button className="btn btn-ghost" onClick={() => setStep(1)}>Back</button>
+          <button
+            className="btn btn-primary"
+            onClick={handleFinish}
+            disabled={saving}
+            style={{ padding: '14px 48px', fontSize: '15px' }}
+          >
+            {saving ? 'Saving...' : todayMaking.trim() ? "Let's go" : 'Skip & finish'}
+          </button>
+        </div>
+      </div>
+    ),
+  ];
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '40px 24px'
+    }}>
+      <div style={{ maxWidth: '500px', width: '100%' }}>
+        {steps[step]()}
+        <button
+          className="btn btn-ghost"
+          onClick={handleFinish}
+          style={{ display: 'block', margin: '40px auto 0', fontSize: '12px', color: '#57534e' }}
+        >
+          Skip setup — go to dashboard
+        </button>
+      </div>
     </div>
   );
 };
