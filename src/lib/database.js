@@ -48,6 +48,11 @@ export async function signUp(email, password, username) {
     throw new Error('An account with this email already exists')
   }
 
+  // Create profile immediately — don't rely solely on the DB trigger,
+  // which can fail silently (e.g. if email confirmation is required and
+  // the user can't log in to trigger ensureProfileExists).
+  await ensureProfileExists(data.user)
+
   return data.user
 }
 
