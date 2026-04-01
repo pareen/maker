@@ -159,6 +159,8 @@ const App = () => {
       if (event === 'SIGNED_IN' && session?.user) {
         // Skip if loadUser hasn't finished yet — it will handle the session
         if (!initialLoadDone) return;
+        // Skip if user already loaded (e.g. onSuccess already called loadFullUser)
+        if (authSourceRef.current === 'supabase') return;
 
         const version = ++authVersionRef.current;
         authSourceRef.current = 'supabase';
@@ -349,12 +351,10 @@ const App = () => {
           mode="login"
           onSwitch={() => navigate('signup', { replace: true })}
           onBack={() => navigate('landing')}
-          onSuccess={(user) => {
-            const source = user.aud ? 'supabase' : 'local';
-            authSourceRef.current = source;
-            setAuthMode(source);
-            setCurrentUser(user);
-            setCurrentView('dashboard');
+          onSuccess={async (user) => {
+            const version = ++authVersionRef.current;
+            const fullUser = await loadFullUser(user, version);
+            if (fullUser) setCurrentView('dashboard');
           }}
           showNotification={showNotification}
         />
@@ -365,12 +365,10 @@ const App = () => {
           mode="signup"
           onSwitch={() => navigate('login', { replace: true })}
           onBack={() => navigate('landing')}
-          onSuccess={(user) => {
-            const source = user.aud ? 'supabase' : 'local';
-            authSourceRef.current = source;
-            setAuthMode(source);
-            setCurrentUser(user);
-            setCurrentView('dashboard');
+          onSuccess={async (user) => {
+            const version = ++authVersionRef.current;
+            const fullUser = await loadFullUser(user, version);
+            if (fullUser) setCurrentView('dashboard');
           }}
           showNotification={showNotification}
         />

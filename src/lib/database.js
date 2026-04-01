@@ -204,6 +204,7 @@ export async function migrateLocalStorageData(supabaseUser) {
     }
 
     // Migrate updates (skip if user already has updates — prevents re-migration duplication)
+    const legacyUpdates = JSON.parse(localStorage.getItem('makerPortfolio_updates') || '{}')
     const { data: existingUpdates } = await supabase
       .from('updates')
       .select('id')
@@ -211,7 +212,6 @@ export async function migrateLocalStorageData(supabaseUser) {
       .limit(1)
 
     if (!existingUpdates?.length) {
-      const legacyUpdates = JSON.parse(localStorage.getItem('makerPortfolio_updates') || '{}')
       const userUpdates = legacyUpdates[legacyUser.id] || []
       if (userUpdates.length > 0) {
         for (const update of userUpdates) {
