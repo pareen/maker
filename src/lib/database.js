@@ -312,8 +312,9 @@ export async function getProfile(userId) {
 }
 
 export async function getProfileByUsername(username) {
-  // Public profile lookup: check both Supabase and localStorage.
-  // The viewed user might be stored in either backend.
+  // Public profile lookup — always query Supabase directly (not gated by useSupabase()).
+  // useSupabase() checks _authMode which is null for logged-out visitors,
+  // but public profiles must be readable by anyone. RLS allows public SELECT.
   if (isSupabaseConfigured()) {
     const { data, error } = await supabase
       .from('profiles')
@@ -321,15 +322,34 @@ export async function getProfileByUsername(username) {
       .eq('username', username)
       .single()
 
-    if (data && !error) {
+    // PGRST116 = no rows found — not an error, just means profile doesn't exist
+    if (error && error.code !== 'PGRST116') throw error
+
+    if (data) {
       const profile = profileFromDb(data)
-      const projects = await getProjectsByUserId(data.id)
-      const updates = await getUpdatesByUserId(data.id)
-      return { ...profile, projects, updates }
+
+      // Query projects and updates directly (bypass useSupabase() gate)
+      const { data: projectRows } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', data.id)
+        .order('created_at', { ascending: false })
+
+      const { data: updateRows } = await supabase
+        .from('updates')
+        .select('*')
+        .eq('user_id', data.id)
+        .order('created_at', { ascending: false })
+
+      return {
+        ...profile,
+        projects: (projectRows || []).map(projectFromDb),
+        updates: updateRows || []
+      }
     }
   }
 
-  // Fall back to localStorage (covers Google OAuth users and no-Supabase setups)
+  // Fall back to localStorage (covers no-Supabase setups)
   return getProfileByUsernameLocal(username)
 }
 
