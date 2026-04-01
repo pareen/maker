@@ -211,12 +211,13 @@ const App = () => {
         setViewingProfile(user);
       } else {
         showNotification('Profile not found', 'error');
-        navigate(currentUser ? 'dashboard' : 'landing', { replace: true });
+        // Use authSourceRef (not currentUser state) — state may be stale in closure
+        navigate(authSourceRef.current ? 'dashboard' : 'landing', { replace: true });
       }
     } catch (error) {
       console.error('Error loading profile:', error);
       showNotification('Profile not found', 'error');
-      navigate(currentUser ? 'dashboard' : 'landing', { replace: true });
+      navigate(authSourceRef.current ? 'dashboard' : 'landing', { replace: true });
     } finally {
       setProfileLoading(false);
     }
