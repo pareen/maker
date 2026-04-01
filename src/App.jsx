@@ -334,6 +334,7 @@ const App = () => {
       {showShareModal && (
         <ShareModal
           username={currentUser?.username}
+          todayMaking={currentUser?.todayMaking}
           onClose={() => setShowShareModal(false)}
           showNotification={showNotification}
         />
@@ -1464,11 +1465,14 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState('input'); // input | select | review
   const [isOAuthConnected, setIsOAuthConnected] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
 
   // Review step state
   const [importedProjects, setImportedProjects] = useState([]);
   const [reviewIndex, setReviewIndex] = useState(0);
   const [reviewData, setReviewData] = useState(null);
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [dateError, setDateError] = useState(null);
 
   // Check for OAuth connection on mount
   useEffect(() => {
@@ -1489,7 +1493,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
         }
       } catch (error) {
         console.error('OAuth check failed:', error);
-        showNotification('GitHub connection check failed', 'error');
+        setFetchError('GitHub connection check failed. Try entering your username instead.');
         setLoading(false);
       }
     };
@@ -1499,6 +1503,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
   const handleFetch = async () => {
     if (!username.trim()) return;
     setLoading(true);
+    setFetchError(null);
     try {
       const fetchedRepos = await fetchUserRepos(username.trim());
       const mappedRepos = fetchedRepos.map(mapRepoToProject);
@@ -1506,7 +1511,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
       setSelectedRepos(new Set());
       setStep('select');
     } catch (error) {
-      showNotification(error.message, 'error');
+      setFetchError(error.message || 'Failed to fetch repositories. Check the username and try again.');
     } finally {
       setLoading(false);
     }
@@ -1563,14 +1568,24 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
   };
 
   const handleReviewSave = async () => {
-    // Update current project with review data
+    // Validate dates
+    if (reviewData.startDate && reviewData.endDate && !reviewData.ongoing) {
+      if (new Date(reviewData.endDate) < new Date(reviewData.startDate)) {
+        setDateError('End date cannot be before start date');
+        return;
+      }
+    }
+    setDateError(null);
+    setReviewSaving(true);
     try {
       await db.updateProject(importedProjects[reviewIndex].id, reviewData);
       importedProjects[reviewIndex] = { ...importedProjects[reviewIndex], ...reviewData };
+      moveToNext();
     } catch (error) {
       showNotification('Failed to save changes', 'error');
+    } finally {
+      setReviewSaving(false);
     }
-    moveToNext();
   };
 
   const handleReviewSkip = () => {
@@ -1607,43 +1622,67 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
 
         {step === 'input' && (
           <>
-            {(isSupabaseConfigured() || import.meta.env.VITE_GITHUB_CLIENT_ID) && (
-              <div style={{ marginBottom: '24px' }}>
-                <button
-                  className="btn btn-primary"
-                  style={{ width: '100%', padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                  onClick={async () => {
-                    try {
-                      await signInWithGitHub();
-                    } catch (error) {
-                      showNotification(error.message, 'error');
-                    }
-                  }}
-                  disabled={loading}
-                >
-                  <span>◐</span> Connect GitHub (includes private repos)
-                </button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
-                  <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-                  <span style={{ color: '#57534e', fontSize: '12px' }}>or fetch public repos</span>
-                  <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-                </div>
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <div style={{ fontSize: '24px', marginBottom: '12px', animation: 'spin 1s linear infinite' }}>◐</div>
+                <div style={{ color: '#a8a29e' }}>Fetching repositories...</div>
+                <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
               </div>
+            ) : (
+              <>
+                {fetchError && (
+                  <div style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    marginBottom: '16px',
+                    color: '#fca5a5',
+                    fontSize: '14px'
+                  }}>
+                    {fetchError}
+                  </div>
+                )}
+                {(isSupabaseConfigured() || import.meta.env.VITE_GITHUB_CLIENT_ID) && (
+                  <div style={{ marginBottom: '24px' }}>
+                    <button
+                      className="btn btn-primary"
+                      style={{ width: '100%', padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                      onClick={async () => {
+                        try {
+                          await signInWithGitHub();
+                        } catch (error) {
+                          setFetchError(error.message || 'Failed to connect GitHub');
+                        }
+                      }}
+                      disabled={loading}
+                    >
+                      <span>◐</span> Connect GitHub (includes private repos)
+                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
+                      <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+                      <span style={{ color: '#57534e', fontSize: '12px' }}>or fetch public repos</span>
+                      <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+                    </div>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+                  <input
+                    className="input"
+                    placeholder="GitHub username"
+                    value={username}
+                    onChange={(e) => { setUsername(e.target.value); setFetchError(null); }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
+                    style={{ flex: 1 }}
+                    autoFocus
+                  />
+                  <button className="btn btn-primary" onClick={handleFetch} disabled={!username.trim()}>
+                    Fetch Repos
+                  </button>
+                </div>
+                <button className="btn btn-ghost" onClick={onClose} style={{ width: '100%' }}>Cancel</button>
+              </>
             )}
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-              <input
-                className="input"
-                placeholder="GitHub username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
-                style={{ flex: 1 }}
-              />
-              <button className="btn btn-primary" onClick={handleFetch} disabled={loading}>
-                {loading ? 'Loading...' : 'Fetch Repos'}
-              </button>
-            </div>
-            <button className="btn btn-ghost" onClick={onClose} style={{ width: '100%' }}>Cancel</button>
           </>
         )}
 
@@ -1749,7 +1788,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
                   className="input"
                   type="date"
                   value={reviewData.startDate || ''}
-                  onChange={(e) => setReviewData({ ...reviewData, startDate: e.target.value })}
+                  onChange={(e) => { setReviewData({ ...reviewData, startDate: e.target.value }); setDateError(null); }}
                 />
               </div>
               <div>
@@ -1758,7 +1797,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
                   className="input"
                   type="date"
                   value={reviewData.endDate || ''}
-                  onChange={(e) => setReviewData({ ...reviewData, endDate: e.target.value, ongoing: false })}
+                  onChange={(e) => { setReviewData({ ...reviewData, endDate: e.target.value, ongoing: false }); setDateError(null); }}
                   disabled={reviewData.ongoing}
                   style={{ opacity: reviewData.ongoing ? 0.5 : 1 }}
                 />
@@ -1786,11 +1825,25 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
               />
             </div>
 
+            {dateError && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                marginBottom: '16px',
+                color: '#fca5a5',
+                fontSize: '13px'
+              }}>
+                {dateError}
+              </div>
+            )}
+
             {/* Actions */}
             <div style={{ display: 'flex', gap: '12px' }}>
-              <button className="btn btn-ghost" onClick={handleReviewSkip} style={{ flex: 1 }}>Skip</button>
-              <button className="btn btn-primary" onClick={handleReviewSave} style={{ flex: 1 }}>
-                {reviewIndex < importedProjects.length - 1 ? 'Save & Next →' : 'Finish'}
+              <button className="btn btn-ghost" onClick={handleReviewSkip} style={{ flex: 1 }} disabled={reviewSaving}>Skip</button>
+              <button className="btn btn-primary" onClick={handleReviewSave} style={{ flex: 1 }} disabled={reviewSaving}>
+                {reviewSaving ? 'Saving...' : reviewIndex < importedProjects.length - 1 ? 'Save & Next →' : 'Finish'}
               </button>
             </div>
             {reviewIndex < importedProjects.length - 1 && (
@@ -2433,10 +2486,12 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
               lineHeight: 1.5
             }}
           />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
-            <label style={{ fontSize: '12px', color: '#57534e', whiteSpace: 'nowrap' }}>HOW OLD WERE YOU?</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+            <label style={{ fontSize: '12px', color: '#57534e' }}>HOW OLD WERE YOU?</label>
             <input
-              type="text"
+              type="number"
+              min="1"
+              max="120"
               value={firstMakeAge}
               onChange={e => setFirstMakeAge(e.target.value)}
               placeholder="e.g. 7"
@@ -2460,7 +2515,7 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
             onClick={() => setStep(2)}
             style={{ padding: '14px 48px', fontSize: '15px' }}
           >
-            {firstMakeDesc.trim() ? 'Next' : 'Skip'}
+            Next
           </button>
         </div>
       </div>
@@ -2541,46 +2596,63 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
 // ============================================
 // SHARE MODAL
 // ============================================
-const ShareModal = ({ username, onClose, showNotification }) => {
+const ShareModal = ({ username, todayMaking, onClose, showNotification }) => {
   const profileUrl = `makerly.me/${username}`;
+  const [copied, setCopied] = useState(false);
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(`https://${profileUrl}`);
-    showNotification('Link copied!');
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`https://${profileUrl}`);
+      setCopied(true);
+      showNotification('Link copied!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      showNotification('Could not copy — try manually', 'error');
+    }
   };
 
   const shareOptions = [
-    { name: 'Copy Link', icon: '🔗', action: copyLink },
     { name: 'Twitter / X', icon: '𝕏', action: () => window.open(`https://twitter.com/intent/tweet?text=Check out my maker profile&url=https://${profileUrl}`, '_blank') },
     { name: 'LinkedIn', icon: 'in', action: () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=https://${profileUrl}`, '_blank') },
-    { name: 'Facebook', icon: 'f', action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=https://${profileUrl}`, '_blank') },
-    { name: 'WhatsApp', icon: '💬', action: () => window.open(`https://wa.me/?text=Check out my maker profile: https://${profileUrl}`, '_blank') },
-    { name: 'Email', icon: '✉', action: () => window.open(`mailto:?subject=Check out my maker profile&body=https://${profileUrl}`, '_blank') },
+    { name: 'WhatsApp', icon: 'W', action: () => window.open(`https://wa.me/?text=Check out my maker profile: https://${profileUrl}`, '_blank') },
+    { name: 'Email', icon: '@', action: () => window.open(`mailto:?subject=Check out my maker profile&body=https://${profileUrl}`, '_blank') },
   ];
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <h2 style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>Share your profile</h2>
-        <p style={{ color: '#78716c', marginBottom: '24px' }}>Let people see what you've built</p>
+        <p style={{ color: '#78716c', marginBottom: '16px' }}>Let people see what you've built</p>
+
+        {/* Currently Making */}
+        {todayMaking && (
+          <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: '8px', padding: '10px 14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
+            <span style={{ fontSize: '13px', color: '#a8a29e' }}>
+              <span style={{ color: '#4ade80', fontWeight: '500' }}>Making: </span>{todayMaking}
+            </span>
+          </div>
+        )}
 
         {/* URL Preview */}
-        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '12px 16px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: '#a8a29e', fontSize: '14px' }}>https://{profileUrl}</span>
-          <button className="btn btn-primary" onClick={copyLink} style={{ padding: '8px 16px' }}>Copy</button>
+        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <span style={{ color: '#a8a29e', fontSize: '14px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>https://{profileUrl}</span>
+          <button className="btn btn-primary" onClick={copyLink} style={{ padding: '8px 16px', flexShrink: 0 }}>
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
         </div>
 
         {/* Share Options */}
-        <div className="share-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div className="share-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
           {shareOptions.map(option => (
             <button key={option.name} className="social-btn" onClick={option.action}>
-              <span style={{ fontSize: '18px', width: '24px', textAlign: 'center' }}>{option.icon}</span>
+              <span style={{ fontSize: '16px', width: '20px', textAlign: 'center' }}>{option.icon}</span>
               <span style={{ color: '#e7e5e4' }}>{option.name}</span>
             </button>
           ))}
         </div>
 
-        <button className="btn btn-ghost" onClick={onClose} style={{ width: '100%', marginTop: '24px' }}>Close</button>
+        <button className="btn btn-ghost" onClick={onClose} style={{ width: '100%', marginTop: '20px' }}>Close</button>
       </div>
     </div>
   );
