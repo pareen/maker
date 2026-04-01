@@ -2348,7 +2348,7 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin }) => {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <div style={{ fontSize: '16px', fontWeight: '500', color: '#e7e5e4' }}>{maker.name}</div>
+                    <div style={{ fontSize: '16px', fontWeight: '500', color: '#e7e5e4' }}>{maker.name || maker.username}</div>
                     <div style={{ fontSize: '12px', color: '#57534e', marginTop: '2px' }}>@{maker.username}</div>
                   </div>
                   {maker.projectCount > 0 && (

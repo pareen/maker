@@ -612,11 +612,10 @@ function projectFromDb(dbProject) {
 export async function getPublicMakers() {
   if (!isSupabaseConfigured()) return []
 
-  // Get all profiles that have a name set (skip empty/incomplete profiles)
+  // Get all profiles (include those without name — use username as fallback)
   const { data: profiles, error } = await supabase
     .from('profiles')
     .select('*')
-    .not('name', 'is', null)
     .order('created_at', { ascending: false })
 
   if (error) throw error
