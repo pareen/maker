@@ -606,6 +606,72 @@ function projectFromDb(dbProject) {
 }
 
 // ============================================
+// PUBLIC DIRECTORY FUNCTIONS
+// ============================================
+
+export async function getPublicMakers() {
+  if (!isSupabaseConfigured()) return []
+
+  // Get all profiles that have a name set (skip empty/incomplete profiles)
+  const { data: profiles, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .not('name', 'is', null)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  // Get project counts per user
+  const { data: projects } = await supabase
+    .from('projects')
+    .select('id, user_id')
+
+  const projectCounts = {}
+  for (const p of (projects || [])) {
+    projectCounts[p.user_id] = (projectCounts[p.user_id] || 0) + 1
+  }
+
+  return (profiles || []).map(p => ({
+    ...profileFromDb(p),
+    projectCount: projectCounts[p.id] || 0
+  }))
+}
+
+export async function getRecentUpdates(limit = 20) {
+  if (!isSupabaseConfigured()) return []
+
+  const { data: updates, error } = await supabase
+    .from('updates')
+    .select('id, content, created_at, user_id')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+  if (!updates?.length) return []
+
+  // Get profile info for each unique user
+  const userIds = [...new Set(updates.map(u => u.user_id))]
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, username, name')
+    .in('id', userIds)
+
+  const profileMap = {}
+  for (const p of (profiles || [])) {
+    profileMap[p.id] = { username: p.username, name: p.name }
+  }
+
+  return updates.map(u => ({
+    id: u.id,
+    content: u.content,
+    createdAt: u.created_at,
+    userId: u.user_id,
+    username: profileMap[u.user_id]?.username || 'unknown',
+    name: profileMap[u.user_id]?.name || profileMap[u.user_id]?.username || 'Unknown'
+  }))
+}
+
+// ============================================
 // ADMIN FUNCTIONS
 // ============================================
 

@@ -44,6 +44,7 @@ function getInitialRoute() {
   if (path === 'login') return { view: 'login' };
   if (path === 'signup') return { view: 'signup' };
   if (path === 'admin') return { view: 'admin' };
+  if (path === 'makers') return { view: 'makers' };
   if (path && path !== '' && !path.includes('/')) return { view: 'publicProfile', username: path };
   return { view: null }; // null = determine after auth check
 }
@@ -72,6 +73,7 @@ const App = () => {
     let path = '/';
     if (view === 'publicProfile' && username) path = `/${username}`;
     else if (view === 'admin') path = '/admin';
+    else if (view === 'makers') path = '/makers';
     else if (view === 'login') path = '/login';
     else if (view === 'signup') path = '/signup';
     const method = replace ? 'replaceState' : 'pushState';
@@ -101,6 +103,8 @@ const App = () => {
         // Load the public profile — viewPublicProfile handles its own loading state
         viewPublicProfile(route.username);
       }
+    } else if (route.view === 'makers') {
+      setCurrentView('makers');
     } else if (route.view === 'admin') {
       if (user && db.isAdmin(user.id)) {
         setCurrentView('admin');
@@ -239,6 +243,8 @@ const App = () => {
       const route = getInitialRoute();
       if (route.view === 'publicProfile' && route.username) {
         viewPublicProfile(route.username);
+      } else if (route.view === 'makers') {
+        setCurrentView('makers');
       } else if (route.view === 'admin' && currentUser && db.isAdmin(currentUser.id)) {
         setCurrentView('admin');
       } else if (route.view === 'login') {
@@ -343,6 +349,7 @@ const App = () => {
         <LandingPage
           onLogin={() => navigate('login')}
           onSignup={() => navigate('signup')}
+          onMakers={() => navigate('makers')}
         />
       )}
 
@@ -383,6 +390,7 @@ const App = () => {
           onLogout={handleLogout}
           onShare={() => setShowShareModal(true)}
           onAdmin={db.isAdmin(currentUser.id) ? () => navigate('admin') : null}
+          onMakers={() => navigate('makers')}
           showNotification={showNotification}
         />
       )}
@@ -403,6 +411,15 @@ const App = () => {
           setUser={setCurrentUser}
           onBack={() => setCurrentView('dashboard')}
           showNotification={showNotification}
+        />
+      )}
+
+      {currentView === 'makers' && (
+        <MakerDirectory
+          currentUser={currentUser}
+          onViewProfile={(username) => viewPublicProfile(username)}
+          onBack={() => navigate(currentUser ? 'dashboard' : 'landing')}
+          onLogin={() => navigate('login')}
         />
       )}
 
@@ -453,7 +470,7 @@ const sampleMaker = {
   ]
 };
 
-const LandingPage = ({ onLogin, onSignup }) => {
+const LandingPage = ({ onLogin, onSignup, onMakers }) => {
   const sampleRoleBreakdown = roles.map(role => ({
     ...role,
     count: sampleMaker.projects.filter(p => p.role === role.key).length,
@@ -472,6 +489,7 @@ const LandingPage = ({ onLogin, onSignup }) => {
       <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600' }}>MAKER.PROFILE</div>
         <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
+          <button className="btn btn-ghost" onClick={onMakers}>Browse Makers</button>
           <button className="btn btn-ghost" onClick={onLogin}>Log in</button>
           <button className="btn btn-primary" onClick={onSignup}>Sign up</button>
         </div>
@@ -776,7 +794,7 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
 // ============================================
 // DASHBOARD
 // ============================================
-const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onShare, onAdmin, showNotification }) => {
+const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onShare, onAdmin, onMakers, showNotification }) => {
   const [updateText, setUpdateText] = useState('');
   const [updates, setUpdates] = useState([]);
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -918,6 +936,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
             <span>↗</span> Share
           </button>
           <button className="btn btn-secondary" onClick={onViewProfile}>View</button>
+          <button className="btn btn-ghost" onClick={onMakers}>Makers</button>
           {onAdmin && <button className="btn btn-ghost" onClick={onAdmin} style={{ color: '#fbbf24' }}>Admin</button>}
           <button className="btn btn-ghost" onClick={onLogout}>Log out</button>
         </div>
@@ -2206,6 +2225,204 @@ const ShareModal = ({ username, onClose, showNotification }) => {
 
         <button className="btn btn-ghost" onClick={onClose} style={{ width: '100%', marginTop: '24px' }}>Close</button>
       </div>
+    </div>
+  );
+};
+
+// ============================================
+// ADMIN PANEL
+// ============================================
+const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin }) => {
+  const [makers, setMakers] = useState([]);
+  const [recentUpdates, setRecentUpdates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('');
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [makerList, updates] = await Promise.all([
+          db.getPublicMakers(),
+          db.getRecentUpdates(30)
+        ]);
+        setMakers(makerList);
+        setRecentUpdates(updates);
+      } catch (err) {
+        console.error('Failed to load directory:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const filtered = makers.filter(m => {
+    if (!filter) return true;
+    const q = filter.toLowerCase();
+    return (m.name || '').toLowerCase().includes(q) ||
+           (m.username || '').toLowerCase().includes(q) ||
+           (m.domains || []).some(d => d.toLowerCase().includes(q)) ||
+           (m.bio || '').toLowerCase().includes(q);
+  });
+
+  const formatRelative = (d) => {
+    if (!d) return '';
+    const diff = Date.now() - new Date(d).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <div style={{ color: '#a8a29e', fontSize: '14px' }}>Loading makers...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 24px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <h1 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", color: '#e7e5e4', margin: 0 }}>Maker Directory</h1>
+          <p style={{ color: '#57534e', fontSize: '13px', marginTop: '4px' }}>{makers.length} makers building in public</p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {currentUser ? (
+            <button className="btn btn-ghost" onClick={onBack}>Dashboard</button>
+          ) : (
+            <button className="btn btn-primary" onClick={onLogin}>Join</button>
+          )}
+        </div>
+      </div>
+
+      <div className="maker-directory-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '32px', alignItems: 'start' }}>
+        {/* Main: Maker Cards */}
+        <div>
+          {/* Search */}
+          <input
+            type="text"
+            placeholder="Search makers, domains..."
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '8px',
+              color: '#e7e5e4',
+              fontSize: '14px',
+              marginBottom: '20px'
+            }}
+          />
+
+          {filtered.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#57534e' }}>
+              {filter ? 'No makers match your search' : 'No makers yet'}
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {filtered.map(maker => (
+              <div
+                key={maker.id}
+                onClick={() => onViewProfile(maker.username)}
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+                onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: '500', color: '#e7e5e4' }}>{maker.name}</div>
+                    <div style={{ fontSize: '12px', color: '#57534e', marginTop: '2px' }}>@{maker.username}</div>
+                  </div>
+                  {maker.projectCount > 0 && (
+                    <span style={{ fontSize: '12px', color: '#78716c', background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '12px' }}>
+                      {maker.projectCount} project{maker.projectCount !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+                {maker.bio && (
+                  <p style={{ color: '#a8a29e', fontSize: '13px', marginTop: '8px', lineHeight: '1.5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {maker.bio}
+                  </p>
+                )}
+                {maker.todayMaking && (
+                  <div style={{ marginTop: '10px', fontSize: '12px', color: '#78716c' }}>
+                    <span style={{ color: '#fbbf24' }}>Building:</span> {maker.todayMaking}
+                  </div>
+                )}
+                {maker.domains?.length > 0 && (
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
+                    {maker.domains.slice(0, 4).map(d => (
+                      <span key={d} style={{ fontSize: '11px', color: '#57534e', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '8px' }}>{d}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Sidebar: Latest Updates */}
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: '12px',
+          padding: '20px',
+          position: 'sticky',
+          top: '24px'
+        }}>
+          <h3 style={{ fontSize: '14px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '16px' }}>Latest Updates</h3>
+          {recentUpdates.length === 0 ? (
+            <p style={{ color: '#57534e', fontSize: '13px' }}>No updates yet</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+              {recentUpdates.map((update, i) => (
+                <div key={update.id} style={{
+                  padding: '12px 0',
+                  borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <span
+                      onClick={() => onViewProfile(update.username)}
+                      style={{ fontSize: '12px', color: '#a8a29e', cursor: 'pointer', fontWeight: '500' }}
+                      onMouseOver={e => e.target.style.color = '#e7e5e4'}
+                      onMouseOut={e => e.target.style.color = '#a8a29e'}
+                    >
+                      {update.name}
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#57534e' }}>{formatRelative(update.createdAt)}</span>
+                  </div>
+                  <p style={{ fontSize: '13px', color: '#d6d3d1', lineHeight: '1.4', margin: 0 }}>{update.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile: show updates below on small screens */}
+      <style>{`
+        @media (max-width: 768px) {
+          .maker-directory-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 };
