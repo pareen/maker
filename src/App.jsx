@@ -43,6 +43,7 @@ function getInitialRoute() {
   const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
   if (path === 'login') return { view: 'login' };
   if (path === 'signup') return { view: 'signup' };
+  if (path === 'admin') return { view: 'admin' };
   if (path && path !== '' && !path.includes('/')) return { view: 'publicProfile', username: path };
   return { view: null }; // null = determine after auth check
 }
@@ -70,6 +71,7 @@ const App = () => {
     setCurrentView(view);
     let path = '/';
     if (view === 'publicProfile' && username) path = `/${username}`;
+    else if (view === 'admin') path = '/admin';
     else if (view === 'login') path = '/login';
     else if (view === 'signup') path = '/signup';
     const method = replace ? 'replaceState' : 'pushState';
@@ -98,6 +100,12 @@ const App = () => {
       } else {
         // Load the public profile — viewPublicProfile handles its own loading state
         viewPublicProfile(route.username);
+      }
+    } else if (route.view === 'admin') {
+      if (user && db.isAdmin(user.id)) {
+        setCurrentView('admin');
+      } else {
+        setCurrentView(user ? 'dashboard' : 'landing');
       }
     } else if (!user) {
       if (route.view === 'login') setCurrentView('login');
@@ -229,6 +237,8 @@ const App = () => {
       const route = getInitialRoute();
       if (route.view === 'publicProfile' && route.username) {
         viewPublicProfile(route.username);
+      } else if (route.view === 'admin' && currentUser && db.isAdmin(currentUser.id)) {
+        setCurrentView('admin');
       } else if (route.view === 'login') {
         setCurrentView('login');
       } else if (route.view === 'signup') {
@@ -374,6 +384,7 @@ const App = () => {
           onViewProfile={() => setCurrentView('profile')}
           onLogout={handleLogout}
           onShare={() => setShowShareModal(true)}
+          onAdmin={db.isAdmin(currentUser.id) ? () => navigate('admin') : null}
           showNotification={showNotification}
         />
       )}
@@ -394,6 +405,15 @@ const App = () => {
           setUser={setCurrentUser}
           onBack={() => setCurrentView('dashboard')}
           showNotification={showNotification}
+        />
+      )}
+
+      {currentView === 'admin' && currentUser && db.isAdmin(currentUser.id) && (
+        <AdminPanel
+          user={currentUser}
+          onBack={() => setCurrentView('dashboard')}
+          showNotification={showNotification}
+          onViewProfile={(username) => viewPublicProfile(username)}
         />
       )}
 
@@ -758,7 +778,7 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
 // ============================================
 // DASHBOARD
 // ============================================
-const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onShare, showNotification }) => {
+const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onShare, onAdmin, showNotification }) => {
   const [updateText, setUpdateText] = useState('');
   const [updates, setUpdates] = useState([]);
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -900,6 +920,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
             <span>↗</span> Share
           </button>
           <button className="btn btn-secondary" onClick={onViewProfile}>View</button>
+          {onAdmin && <button className="btn btn-ghost" onClick={onAdmin} style={{ color: '#fbbf24' }}>Admin</button>}
           <button className="btn btn-ghost" onClick={onLogout}>Log out</button>
         </div>
       </header>
@@ -2186,6 +2207,211 @@ const ShareModal = ({ username, onClose, showNotification }) => {
         </div>
 
         <button className="btn btn-ghost" onClick={onClose} style={{ width: '100%', marginTop: '24px' }}>Close</button>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// ADMIN PANEL
+// ============================================
+const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
+  const [users, setUsers] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDir, setSortDir] = useState('desc');
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [userList, statsData] = await Promise.all([
+          db.adminGetAllUsers(),
+          db.adminGetStats()
+        ]);
+        setUsers(userList);
+        setStats(statsData);
+      } catch (err) {
+        console.error('Admin load error:', err);
+        showNotification('Failed to load admin data', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const sorted = [...users].sort((a, b) => {
+    let aVal = a[sortField], bVal = b[sortField];
+    if (sortField === 'createdAt' || sortField === 'lastUpdateAt') {
+      aVal = aVal ? new Date(aVal).getTime() : 0;
+      bVal = bVal ? new Date(bVal).getTime() : 0;
+    }
+    if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+    if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+    if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const toggleSort = (field) => {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDir('desc'); }
+  };
+
+  const sortIcon = (field) => sortField === field ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '';
+
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+  const formatRelative = (d) => {
+    if (!d) return '—';
+    const diff = Date.now() - new Date(d).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d ago`;
+    return formatDate(d);
+  };
+
+  const profileCompleteness = (u) => {
+    let score = 0, total = 5;
+    if (u.name) score++;
+    if (u.bio) score++;
+    if (u.firstMake?.description) score++;
+    if (u.domains?.length > 0) score++;
+    if (u.socials && Object.values(u.socials).some(v => v)) score++;
+    return Math.round((score / total) * 100);
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <div style={{ color: '#a8a29e', fontSize: '14px' }}>Loading admin data...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 24px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <div>
+          <h1 style={{ fontSize: '28px', fontFamily: "'Newsreader', Georgia, serif", color: '#e7e5e4', margin: 0 }}>Admin</h1>
+          <p style={{ color: '#57534e', fontSize: '13px', marginTop: '4px' }}>User management & analytics</p>
+        </div>
+        <button className="btn btn-ghost" onClick={onBack}>Back to Dashboard</button>
+      </div>
+
+      {/* Stats Cards */}
+      {stats && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+          {[
+            { label: 'Total Users', value: stats.totalUsers, color: '#fbbf24' },
+            { label: 'Total Projects', value: stats.totalProjects, color: '#a78bfa' },
+            { label: 'Total Updates', value: stats.totalUpdates, color: '#4ade80' },
+            { label: 'New Users (7d)', value: stats.newUsersThisWeek, color: '#22d3ee' },
+            { label: 'Updates (7d)', value: stats.updatesThisWeek, color: '#f472b6' },
+          ].map(card => (
+            <div key={card.label} style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: '12px',
+              padding: '20px'
+            }}>
+              <div style={{ fontSize: '12px', color: '#57534e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>{card.label}</div>
+              <div style={{ fontSize: '32px', fontWeight: '600', color: card.color }}>{card.value}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Users Table */}
+      <div style={{
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: '12px',
+        overflow: 'hidden'
+      }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <h2 style={{ fontSize: '16px', color: '#e7e5e4', margin: 0 }}>All Users ({users.length})</h2>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                {[
+                  { key: 'username', label: 'User' },
+                  { key: 'projectCount', label: 'Projects' },
+                  { key: 'updateCount', label: 'Updates' },
+                  { key: 'createdAt', label: 'Joined' },
+                  { key: 'lastUpdateAt', label: 'Last Active' },
+                  { key: 'completeness', label: 'Profile %' },
+                ].map(col => (
+                  <th key={col.key}
+                    onClick={() => col.key !== 'completeness' ? toggleSort(col.key) : null}
+                    style={{
+                      padding: '12px 16px',
+                      textAlign: 'left',
+                      color: '#78716c',
+                      fontWeight: '500',
+                      cursor: col.key !== 'completeness' ? 'pointer' : 'default',
+                      whiteSpace: 'nowrap',
+                      userSelect: 'none'
+                    }}
+                  >
+                    {col.label}{sortIcon(col.key)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(u => {
+                const completeness = profileCompleteness(u);
+                return (
+                  <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span
+                          onClick={() => onViewProfile(u.username)}
+                          style={{ color: '#e7e5e4', cursor: 'pointer', fontWeight: '500' }}
+                          onMouseOver={e => e.target.style.textDecoration = 'underline'}
+                          onMouseOut={e => e.target.style.textDecoration = 'none'}
+                        >
+                          {u.name || u.username}
+                        </span>
+                        <span style={{ color: '#57534e', fontSize: '12px' }}>@{u.username}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px 16px', color: '#a8a29e' }}>{u.projectCount}</td>
+                    <td style={{ padding: '12px 16px', color: '#a8a29e' }}>{u.updateCount}</td>
+                    <td style={{ padding: '12px 16px', color: '#a8a29e', whiteSpace: 'nowrap' }}>{formatDate(u.createdAt)}</td>
+                    <td style={{ padding: '12px 16px', color: '#a8a29e', whiteSpace: 'nowrap' }}>{formatRelative(u.lastUpdateAt)}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{
+                          width: '60px',
+                          height: '6px',
+                          background: 'rgba(255,255,255,0.06)',
+                          borderRadius: '3px',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{
+                            width: `${completeness}%`,
+                            height: '100%',
+                            background: completeness >= 80 ? '#4ade80' : completeness >= 40 ? '#fbbf24' : '#ef4444',
+                            borderRadius: '3px'
+                          }} />
+                        </div>
+                        <span style={{ color: '#78716c', fontSize: '12px' }}>{completeness}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

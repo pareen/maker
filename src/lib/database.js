@@ -606,6 +606,98 @@ function projectFromDb(dbProject) {
 }
 
 // ============================================
+// ADMIN FUNCTIONS
+// ============================================
+
+const ADMIN_IDS = ['a21214a3-a805-4549-b774-d9d73069c352'] // pareen
+
+export function isAdmin(userId) {
+  return ADMIN_IDS.includes(userId)
+}
+
+export async function adminGetAllUsers() {
+  if (!isSupabaseConfigured()) return []
+
+  // Get all profiles
+  const { data: profiles, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  // Get project counts per user
+  const { data: projects } = await supabase
+    .from('projects')
+    .select('id, user_id')
+
+  // Get update counts per user
+  const { data: updates } = await supabase
+    .from('updates')
+    .select('id, user_id, created_at')
+
+  const projectCounts = {}
+  const updateCounts = {}
+  const lastUpdateAt = {}
+
+  for (const p of (projects || [])) {
+    projectCounts[p.user_id] = (projectCounts[p.user_id] || 0) + 1
+  }
+  for (const u of (updates || [])) {
+    updateCounts[u.user_id] = (updateCounts[u.user_id] || 0) + 1
+    if (!lastUpdateAt[u.user_id] || u.created_at > lastUpdateAt[u.user_id]) {
+      lastUpdateAt[u.user_id] = u.created_at
+    }
+  }
+
+  return (profiles || []).map(p => ({
+    ...profileFromDb(p),
+    email: p.email,
+    createdAt: p.created_at,
+    projectCount: projectCounts[p.id] || 0,
+    updateCount: updateCounts[p.id] || 0,
+    lastUpdateAt: lastUpdateAt[p.id] || null
+  }))
+}
+
+export async function adminGetStats() {
+  if (!isSupabaseConfigured()) return null
+
+  const { count: profileCount } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+
+  const { count: projectCount } = await supabase
+    .from('projects')
+    .select('*', { count: 'exact', head: true })
+
+  const { count: updateCount } = await supabase
+    .from('updates')
+    .select('*', { count: 'exact', head: true })
+
+  // Get signups over last 7 days
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const { count: newUsersThisWeek } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', weekAgo)
+
+  // Get updates over last 7 days
+  const { count: updatesThisWeek } = await supabase
+    .from('updates')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', weekAgo)
+
+  return {
+    totalUsers: profileCount || 0,
+    totalProjects: projectCount || 0,
+    totalUpdates: updateCount || 0,
+    newUsersThisWeek: newUsersThisWeek || 0,
+    updatesThisWeek: updatesThisWeek || 0
+  }
+}
+
+// ============================================
 // LOCAL STORAGE FALLBACK FUNCTIONS
 // ============================================
 
