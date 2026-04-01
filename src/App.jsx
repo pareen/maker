@@ -2784,19 +2784,23 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin }) => {
 const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
+  const [errorLogs, setErrorLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState('createdAt');
   const [sortDir, setSortDir] = useState('desc');
+  const [activeTab, setActiveTab] = useState('users');
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [userList, statsData] = await Promise.all([
+        const [userList, statsData, logs] = await Promise.all([
           db.adminGetAllUsers(),
-          db.adminGetStats()
+          db.adminGetStats(),
+          db.adminGetErrorLogs(50)
         ]);
         setUsers(userList);
         setStats(statsData);
+        setErrorLogs(logs);
       } catch (err) {
         console.error('Admin load error:', err);
         showNotification('Failed to load admin data', 'error');
@@ -2892,8 +2896,33 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
         </div>
       )}
 
+      {/* Tab Switcher */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '4px', width: 'fit-content' }}>
+        {[
+          { key: 'users', label: `Users (${users.length})` },
+          { key: 'errors', label: `Errors (${errorLogs.length})` },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              padding: '8px 20px',
+              borderRadius: '8px',
+              border: 'none',
+              background: activeTab === tab.key ? 'rgba(255,255,255,0.1)' : 'transparent',
+              color: activeTab === tab.key ? '#e7e5e4' : '#57534e',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '500'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Users Table */}
-      <div style={{
+      {activeTab === 'users' && <div style={{
         background: 'rgba(255,255,255,0.03)',
         border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: '12px',
@@ -2978,7 +3007,69 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
             </tbody>
           </table>
         </div>
-      </div>
+      </div>}
+
+      {/* Error Logs */}
+      {activeTab === 'errors' && (
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: '12px',
+          overflow: 'hidden'
+        }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <h2 style={{ fontSize: '16px', color: '#e7e5e4', margin: 0 }}>Error Logs</h2>
+          </div>
+          {errorLogs.length === 0 ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#57534e' }}>No errors logged yet</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {errorLogs.map((log, i) => {
+                const userMatch = users.find(u => u.id === log.user_id);
+                return (
+                  <div key={log.id} style={{
+                    padding: '16px 20px',
+                    borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{
+                          fontSize: '11px',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          background: 'rgba(239,68,68,0.15)',
+                          color: '#ef4444',
+                          fontWeight: '500'
+                        }}>
+                          {log.action}
+                        </span>
+                        {userMatch && (
+                          <span style={{ fontSize: '12px', color: '#78716c' }}>@{userMatch.username}</span>
+                        )}
+                        {log.error_code && (
+                          <span style={{ fontSize: '11px', color: '#57534e' }}>code: {log.error_code}</span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#57534e' }}>
+                        {new Date(log.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#a8a29e', marginBottom: '4px' }}>{log.error_message}</div>
+                    {log.metadata && (
+                      <details style={{ fontSize: '11px', color: '#57534e' }}>
+                        <summary style={{ cursor: 'pointer' }}>metadata</summary>
+                        <pre style={{ marginTop: '4px', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', overflow: 'auto', maxHeight: '120px' }}>
+                          {JSON.stringify(log.metadata, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
