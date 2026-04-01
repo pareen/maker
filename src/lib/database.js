@@ -13,6 +13,42 @@ function useSupabase() {
 }
 
 // ============================================
+// ERROR LOGGING
+// ============================================
+
+export async function logError(action, error, metadata = {}) {
+  // Log to console always
+  console.error(`[${action}]`, error, metadata)
+
+  if (!isSupabaseConfigured()) return
+
+  try {
+    // Get current user ID if available (don't fail if we can't)
+    let userId = null
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      userId = session?.user?.id || null
+    } catch {}
+
+    await supabase.from('error_logs').insert({
+      user_id: userId,
+      action,
+      error_message: error?.message || String(error),
+      error_code: error?.code || null,
+      metadata: {
+        ...metadata,
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+        timestamp: new Date().toISOString()
+      }
+    })
+  } catch (logErr) {
+    // Don't let logging errors break the app
+    console.error('Failed to log error:', logErr)
+  }
+}
+
+// ============================================
 // AUTH FUNCTIONS
 // ============================================
 
@@ -32,28 +68,33 @@ export async function signUp(email, password, username) {
     throw new Error('Username already taken')
   }
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { username }
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username }
+      }
+    })
+
+    if (error) throw error
+
+    // Supabase returns a fake user with empty identities for duplicate emails
+    // (instead of an error, to prevent email enumeration)
+    if (!data.user || data.user.identities?.length === 0) {
+      throw new Error('An account with this email already exists')
     }
-  })
 
-  if (error) throw error
+    // Create profile immediately — don't rely solely on the DB trigger,
+    // which can fail silently (e.g. if email confirmation is required and
+    // the user can't log in to trigger ensureProfileExists).
+    await ensureProfileExists(data.user)
 
-  // Supabase returns a fake user with empty identities for duplicate emails
-  // (instead of an error, to prevent email enumeration)
-  if (!data.user || data.user.identities?.length === 0) {
-    throw new Error('An account with this email already exists')
+    return data.user
+  } catch (error) {
+    await logError('signUp', error, { username })
+    throw error
   }
-
-  // Create profile immediately — don't rely solely on the DB trigger,
-  // which can fail silently (e.g. if email confirmation is required and
-  // the user can't log in to trigger ensureProfileExists).
-  await ensureProfileExists(data.user)
-
-  return data.user
 }
 
 export async function signIn(email, password) {
@@ -61,19 +102,24 @@ export async function signIn(email, password) {
     return signInLocal(email, password)
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  })
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
 
-  if (error) throw error
+    if (error) throw error
 
-  // Ensure profile exists (creates on first login)
-  if (data.user) {
-    await ensureProfileExists(data.user)
+    // Ensure profile exists (creates on first login)
+    if (data.user) {
+      await ensureProfileExists(data.user)
+    }
+
+    return data.user
+  } catch (error) {
+    await logError('signIn', error)
+    throw error
   }
-
-  return data.user
 }
 
 // Helper to create profile on first authenticated access.
@@ -397,15 +443,20 @@ export async function updateProfile(userId, updates) {
 
   if (Object.keys(row).length === 0) return // nothing to update
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(row)
-    .eq('id', userId)
-    .select()
-    .single()
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(row)
+      .eq('id', userId)
+      .select()
+      .single()
 
-  if (error) throw error
-  return data
+    if (error) throw error
+    return data
+  } catch (error) {
+    await logError('updateProfile', error, { userId, fields: Object.keys(row) })
+    throw error
+  }
 }
 
 // ============================================
@@ -432,49 +483,54 @@ export async function createProject(userId, project) {
     return createProjectLocal(userId, project)
   }
 
-  // Deduplicate: if this project has a GitHub URL, check if user already has it
-  const githubUrl = project.githubUrl || project.links?.find(l => l.match(/^https?:\/\/github\.com\//i))
-  if (githubUrl) {
-    const { data: existing } = await supabase
-      .from('projects')
-      .select('id')
-      .eq('user_id', userId)
-      .contains('links', [githubUrl])
-      .limit(1)
-
-    if (existing?.length > 0) {
-      // Already imported — return the existing project instead of creating a duplicate
-      const { data: full } = await supabase
+  try {
+    // Deduplicate: if this project has a GitHub URL, check if user already has it
+    const githubUrl = project.githubUrl || project.links?.find(l => l.match(/^https?:\/\/github\.com\//i))
+    if (githubUrl) {
+      const { data: existing } = await supabase
         .from('projects')
-        .select('*')
-        .eq('id', existing[0].id)
-        .single()
-      return projectFromDb(full)
+        .select('id')
+        .eq('user_id', userId)
+        .contains('links', [githubUrl])
+        .limit(1)
+
+      if (existing?.length > 0) {
+        // Already imported — return the existing project instead of creating a duplicate
+        const { data: full } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', existing[0].id)
+          .single()
+        return projectFromDb(full)
+      }
     }
+
+    const row = {
+      user_id: userId,
+      name: project.name,
+      one_liner: project.oneLiner || null,
+      role: project.role || 'solo',
+      current_stage: project.currentStage || 'idea',
+      start_date: project.startDate || null,
+      end_date: project.endDate || null,
+      ongoing: project.ongoing ?? true,
+      domains: project.domains || [],
+      links: project.links || [],
+      outcome: project.outcome || null
+    }
+
+    const { data, error } = await supabase
+      .from('projects')
+      .insert(row)
+      .select()
+      .single()
+
+    if (error) throw error
+    return projectFromDb(data)
+  } catch (error) {
+    await logError('createProject', error, { userId, projectName: project.name })
+    throw error
   }
-
-  const row = {
-    user_id: userId,
-    name: project.name,
-    one_liner: project.oneLiner || null,
-    role: project.role || 'solo',
-    current_stage: project.currentStage || 'idea',
-    start_date: project.startDate || null,
-    end_date: project.endDate || null,
-    ongoing: project.ongoing ?? true,
-    domains: project.domains || [],
-    links: project.links || [],
-    outcome: project.outcome || null
-  }
-
-  const { data, error } = await supabase
-    .from('projects')
-    .insert(row)
-    .select()
-    .single()
-
-  if (error) throw error
-  return projectFromDb(data)
 }
 
 export async function updateProject(projectId, updates) {
@@ -482,28 +538,33 @@ export async function updateProject(projectId, updates) {
     return updateProjectLocal(projectId, updates)
   }
 
-  const row = {
-    name: updates.name,
-    one_liner: updates.oneLiner || null,
-    role: updates.role || 'solo',
-    current_stage: updates.currentStage || 'idea',
-    start_date: updates.startDate || null,
-    end_date: updates.endDate || null,
-    ongoing: updates.ongoing ?? true,
-    domains: updates.domains || [],
-    links: updates.links || [],
-    outcome: updates.outcome || null
+  try {
+    const row = {
+      name: updates.name,
+      one_liner: updates.oneLiner || null,
+      role: updates.role || 'solo',
+      current_stage: updates.currentStage || 'idea',
+      start_date: updates.startDate || null,
+      end_date: updates.endDate || null,
+      ongoing: updates.ongoing ?? true,
+      domains: updates.domains || [],
+      links: updates.links || [],
+      outcome: updates.outcome || null
+    }
+
+    const { data, error } = await supabase
+      .from('projects')
+      .update(row)
+      .eq('id', projectId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return projectFromDb(data)
+  } catch (error) {
+    await logError('updateProject', error, { projectId })
+    throw error
   }
-
-  const { data, error } = await supabase
-    .from('projects')
-    .update(row)
-    .eq('id', projectId)
-    .select()
-    .single()
-
-  if (error) throw error
-  return projectFromDb(data)
 }
 
 export async function deleteProject(projectId) {
@@ -511,12 +572,17 @@ export async function deleteProject(projectId) {
     return deleteProjectLocal(projectId)
   }
 
-  const { error } = await supabase
-    .from('projects')
-    .delete()
-    .eq('id', projectId)
+  try {
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', projectId)
 
-  if (error) throw error
+    if (error) throw error
+  } catch (error) {
+    await logError('deleteProject', error, { projectId })
+    throw error
+  }
 }
 
 // ============================================
@@ -543,21 +609,26 @@ export async function createUpdate(userId, content) {
     return createUpdateLocal(userId, content)
   }
 
-  const { data, error } = await supabase
-    .from('updates')
-    .insert({ user_id: userId, content })
-    .select()
-    .single()
+  try {
+    const { data, error } = await supabase
+      .from('updates')
+      .insert({ user_id: userId, content })
+      .select()
+      .single()
 
-  if (error) throw error
+    if (error) throw error
 
-  // Also update today_making on the profile so the latest update shows there
-  await supabase
-    .from('profiles')
-    .update({ today_making: content })
-    .eq('id', userId)
+    // Also update today_making on the profile so the latest update shows there
+    await supabase
+      .from('profiles')
+      .update({ today_making: content })
+      .eq('id', userId)
 
-  return data
+    return data
+  } catch (error) {
+    await logError('createUpdate', error, { userId })
+    throw error
+  }
 }
 
 export async function deleteUpdate(updateId, userId) {
@@ -760,6 +831,26 @@ export async function adminGetStats() {
     newUsersThisWeek: newUsersThisWeek || 0,
     updatesThisWeek: updatesThisWeek || 0
   }
+}
+
+export async function adminGetErrorLogs(limit = 50) {
+  if (!isSupabaseConfigured()) return []
+
+  // Use service-role-level query (RLS blocks anon SELECT on error_logs)
+  // Since we're using the anon key client, we query via a workaround:
+  // error_logs has RLS SELECT = false, but we're admin-gated in the UI.
+  // For now, we read what we can — if RLS blocks, we get empty array.
+  const { data, error } = await supabase
+    .from('error_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    console.error('Failed to fetch error logs:', error)
+    return []
+  }
+  return data || []
 }
 
 // ============================================

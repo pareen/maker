@@ -146,3 +146,29 @@ CREATE INDEX profiles_username_idx ON profiles(username);
 CREATE INDEX projects_user_id_idx ON projects(user_id);
 CREATE INDEX updates_user_id_idx ON updates(user_id);
 CREATE INDEX updates_created_at_idx ON updates(created_at DESC);
+
+-- Error logs table (for client-side error tracking)
+CREATE TABLE error_logs (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  error_message TEXT,
+  error_code TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE error_logs ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can insert error logs (even if auth is broken)
+CREATE POLICY "Anyone can insert error logs"
+  ON error_logs FOR INSERT
+  WITH CHECK (true);
+
+-- Only admin users can read error logs
+CREATE POLICY "Admin can read error logs"
+  ON error_logs FOR SELECT
+  USING (auth.uid() = 'a21214a3-a805-4549-b774-d9d73069c352'::uuid);
+
+CREATE INDEX error_logs_created_at_idx ON error_logs(created_at DESC);
+CREATE INDEX error_logs_user_id_idx ON error_logs(user_id);
