@@ -1,5 +1,3 @@
-import { next } from '@vercel/edge'
-
 const BOT_AGENTS = /facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp|Slackbot|TelegramBot|Discordbot|Googlebot|bingbot/i
 
 const SUPABASE_URL = 'https://debsbrmowqqzviwttamt.supabase.co'
@@ -7,7 +5,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 export default async function middleware(request) {
   const ua = request.headers.get('user-agent') || ''
-  if (!BOT_AGENTS.test(ua)) return next()
+  if (!BOT_AGENTS.test(ua)) return
 
   const url = new URL(request.url)
   const path = url.pathname.replace(/^\/+|\/+$/g, '')
@@ -15,7 +13,7 @@ export default async function middleware(request) {
   // Only intercept profile routes (single segment, not static files or known routes)
   if (!path || path.includes('/') || path.includes('.') ||
       ['login', 'signup', 'admin', 'makers', 'hire', 'api'].includes(path)) {
-    return next()
+    return
   }
 
   // Fetch profile from Supabase
@@ -25,7 +23,7 @@ export default async function middleware(request) {
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
     )
     const profiles = await res.json()
-    if (!profiles?.length) return next()
+    if (!profiles?.length) return
 
     const profile = profiles[0]
     const name = profile.name || profile.username
@@ -81,7 +79,7 @@ export default async function middleware(request) {
       headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300' }
     })
   } catch (err) {
-    return next()
+    return
   }
 }
 
