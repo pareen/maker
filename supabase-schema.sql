@@ -16,6 +16,8 @@ CREATE TABLE profiles (
   today_making TEXT,
   socials JSONB DEFAULT '{"twitter": "", "github": "", "linkedin": "", "substack": "", "website": ""}',
   embed_feed JSONB DEFAULT '{"type": null, "url": ""}',
+  show_email BOOLEAN DEFAULT FALSE,
+  contact_email TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -172,3 +174,7 @@ CREATE POLICY "Admin can read error logs"
 
 CREATE INDEX error_logs_created_at_idx ON error_logs(created_at DESC);
 CREATE INDEX error_logs_user_id_idx ON error_logs(user_id);
+
+-- Migration: Add contact fields to profiles (run if upgrading existing database)
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_email BOOLEAN DEFAULT FALSE;
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS contact_email TEXT;

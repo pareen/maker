@@ -418,7 +418,9 @@ function profileFromDb(dbProfile) {
     domains: dbProfile.domains || [],
     todayMaking: dbProfile.today_making || '',
     socials: dbProfile.socials || { twitter: '', github: '', linkedin: '', substack: '', website: '' },
-    embedFeed: dbProfile.embed_feed || { type: null, url: '' }
+    embedFeed: dbProfile.embed_feed || { type: null, url: '' },
+    showEmail: dbProfile.show_email || false,
+    contactEmail: dbProfile.contact_email || ''
   }
 }
 
@@ -440,6 +442,8 @@ export async function updateProfile(userId, updates) {
   if (updates.todayMaking !== undefined) row.today_making = updates.todayMaking
   if (updates.socials !== undefined) row.socials = updates.socials
   if (updates.embedFeed !== undefined) row.embed_feed = updates.embedFeed
+  if (updates.showEmail !== undefined) row.show_email = updates.showEmail
+  if (updates.contactEmail !== undefined) row.contact_email = updates.contactEmail
 
   if (Object.keys(row).length === 0) return // nothing to update
 
