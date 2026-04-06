@@ -45,6 +45,7 @@ function getInitialRoute() {
   if (path === 'signup') return { view: 'signup' };
   if (path === 'admin') return { view: 'admin' };
   if (path === 'makers') return { view: 'makers' };
+  if (path === 'hire') return { view: 'hire' };
   if (path && path !== '' && !path.includes('/')) return { view: 'publicProfile', username: path };
   return { view: null }; // null = determine after auth check
 }
@@ -74,6 +75,7 @@ const App = () => {
     if (view === 'publicProfile' && username) path = `/${username}`;
     else if (view === 'admin') path = '/admin';
     else if (view === 'makers') path = '/makers';
+    else if (view === 'hire') path = '/hire';
     else if (view === 'login') path = '/login';
     else if (view === 'signup') path = '/signup';
     const method = replace ? 'replaceState' : 'pushState';
@@ -105,6 +107,8 @@ const App = () => {
       }
     } else if (route.view === 'makers') {
       setCurrentView('makers');
+    } else if (route.view === 'hire') {
+      setCurrentView('hire');
     } else if (route.view === 'admin') {
       if (user && db.isAdmin(user.id)) {
         setCurrentView('admin');
@@ -245,6 +249,8 @@ const App = () => {
         viewPublicProfile(route.username);
       } else if (route.view === 'makers') {
         setCurrentView('makers');
+      } else if (route.view === 'hire') {
+        setCurrentView('hire');
       } else if (route.view === 'admin' && currentUser && db.isAdmin(currentUser.id)) {
         setCurrentView('admin');
       } else if (route.view === 'login') {
@@ -351,6 +357,7 @@ const App = () => {
           onLogin={() => navigate('login')}
           onSignup={() => navigate('signup')}
           onMakers={() => navigate('makers')}
+          onHire={() => navigate('hire')}
         />
       )}
 
@@ -430,6 +437,16 @@ const App = () => {
           onViewProfile={(username) => viewPublicProfile(username)}
           onBack={() => navigate(currentUser ? 'dashboard' : 'landing')}
           onLogin={() => navigate('login')}
+          onHire={() => navigate('hire')}
+        />
+      )}
+
+      {currentView === 'hire' && (
+        <HirePage
+          onViewProfile={(username) => viewPublicProfile(username)}
+          onMakers={() => navigate('makers')}
+          onBack={() => navigate(currentUser ? 'dashboard' : 'landing')}
+          onSignup={() => navigate('signup')}
         />
       )}
 
@@ -487,7 +504,7 @@ const builderQuotes = [
   { quote: "If you're not embarrassed by the first version of your product, you've launched too late.", author: "Reid Hoffman", role: "Co-founder, LinkedIn" },
 ];
 
-const LandingPage = ({ onLogin, onSignup, onMakers }) => {
+const LandingPage = ({ onLogin, onSignup, onMakers, onHire }) => {
   const sampleRoleBreakdown = roles.map(role => ({
     ...role,
     count: sampleMaker.projects.filter(p => p.role === role.key).length,
@@ -507,6 +524,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers }) => {
         <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600' }}>MAKERLY</div>
         <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-ghost" onClick={onMakers}>Browse Makers</button>
+          <button className="btn btn-ghost" onClick={onHire}>Hire</button>
           <button className="btn btn-ghost" onClick={onLogin}>Log in</button>
           <button className="btn btn-primary" onClick={onSignup}>Sign up</button>
         </div>
@@ -520,12 +538,17 @@ const LandingPage = ({ onLogin, onSignup, onMakers }) => {
           <span style={{ color: '#78716c' }}>Show what you've made.</span>
         </h1>
         <p style={{ fontSize: '18px', color: '#a8a29e', maxWidth: '520px', lineHeight: 1.6, margin: '0 auto 48px' }}>
-          In the AI era, you are what you build. Your Makerly profile is the living proof —
-          bigger than any resume or LinkedIn will ever be.
+          In the AI era, you are what you build. The smartest people don't send resumes —
+          they send their Makerly.
         </p>
-        <button className="btn btn-primary" style={{ padding: '16px 48px', fontSize: '16px' }} onClick={onSignup}>
-          Start your maker profile
-        </button>
+        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary" style={{ padding: '16px 48px', fontSize: '16px' }} onClick={onSignup}>
+            Start your maker profile
+          </button>
+          <button className="btn btn-ghost" style={{ padding: '16px 32px', fontSize: '16px', color: '#78716c' }} onClick={onHire}>
+            I'm hiring →
+          </button>
+        </div>
       </section>
 
       {/* The Contrast: LinkedIn vs Makerly */}
@@ -772,6 +795,18 @@ const LandingPage = ({ onLogin, onSignup, onMakers }) => {
         <div style={{ textAlign: 'center', marginTop: '48px' }}>
           <button className="btn btn-primary" style={{ padding: '16px 48px', fontSize: '16px' }} onClick={onSignup}>
             Create yours in 2 minutes
+          </button>
+        </div>
+      </section>
+
+      {/* Hiring pitch */}
+      <section style={{ padding: '60px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+          <p style={{ fontSize: '15px', color: '#78716c', lineHeight: 1.6 }}>
+            Hiring? Every person on Makerly has built something. That's the filter.
+          </p>
+          <button className="btn btn-ghost" onClick={onHire} style={{ marginTop: '12px', color: '#fbbf24' }}>
+            Browse makers for your team →
           </button>
         </div>
       </section>
@@ -2014,6 +2049,40 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
           ))}
         </div>
 
+        {/* Contact */}
+        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '14px', color: '#78716c', marginBottom: '20px' }}>CONTACT</h2>
+          <p style={{ fontSize: '13px', color: '#57534e', marginBottom: '16px' }}>
+            Let people reach you directly from your profile. Your email will be visible to anyone who visits.
+          </p>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={formData.showEmail || false}
+                onChange={(e) => setFormData({ ...formData, showEmail: e.target.checked })}
+                style={{ width: '16px', height: '16px' }}
+              />
+              <span style={{ fontSize: '14px', color: '#a8a29e' }}>Show my email on my profile</span>
+            </label>
+          </div>
+
+          {formData.showEmail && (
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', color: '#57534e', marginBottom: '8px' }}>Contact email</label>
+              <input
+                className="input"
+                type="email"
+                placeholder="you@email.com"
+                value={formData.contactEmail || ''}
+                onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+              />
+              <div style={{ fontSize: '11px', color: '#57534e', marginTop: '4px' }}>This will be shown as a "Get in touch" button on your public profile.</div>
+            </div>
+          )}
+        </div>
+
         {/* Embed Feed */}
         <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
           <h2 style={{ fontSize: '14px', color: '#78716c', marginBottom: '20px' }}>EMBED FEED</h2>
@@ -2136,14 +2205,21 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
           <button className="btn btn-ghost" onClick={onBack}>← Back</button>
           <span style={{ fontSize: '14px', letterSpacing: '0.1em', color: '#57534e' }}>makerly.me/{user.username}</span>
         </div>
-        {isOwner && (
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button className="btn btn-primary" onClick={onShare} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>↗</span> Share
-            </button>
-            <button className="btn btn-secondary" onClick={onEdit}>Edit</button>
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {!isOwner && user.showEmail && user.contactEmail && (
+            <a href={`mailto:${user.contactEmail}`} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+              Get in touch
+            </a>
+          )}
+          {isOwner && (
+            <>
+              <button className="btn btn-primary" onClick={onShare} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>↗</span> Share
+              </button>
+              <button className="btn btn-secondary" onClick={onEdit}>Edit</button>
+            </>
+          )}
+        </div>
       </header>
 
       <div style={{ padding: '60px 40px', maxWidth: '1100px', margin: '0 auto' }}>
@@ -2661,7 +2737,7 @@ const ShareModal = ({ username, todayMaking, onClose, showNotification }) => {
 // ============================================
 // ADMIN PANEL
 // ============================================
-const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin }) => {
+const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire }) => {
   const [makers, setMakers] = useState([]);
   const [recentUpdates, setRecentUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2674,7 +2750,13 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin }) => {
           db.getPublicMakers(),
           db.getRecentUpdates(30)
         ]);
-        setMakers(makerList);
+        // Sort: makers with todayMaking first, then by project count, then by name
+        const sorted = makerList.sort((a, b) => {
+          if (a.todayMaking && !b.todayMaking) return -1;
+          if (!a.todayMaking && b.todayMaking) return 1;
+          return (b.projectCount || 0) - (a.projectCount || 0);
+        });
+        setMakers(sorted);
         setRecentUpdates(updates);
       } catch (err) {
         console.error('Failed to load directory:', err);
@@ -2721,9 +2803,10 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", color: '#e7e5e4', margin: 0 }}>Maker Directory</h1>
-          <p style={{ color: '#57534e', fontSize: '13px', marginTop: '4px' }}>{makers.length} makers building in public</p>
+          <p style={{ color: '#57534e', fontSize: '13px', marginTop: '4px' }}>{makers.length} people who build things</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
+          {onHire && <button className="btn btn-ghost" onClick={onHire} style={{ color: '#fbbf24' }}>Hiring?</button>}
           {currentUser ? (
             <button className="btn btn-ghost" onClick={onBack}>Dashboard</button>
           ) : (
@@ -2777,12 +2860,17 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin }) => {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <div style={{ fontSize: '16px', fontWeight: '500', color: '#e7e5e4' }}>{maker.name || maker.username}</div>
-                    <div style={{ fontSize: '12px', color: '#57534e', marginTop: '2px' }}>@{maker.username}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '16px', fontWeight: '500', color: '#e7e5e4' }}>{maker.name || maker.username}</span>
+                      {maker.todayMaking && (
+                        <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
+                      )}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#57534e', marginTop: '2px' }}>makerly.me/{maker.username}</div>
                   </div>
                   {maker.projectCount > 0 && (
-                    <span style={{ fontSize: '12px', color: '#78716c', background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '12px' }}>
-                      {maker.projectCount} project{maker.projectCount !== 1 ? 's' : ''}
+                    <span style={{ fontSize: '13px', color: '#fbbf24', fontWeight: '500', whiteSpace: 'nowrap' }}>
+                      {maker.projectCount} made
                     </span>
                   )}
                 </div>
@@ -2792,8 +2880,8 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin }) => {
                   </p>
                 )}
                 {maker.todayMaking && (
-                  <div style={{ marginTop: '10px', fontSize: '12px', color: '#78716c' }}>
-                    <span style={{ color: '#fbbf24' }}>Building:</span> {maker.todayMaking}
+                  <div style={{ marginTop: '10px', padding: '6px 10px', background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.15)', borderRadius: '6px', fontSize: '12px', color: '#a8a29e' }}>
+                    <span style={{ color: '#4ade80', fontWeight: '500' }}>Building now:</span> {maker.todayMaking}
                   </div>
                 )}
                 {maker.domains?.length > 0 && (
@@ -2850,6 +2938,253 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin }) => {
       <style>{`
         @media (max-width: 768px) {
           .maker-directory-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// ============================================
+// HIRE PAGE
+// ============================================
+const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
+  const [makers, setMakers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    document.title = 'Hire Makers — Makerly';
+    return () => { document.title = 'Makerly — Show what you\'ve made'; };
+  }, []);
+
+  useEffect(() => {
+    db.getPublicMakers().then(list => {
+      // Show makers with at least 1 project, sorted by project count
+      const active = list.filter(m => m.projectCount > 0).sort((a, b) => b.projectCount - a.projectCount);
+      setMakers(active.slice(0, 6));
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  const handleNotify = (e) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    // Store in localStorage for now (could be Supabase later)
+    const existing = JSON.parse(localStorage.getItem('hire_waitlist') || '[]');
+    existing.push({ email: email.trim(), date: new Date().toISOString() });
+    localStorage.setItem('hire_waitlist', JSON.stringify(existing));
+    setSubmitted(true);
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600', cursor: 'pointer' }}>MAKERLY</span>
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button className="btn btn-ghost" onClick={onMakers}>Browse Makers</button>
+          <button className="btn btn-ghost" onClick={onBack}>Back</button>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="desktop-content" style={{ padding: '100px 40px 80px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ fontSize: '13px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500', marginBottom: '24px' }}>FOR FOUNDERS & HIRING MANAGERS</div>
+        <h1 className="hero-title" style={{ fontSize: '56px', fontFamily: "'Newsreader', Georgia, serif", fontWeight: '500', letterSpacing: '-0.02em', maxWidth: '800px', lineHeight: 1.08, margin: '0 auto 28px' }}>
+          Stop reading resumes.<br />
+          <span style={{ color: '#78716c' }}>See what they've built.</span>
+        </h1>
+        <p style={{ fontSize: '18px', color: '#a8a29e', maxWidth: '560px', lineHeight: 1.6, margin: '0 auto 48px' }}>
+          Every person on Makerly has built something. No job titles. No endorsements. No fluff.<br />
+          Just proof of work.
+        </p>
+        <button className="btn btn-primary" style={{ padding: '16px 48px', fontSize: '16px' }} onClick={onMakers}>
+          Browse makers →
+        </button>
+      </section>
+
+      {/* The difference */}
+      <section style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", textAlign: 'center', marginBottom: '48px' }}>
+            LinkedIn is a list of places people worked.<br />
+            <span style={{ color: '#78716c' }}>Makerly is a list of things people made.</span>
+          </h2>
+
+          <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+            {/* What you see on LinkedIn */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '32px', opacity: 0.5 }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#57534e', marginBottom: '24px', fontWeight: '500' }}>A LINKEDIN PROFILE TELLS YOU</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', color: '#78716c', fontSize: '15px' }}>
+                <div>Where they went to school</div>
+                <div>Which companies hired them</div>
+                <div>What titles they held</div>
+                <div>Who endorsed their "skills"</div>
+                <div style={{ fontSize: '13px', color: '#57534e', fontStyle: 'italic', marginTop: '8px' }}>None of this tells you if they can build.</div>
+              </div>
+            </div>
+
+            {/* What you see on Makerly */}
+            <div style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(251,191,36,0.01) 100%)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '16px', padding: '32px' }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', marginBottom: '24px', fontWeight: '500' }}>A MAKERLY PROFILE TELLS YOU</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', color: '#e7e5e4', fontSize: '15px' }}>
+                <div>What they've built — from age 8 to today</div>
+                <div>How far each project went (idea → users → revenue)</div>
+                <div>Whether they're solo founders or team players</div>
+                <div>What they're building right now</div>
+                <div style={{ fontSize: '13px', color: '#fbbf24', fontWeight: '500', marginTop: '8px' }}>This tells you everything.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* The filter */}
+      <section style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '20px' }}>
+            Makerly is the filter.
+          </h2>
+          <p style={{ fontSize: '17px', color: '#a8a29e', lineHeight: 1.6, marginBottom: '40px' }}>
+            You don't need algorithms to find great people here. Everyone on Makerly has made something.
+            That's the entire bar. And it's higher than any resume screen you've ever run.
+          </p>
+          <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+            {[
+              { num: 'Zero', desc: 'job titles or degrees required' },
+              { num: 'Every', desc: 'person here has shipped something' },
+              { num: 'Real', desc: 'projects you can click and verify' },
+            ].map((item, i) => (
+              <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '24px' }}>
+                <div style={{ fontSize: '20px', fontFamily: "'Newsreader', Georgia, serif", color: '#fbbf24', marginBottom: '8px' }}>{item.num}</div>
+                <div style={{ fontSize: '13px', color: '#a8a29e' }}>{item.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Real makers */}
+      {!loading && makers.length > 0 && (
+        <section style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+              <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500' }}>REAL MAKERS ON MAKERLY</span>
+              <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginTop: '12px' }}>
+                These people have built things. See for yourself.
+              </h2>
+            </div>
+
+            <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+              {makers.map(maker => (
+                <div
+                  key={maker.id}
+                  onClick={() => onViewProfile(maker.username)}
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '12px',
+                    padding: '24px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(251,191,36,0.3)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                >
+                  <div style={{ fontSize: '18px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '4px' }}>{maker.name || maker.username}</div>
+                  <div style={{ fontSize: '12px', color: '#57534e', marginBottom: '12px' }}>makerly.me/{maker.username}</div>
+                  {maker.bio && <p style={{ fontSize: '13px', color: '#a8a29e', lineHeight: 1.5, marginBottom: '12px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{maker.bio}</p>}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', color: '#fbbf24' }}>{maker.projectCount} project{maker.projectCount !== 1 ? 's' : ''}</span>
+                    {maker.todayMaking && (
+                      <span style={{ fontSize: '11px', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span className="ongoing-pulse" style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#4ade80' }} />
+                        active
+                      </span>
+                    )}
+                  </div>
+                  {maker.domains?.length > 0 && (
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '10px', flexWrap: 'wrap' }}>
+                      {maker.domains.slice(0, 3).map(d => (
+                        <span key={d} style={{ fontSize: '10px', color: '#57534e', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '6px' }}>{d}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: '32px' }}>
+              <button className="btn btn-secondary" onClick={onMakers} style={{ padding: '14px 36px' }}>
+                See all makers →
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Email capture */}
+      <section style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '28px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '16px' }}>
+            Get notified when new makers join.
+          </h2>
+          <p style={{ fontSize: '14px', color: '#78716c', marginBottom: '32px' }}>
+            We'll email you when interesting builders create their profiles.
+          </p>
+
+          {submitted ? (
+            <div style={{ background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '12px', padding: '24px' }}>
+              <div style={{ fontSize: '18px', fontFamily: "'Newsreader', Georgia, serif", color: '#4ade80', marginBottom: '8px' }}>You're on the list.</div>
+              <div style={{ fontSize: '13px', color: '#a8a29e' }}>We'll let you know when new makers join.</div>
+            </div>
+          ) : (
+            <form onSubmit={handleNotify} style={{ display: 'flex', gap: '12px' }}>
+              <input
+                className="input"
+                type="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                style={{ flex: 1 }}
+              />
+              <button type="submit" className="btn btn-primary" style={{ padding: '12px 28px', whiteSpace: 'nowrap' }}>
+                Notify me
+              </button>
+            </form>
+          )}
+        </div>
+      </section>
+
+      {/* Bottom CTA */}
+      <section style={{ padding: '80px 40px', textAlign: 'center' }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '16px' }}>
+            Are you a maker?
+          </h2>
+          <p style={{ fontSize: '16px', color: '#a8a29e', marginBottom: '32px' }}>
+            The smartest people don't send resumes. They send their Makerly.
+          </p>
+          <button className="btn btn-primary" style={{ padding: '16px 48px', fontSize: '16px' }} onClick={onSignup}>
+            Create your profile
+          </button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px 40px', marginTop: 'auto', textAlign: 'center', fontSize: '12px', color: '#57534e' }}>
+        Made by <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', textDecoration: 'none' }}>Pareen</a>.
+      </footer>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .desktop-grid { grid-template-columns: 1fr !important; }
+          .desktop-header { padding: 16px 20px !important; }
+          .desktop-content { padding: 60px 20px 60px !important; }
+          .hero-title { font-size: 36px !important; }
         }
       `}</style>
     </div>
