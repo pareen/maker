@@ -2750,12 +2750,24 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
           db.getPublicMakers(),
           db.getRecentUpdates(30)
         ]);
-        // Sort: makers with todayMaking first, then by project count, then by name
-        const sorted = makerList.sort((a, b) => {
-          if (a.todayMaking && !b.todayMaking) return -1;
-          if (!a.todayMaking && b.todayMaking) return 1;
-          return (b.projectCount || 0) - (a.projectCount || 0);
-        });
+        // Score each maker: projects, bio, activity, todayMaking, domains, firstMake
+        const score = (m) => {
+          let s = 0;
+          s += (m.projectCount || 0) * 10;          // projects matter most
+          if (m.todayMaking) s += 15;                // actively building
+          if (m.bio) s += 5;                         // filled in bio
+          if (m.domains?.length > 0) s += 3;         // has domains
+          if (m.firstMake?.description) s += 3;      // has first make story
+          if (m.name) s += 2;                        // set their name
+          if (m.lastActivity) {                      // recent activity bonus
+            const daysAgo = (Date.now() - new Date(m.lastActivity).getTime()) / 86400000;
+            if (daysAgo < 1) s += 8;
+            else if (daysAgo < 7) s += 5;
+            else if (daysAgo < 30) s += 2;
+          }
+          return s;
+        };
+        const sorted = makerList.sort((a, b) => score(b) - score(a));
         setMakers(sorted);
         setRecentUpdates(updates);
       } catch (err) {

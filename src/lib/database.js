@@ -687,7 +687,6 @@ function projectFromDb(dbProject) {
 export async function getPublicMakers() {
   if (!isSupabaseConfigured()) return []
 
-  // Get all profiles (include those without name — use username as fallback)
   const { data: profiles, error } = await supabase
     .from('profiles')
     .select('*')
@@ -705,9 +704,21 @@ export async function getPublicMakers() {
     projectCounts[p.user_id] = (projectCounts[p.user_id] || 0) + 1
   }
 
+  // Get latest update timestamp per user
+  const { data: updates } = await supabase
+    .from('updates')
+    .select('user_id, created_at')
+    .order('created_at', { ascending: false })
+
+  const lastActivity = {}
+  for (const u of (updates || [])) {
+    if (!lastActivity[u.user_id]) lastActivity[u.user_id] = u.created_at
+  }
+
   return (profiles || []).map(p => ({
     ...profileFromDb(p),
-    projectCount: projectCounts[p.id] || 0
+    projectCount: projectCounts[p.id] || 0,
+    lastActivity: lastActivity[p.id] || p.created_at
   }))
 }
 
