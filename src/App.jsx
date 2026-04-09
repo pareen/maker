@@ -2842,7 +2842,7 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
             </div>
           )}
 
-          <div style={{ display: 'grid', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
             {filtered.map(maker => (
               <div
                 key={maker.id}
