@@ -2750,20 +2750,27 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
           db.getPublicMakers(),
           db.getRecentUpdates(30)
         ]);
-        // Score each maker: projects, bio, activity, todayMaking, domains, firstMake
+        // Score by profile quality, not just project count
         const score = (m) => {
           let s = 0;
-          s += (m.projectCount || 0) * 10;          // projects matter most
-          if (m.todayMaking) s += 15;                // actively building
-          if (m.bio) s += 5;                         // filled in bio
-          if (m.domains?.length > 0) s += 3;         // has domains
-          if (m.firstMake?.description) s += 3;      // has first make story
-          if (m.name) s += 2;                        // set their name
-          if (m.lastActivity) {                      // recent activity bonus
+          // Profile completeness (max 30)
+          if (m.name) s += 5;
+          if (m.bio && m.bio.length > 20) s += 10;
+          else if (m.bio) s += 3;
+          if (m.firstMake?.description) s += 5;
+          if (m.domains?.length > 0) s += 5;
+          if (m.socials && Object.values(m.socials).some(v => v)) s += 5;
+          // Has projects, but cap the bonus (max 15)
+          const pc = Math.min(m.projectCount || 0, 3);
+          s += pc * 5;
+          // Active right now (max 15)
+          if (m.todayMaking) s += 15;
+          // Recent activity (max 10)
+          if (m.lastActivity) {
             const daysAgo = (Date.now() - new Date(m.lastActivity).getTime()) / 86400000;
-            if (daysAgo < 1) s += 8;
-            else if (daysAgo < 7) s += 5;
-            else if (daysAgo < 30) s += 2;
+            if (daysAgo < 1) s += 10;
+            else if (daysAgo < 7) s += 7;
+            else if (daysAgo < 30) s += 3;
           }
           return s;
         };
