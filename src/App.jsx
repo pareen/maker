@@ -1303,7 +1303,8 @@ const ProjectModal = ({ project, onSave, onClose }) => {
     ongoing: true,
     domains: [],
     links: [],
-    outcome: ''
+    outcome: '',
+    description: ''
   });
 
   const [newDomain, setNewDomain] = useState('');
@@ -1378,6 +1379,18 @@ const ProjectModal = ({ project, onSave, onClose }) => {
               value={formData.oneLiner}
               onChange={(e) => setFormData({ ...formData, oneLiner: e.target.value })}
               required
+            />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Description</label>
+            <textarea
+              className="input"
+              placeholder="Tell the story of this project. What problem were you solving? How did you build it? What happened?"
+              value={formData.description || ''}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={4}
+              style={{ resize: 'vertical' }}
             />
           </div>
 
@@ -1873,6 +1886,18 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
                 placeholder="e.g. 1000 users, acquired, shut down, still active"
                 value={reviewData.outcome || ''}
                 onChange={(e) => setReviewData({ ...reviewData, outcome: e.target.value })}
+              />
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Description</label>
+              <textarea
+                className="input"
+                placeholder="Tell the story of this project. What problem were you solving? How did you build it? What happened?"
+                value={reviewData.description || ''}
+                onChange={(e) => setReviewData({ ...reviewData, description: e.target.value })}
+                rows={4}
+                style={{ resize: 'vertical' }}
               />
             </div>
 
@@ -2416,6 +2441,10 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                       </div>
                       <span className="tag" style={{ background: `${stage?.color}20`, color: stage?.color }}>{stage?.label}</span>
                     </div>
+
+                    {project.description && (
+                      <p style={{ color: '#a8a29e', fontSize: '14px', lineHeight: 1.6, marginBottom: '12px', whiteSpace: 'pre-wrap' }}>{project.description}</p>
+                    )}
 
                     {/* Stage dots */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>

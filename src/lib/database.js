@@ -520,7 +520,8 @@ export async function createProject(userId, project) {
       ongoing: project.ongoing ?? true,
       domains: project.domains || [],
       links: project.links || [],
-      outcome: project.outcome || null
+      outcome: project.outcome || null,
+      description: project.description || null
     }
 
     const { data, error } = await supabase
@@ -553,7 +554,8 @@ export async function updateProject(projectId, updates) {
       ongoing: updates.ongoing ?? true,
       domains: updates.domains || [],
       links: updates.links || [],
-      outcome: updates.outcome || null
+      outcome: updates.outcome || null,
+      description: updates.description || null
     }
 
     const { data, error } = await supabase
@@ -676,7 +678,8 @@ function projectFromDb(dbProject) {
     ongoing: dbProject.ongoing,
     domains: dbProject.domains || [],
     links: dbProject.links || [],
-    outcome: dbProject.outcome
+    outcome: dbProject.outcome,
+    description: dbProject.description || ''
   }
 }
 
