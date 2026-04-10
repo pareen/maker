@@ -46,6 +46,7 @@ function getInitialRoute() {
   if (path === 'admin') return { view: 'admin' };
   if (path === 'makers') return { view: 'makers' };
   if (path === 'hire') return { view: 'hire' };
+  if (path === 'memo') return { view: 'memo' };
   if (path && path !== '' && !path.includes('/')) return { view: 'publicProfile', username: path };
   return { view: null }; // null = determine after auth check
 }
@@ -76,6 +77,7 @@ const App = () => {
     else if (view === 'admin') path = '/admin';
     else if (view === 'makers') path = '/makers';
     else if (view === 'hire') path = '/hire';
+    else if (view === 'memo') path = '/memo';
     else if (view === 'login') path = '/login';
     else if (view === 'signup') path = '/signup';
     const method = replace ? 'replaceState' : 'pushState';
@@ -109,6 +111,8 @@ const App = () => {
       setCurrentView('makers');
     } else if (route.view === 'hire') {
       setCurrentView('hire');
+    } else if (route.view === 'memo') {
+      setCurrentView('memo');
     } else if (route.view === 'admin') {
       if (user && db.isAdmin(user.id)) {
         setCurrentView('admin');
@@ -251,6 +255,8 @@ const App = () => {
         setCurrentView('makers');
       } else if (route.view === 'hire') {
         setCurrentView('hire');
+      } else if (route.view === 'memo') {
+        setCurrentView('memo');
       } else if (route.view === 'admin' && currentUser && db.isAdmin(currentUser.id)) {
         setCurrentView('admin');
       } else if (route.view === 'login') {
@@ -358,6 +364,7 @@ const App = () => {
           onSignup={() => navigate('signup')}
           onMakers={() => navigate('makers')}
           onHire={() => navigate('hire')}
+          onMemo={() => navigate('memo')}
         />
       )}
 
@@ -450,6 +457,14 @@ const App = () => {
         />
       )}
 
+      {currentView === 'memo' && (
+        <MemoPage
+          onBack={() => navigate(currentUser ? 'dashboard' : 'landing')}
+          onSignup={() => navigate('signup')}
+          onMakers={() => navigate('makers')}
+        />
+      )}
+
       {currentView === 'admin' && currentUser && db.isAdmin(currentUser.id) && (
         <AdminPanel
           user={currentUser}
@@ -504,7 +519,7 @@ const builderQuotes = [
   { quote: "If you're not embarrassed by the first version of your product, you've launched too late.", author: "Reid Hoffman", role: "Co-founder, LinkedIn" },
 ];
 
-const LandingPage = ({ onLogin, onSignup, onMakers, onHire }) => {
+const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
   const sampleRoleBreakdown = roles.map(role => ({
     ...role,
     count: sampleMaker.projects.filter(p => p.role === role.key).length,
@@ -523,6 +538,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire }) => {
       <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600' }}>MAKERLY</div>
         <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
+          <button className="btn btn-ghost" onClick={onMemo}>Memo</button>
           <button className="btn btn-ghost" onClick={onMakers}>Browse Makers</button>
           <button className="btn btn-ghost" onClick={onHire}>Hire</button>
           <button className="btn btn-ghost" onClick={onLogin}>Log in</button>
@@ -2957,6 +2973,137 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
       <style>{`
         @media (max-width: 768px) {
           .maker-directory-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// ============================================
+// MEMO PAGE
+// ============================================
+const MemoPage = ({ onBack, onSignup, onMakers }) => {
+  useEffect(() => {
+    document.title = 'Makers vs Takers — Makerly';
+    return () => { document.title = 'Makerly — Show what you\'ve made'; };
+  }, []);
+
+  const paragraphs = [
+    { text: 'There is a structural shift underway that most people are misreading.' },
+    { text: 'The common narrative is that AI will divide people into those who use it well and those who don\'t. That framing is too shallow. It assumes the difference is technical. It is not. The real divide is behavioral.' },
+    { text: 'We are entering a world where the cost of creation is collapsing. Writing, coding, designing, researching, editing, distributing — all of it is becoming near-instant. The constraint is no longer capability. The constraint is intent.' },
+    { text: 'When creation becomes cheap, the question stops being "can you?" and becomes "will you?"' , highlight: true },
+    { text: 'From that lens, two archetypes emerge. Makers and Takers.' },
+    { heading: 'Makers' },
+    { text: 'A Maker is someone who treats AI as leverage. They see tools as a way to compress time between idea and reality. They do not wait for clarity before acting. They act to generate clarity. They are comfortable producing imperfect outputs because they understand that iteration is the only path to quality. AI, in their hands, is not entertainment. It is infrastructure. It is a way to test ten directions instead of one, to build in days what used to take months, to operate at a level that previously required teams.' },
+    { heading: 'Takers' },
+    { text: 'A Taker, by contrast, treats AI as a source of consumption. They use the same systems, but the direction of flow is inverted. Instead of pushing ideas into the world, they pull stimulation from it. AI becomes a feed, a companion, a way to generate endless novelty without consequence. It creates the feeling of engagement without the burden of creation. The experience is smooth, personalized, and deeply satisfying in the short term. It is also non-compounding.' },
+    { heading: 'The widening gap' },
+    { text: 'Both archetypes have access to the same underlying intelligence. That is what makes this moment unique. In previous eras, differences in output could be explained by differences in access, education, or capital. That excuse is disappearing. The gap that forms now will be harder to rationalize, because it is driven by choice.' },
+    { text: 'This is why the Maker\u2013Taker divide will widen faster than any previous split. AI amplifies direction, not intent. If someone is already inclined to build, they will build faster and with greater scope. If someone is inclined to consume, they will consume more deeply and more efficiently. The middle ground, where people oscillate without consequence, starts to collapse.' },
+    { text: 'There is also a psychological component that makes this more severe than it appears. Takers will not experience their position as a loss. On the contrary, their environment will feel increasingly optimized. Content will be better. Interactions will be smoother. Friction will be minimized. From the inside, it will feel like progress. What will be missing is any durable sense of ownership or forward movement. Nothing compounds because nothing is put at risk.' },
+    { text: 'Makers operate under a different feedback loop. Their work is exposed to reality. It can fail, be ignored, or break. But it can also improve, attract attention, and evolve into something larger. The key difference is that their actions leave traces. Over time, these traces accumulate into assets. Codebases, products, audiences, relationships, systems. These are things that persist beyond a single interaction. They create optionality.' },
+    { text: 'The long-term consequence of this divergence is not just economic. It is existential. Makers retain a sense of authorship over their lives. They can point to things and say, "this exists because I made it." Takers increasingly interact with worlds that feel real but are entirely constructed by others. The experience is rich, but the agency is thin.', highlight: true },
+    { heading: 'The bet' },
+    { text: 'This is the bet behind Makerly.' },
+    { text: 'We do not believe the future belongs to those who simply have access to AI. Access will be universal. We believe it belongs to those who choose to build with it, consistently, even when it is easier not to. The goal is not to create another surface for consumption. The goal is to create an environment where making is the default behavior, where output is visible, where people are surrounded by others who are also pushing things into existence.' },
+    { text: 'Because in a world where everything can be generated, the only scarce thing left is the decision to generate something real.', highlight: true },
+    { closing: true, text: 'When the cost of building goes to zero, what do you choose to do with your time?' },
+  ];
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <span onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600', cursor: 'pointer' }}>MAKERLY</span>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button className="btn btn-ghost" onClick={onMakers}>Makers</button>
+          <button className="btn btn-ghost" onClick={onBack}>Back</button>
+        </div>
+      </header>
+
+      <article style={{ maxWidth: '640px', margin: '0 auto', padding: '80px 24px 60px', width: '100%' }}>
+        {/* Title */}
+        <div style={{ marginBottom: '60px' }}>
+          <div style={{ fontSize: '12px', letterSpacing: '0.2em', color: '#fbbf24', fontWeight: '500', marginBottom: '20px' }}>A MEMO FOR THE AI AGE</div>
+          <h1 style={{ fontSize: '48px', fontFamily: "'Newsreader', Georgia, serif", fontWeight: '500', lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: '0' }}>
+            Makers vs Takers
+          </h1>
+        </div>
+
+        {/* Body */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+          {paragraphs.map((p, i) => {
+            if (p.heading) {
+              return (
+                <h2 key={i} style={{
+                  fontSize: '13px',
+                  letterSpacing: '0.15em',
+                  color: '#fbbf24',
+                  fontWeight: '500',
+                  marginTop: '48px',
+                  marginBottom: '20px',
+                  textTransform: 'uppercase'
+                }}>
+                  {p.heading}
+                </h2>
+              );
+            }
+            if (p.closing) {
+              return (
+                <p key={i} style={{
+                  fontSize: '22px',
+                  fontFamily: "'Newsreader', Georgia, serif",
+                  color: '#e7e5e4',
+                  lineHeight: 1.5,
+                  marginTop: '48px',
+                  marginBottom: '0',
+                  fontStyle: 'italic'
+                }}>
+                  {p.text}
+                </p>
+              );
+            }
+            return (
+              <p key={i} style={{
+                fontSize: '17px',
+                lineHeight: 1.75,
+                color: p.highlight ? '#e7e5e4' : '#a8a29e',
+                marginBottom: '24px',
+                ...(p.highlight ? {
+                  borderLeft: '2px solid rgba(251,191,36,0.4)',
+                  paddingLeft: '20px',
+                  marginLeft: '-22px'
+                } : {})
+              }}>
+                {p.text}
+              </p>
+            );
+          })}
+        </div>
+
+        {/* CTA */}
+        <div style={{ marginTop: '60px', paddingTop: '40px', borderTop: '1px solid rgba(255,255,255,0.06)', textAlign: 'center' }}>
+          <p style={{ fontSize: '15px', color: '#78716c', marginBottom: '24px' }}>
+            Makerly is where makers show what they've built.
+          </p>
+          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button className="btn btn-primary" onClick={onSignup} style={{ padding: '14px 36px' }}>
+              Start your maker profile
+            </button>
+            <button className="btn btn-ghost" onClick={onMakers} style={{ padding: '14px 36px' }}>
+              Browse makers
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px 40px', marginTop: 'auto', textAlign: 'center', fontSize: '12px', color: '#57534e' }}>
+        Made by <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', textDecoration: 'none' }}>Pareen</a>.
+      </footer>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .desktop-header { padding: 16px 20px !important; }
         }
       `}</style>
     </div>
