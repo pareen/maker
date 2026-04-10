@@ -36,6 +36,7 @@ CREATE TABLE projects (
   domains TEXT[] DEFAULT '{}',
   links TEXT[] DEFAULT '{}',
   outcome TEXT,
+  description TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -178,3 +179,6 @@ CREATE INDEX error_logs_user_id_idx ON error_logs(user_id);
 -- Migration: Add contact fields to profiles (run if upgrading existing database)
 -- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_email BOOLEAN DEFAULT FALSE;
 -- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS contact_email TEXT;
+
+-- Migration: Add description field to projects (run if upgrading existing database)
+-- ALTER TABLE projects ADD COLUMN IF NOT EXISTS description TEXT;
