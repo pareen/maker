@@ -3165,8 +3165,27 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
 
   useEffect(() => {
     db.getPublicMakers().then(list => {
-      // Show makers with at least 1 project, sorted by project count
-      const active = list.filter(m => m.projectCount > 0).sort((a, b) => b.projectCount - a.projectCount);
+      // Quality-based scoring — same as directory
+      const score = (m) => {
+        let s = 0;
+        if (m.name) s += 5;
+        if (m.bio && m.bio.length > 20) s += 10;
+        else if (m.bio) s += 3;
+        if (m.firstMake?.description) s += 5;
+        if (m.domains?.length > 0) s += 5;
+        if (m.socials && Object.values(m.socials).some(v => v)) s += 5;
+        const pc = Math.min(m.projectCount || 0, 3);
+        s += pc * 5;
+        if (m.todayMaking) s += 15;
+        if (m.lastActivity) {
+          const daysAgo = (Date.now() - new Date(m.lastActivity).getTime()) / 86400000;
+          if (daysAgo < 1) s += 10;
+          else if (daysAgo < 7) s += 7;
+          else if (daysAgo < 30) s += 3;
+        }
+        return s;
+      };
+      const active = list.filter(m => m.projectCount > 0).sort((a, b) => score(b) - score(a));
       setMakers(active.slice(0, 6));
       setLoading(false);
     }).catch(() => setLoading(false));
