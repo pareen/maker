@@ -519,6 +519,36 @@ const builderQuotes = [
   { quote: "If you're not embarrassed by the first version of your product, you've launched too late.", author: "Reid Hoffman", role: "Co-founder, LinkedIn" },
 ];
 
+const SiteFooter = ({ onMakers, onHire, onMemo, onSignup }) => (
+  <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '48px 40px 32px', marginTop: 'auto' }}>
+    <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '32px' }}>
+      <div>
+        <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600', marginBottom: '16px' }}>MAKERLY</div>
+        <p style={{ fontSize: '13px', color: '#78716c', maxWidth: '260px', lineHeight: 1.5 }}>
+          Resumes are dead. Show what you've made.
+        </p>
+      </div>
+      <div style={{ display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', fontWeight: '500' }}>EXPLORE</span>
+          {onMakers && <a onClick={onMakers} style={{ fontSize: '13px', color: '#a8a29e', cursor: 'pointer', textDecoration: 'none' }}>Makers</a>}
+          {onHire && <a onClick={onHire} style={{ fontSize: '13px', color: '#a8a29e', cursor: 'pointer', textDecoration: 'none' }}>Hire</a>}
+          {onMemo && <a onClick={onMemo} style={{ fontSize: '13px', color: '#a8a29e', cursor: 'pointer', textDecoration: 'none' }}>Memo</a>}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', fontWeight: '500' }}>CONNECT</span>
+          <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: '#a8a29e', textDecoration: 'none' }}>Twitter</a>
+          {onSignup && <a onClick={onSignup} style={{ fontSize: '13px', color: '#a8a29e', cursor: 'pointer', textDecoration: 'none' }}>Create profile</a>}
+        </div>
+      </div>
+    </div>
+    <div style={{ maxWidth: '900px', margin: '24px auto 0', paddingTop: '24px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+      <span style={{ fontSize: '12px', color: '#57534e' }}>Made by <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', textDecoration: 'none' }}>Pareen</a></span>
+      <span style={{ fontSize: '12px', color: '#44403c' }}>&copy; {new Date().getFullYear()} Makerly</span>
+    </div>
+  </footer>
+);
+
 const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
   const sampleRoleBreakdown = roles.map(role => ({
     ...role,
@@ -827,11 +857,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px 40px', marginTop: 'auto', textAlign: 'center', fontSize: '12px', color: '#57534e' }}>
-        Made by <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', textDecoration: 'none' }}>Pareen</a>.
-        Feedback, suggestions, or collab requests → <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', textDecoration: 'underline' }}>@Pareen on Twitter</a>
-      </footer>
+      <SiteFooter onMakers={onMakers} onHire={onHire} onMemo={onMemo} onSignup={onSignup} />
     </div>
   );
 };
@@ -2492,10 +2518,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px 40px', marginTop: '60px', textAlign: 'center', fontSize: '12px', color: '#57534e' }}>
-        Built with MAKER.PROFILE
-      </footer>
+      <SiteFooter />
     </div>
   );
 };
@@ -3136,9 +3159,7 @@ const MemoPage = ({ onBack, onSignup, onMakers }) => {
         </div>
       </article>
 
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px 40px', marginTop: 'auto', textAlign: 'center', fontSize: '12px', color: '#57534e' }}>
-        Made by <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', textDecoration: 'none' }}>Pareen</a>.
-      </footer>
+      <SiteFooter onMakers={onMakers} onSignup={onSignup} />
 
       <style>{`
         @media (max-width: 768px) {
@@ -3398,10 +3419,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px 40px', marginTop: 'auto', textAlign: 'center', fontSize: '12px', color: '#57534e' }}>
-        Made by <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', textDecoration: 'none' }}>Pareen</a>.
-      </footer>
+      <SiteFooter onMakers={onMakers} onSignup={onSignup} />
 
       <style>{`
         @media (max-width: 768px) {
