@@ -1218,6 +1218,11 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
         <ProjectModal
           project={editingProject}
           onSave={saveProject}
+          onDelete={editingProject ? () => {
+            deleteProject(editingProject.id, editingProject.name);
+            setShowProjectModal(false);
+            setEditingProject(null);
+          } : null}
           onClose={() => { setShowProjectModal(false); setEditingProject(null); }}
         />
       )}
@@ -1292,7 +1297,7 @@ const ProjectCard = ({ project, onEdit, onDelete }) => {
 // ============================================
 // PROJECT MODAL
 // ============================================
-const ProjectModal = ({ project, onSave, onClose }) => {
+const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
   const [formData, setFormData] = useState(project || {
     name: '',
     oneLiner: '',
@@ -1509,9 +1514,14 @@ const ProjectModal = ({ project, onSave, onClose }) => {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Project'}</button>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'space-between' }}>
+            {onDelete ? (
+              <button type="button" className="btn btn-ghost" onClick={onDelete} style={{ color: '#ef4444' }}>Delete</button>
+            ) : <div />}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+              <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Project'}</button>
+            </div>
           </div>
         </form>
       </div>
