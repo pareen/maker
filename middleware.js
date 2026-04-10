@@ -12,7 +12,7 @@ export default async function middleware(request) {
 
   // Only intercept profile routes (single segment, not static files or known routes)
   if (!path || path.includes('/') || path.includes('.') ||
-      ['login', 'signup', 'admin', 'makers', 'hire', 'api'].includes(path)) {
+      ['login', 'signup', 'admin', 'makers', 'hire', 'memo', 'api'].includes(path)) {
     return
   }
 
