@@ -535,10 +535,12 @@ export async function createProject(userId, project) {
       image_url: project.imageUrl || null,
       featured: project.featured || false,
       key_metric: project.keyMetric || null,
-      funding_raised: project.fundingRaised ?? 0,
-      valuation: project.valuation ?? 0,
-      users_reached: project.usersReached ?? 0
     }
+
+    // Only include financial fields when set, so saves work before migration is run
+    if (project.fundingRaised) row.funding_raised = project.fundingRaised;
+    if (project.valuation) row.valuation = project.valuation;
+    if (project.usersReached) row.users_reached = project.usersReached;
 
     const { data, error } = await supabase
       .from('projects')
@@ -575,10 +577,12 @@ export async function updateProject(projectId, updates) {
       image_url: updates.imageUrl || null,
       featured: updates.featured || false,
       key_metric: updates.keyMetric || null,
-      funding_raised: updates.fundingRaised ?? 0,
-      valuation: updates.valuation ?? 0,
-      users_reached: updates.usersReached ?? 0
     }
+
+    // Only include financial fields when set, so saves work before migration is run
+    if (updates.fundingRaised) row.funding_raised = updates.fundingRaised;
+    if (updates.valuation) row.valuation = updates.valuation;
+    if (updates.usersReached) row.users_reached = updates.usersReached;
 
     const { data, error } = await supabase
       .from('projects')
