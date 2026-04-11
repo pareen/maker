@@ -98,6 +98,7 @@ function getInitialRoute() {
   if (path === 'admin') return { view: 'admin' };
   if (path === 'makers') return { view: 'makers' };
   if (path === 'hire') return { view: 'hire' };
+  if (path === 'recruiters') return { view: 'recruiters' };
   if (path === 'memo') return { view: 'memo' };
   if (path === 'cracked-squad') return { view: 'crackedSquad' };
   if (path && path !== '' && !path.includes('/')) return { view: 'publicProfile', username: path };
@@ -130,6 +131,7 @@ const App = () => {
     else if (view === 'admin') path = '/admin';
     else if (view === 'makers') path = '/makers';
     else if (view === 'hire') path = '/hire';
+    else if (view === 'recruiters') path = '/recruiters';
     else if (view === 'memo') path = '/memo';
     else if (view === 'crackedSquad') path = '/cracked-squad';
     else if (view === 'login') path = '/login';
@@ -165,6 +167,8 @@ const App = () => {
       setCurrentView('makers');
     } else if (route.view === 'hire') {
       setCurrentView('hire');
+    } else if (route.view === 'recruiters') {
+      setCurrentView('recruiters');
     } else if (route.view === 'memo') {
       setCurrentView('memo');
     } else if (route.view === 'crackedSquad') {
@@ -551,6 +555,16 @@ const App = () => {
           onBack={() => navigate(currentUser ? 'dashboard' : 'landing')}
           onSignup={() => navigate('signup')}
           onCrackedSquad={() => navigate('crackedSquad')}
+        />
+      )}
+
+      {currentView === 'recruiters' && (
+        <RecruiterPage
+          onViewProfile={(username) => viewPublicProfile(username)}
+          onMakers={() => navigate('makers')}
+          onBack={() => navigate(currentUser ? 'dashboard' : 'landing')}
+          onSignup={() => navigate('signup')}
+          onHire={() => navigate('hire')}
         />
       )}
 
@@ -2484,7 +2498,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification, isAdmin }) => {
         <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
           <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>CONTACT</h2>
           <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
-            Let people reach you directly from your profile. Your email will be visible to anyone who visits.
+            Let people message you directly from your profile. Your email stays private — visitors just see a contact button.
           </p>
 
           <div style={{ marginBottom: '16px' }}>
@@ -2495,13 +2509,13 @@ const EditProfile = ({ user, setUser, onBack, showNotification, isAdmin }) => {
                 onChange={(e) => setFormData({ ...formData, showEmail: e.target.checked })}
                 style={{ width: '16px', height: '16px' }}
               />
-              <span style={{ fontSize: '14px', color: t.textSecondary }}>Show my email on my profile</span>
+              <span style={{ fontSize: '14px', color: t.textSecondary }}>Enable contact form on my profile</span>
             </label>
           </div>
 
           {formData.showEmail && (
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Contact email</label>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Where should messages be sent?</label>
               <input
                 className="input"
                 type="email"
@@ -2509,7 +2523,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification, isAdmin }) => {
                 value={formData.contactEmail || ''}
                 onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
               />
-              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>This will be shown as a "Get in touch" button on your public profile.</div>
+              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>Messages from visitors will be emailed here. This address is never shown publicly.</div>
             </div>
           )}
         </div>
@@ -4311,23 +4325,82 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup, onCrackedSquad: _
 // ============================================
 // CRACKED SQUAD ADMIN TAB
 // ============================================
-const CrackedSquadAdminTab = ({ users, applications, onViewProfile, onToggle, onAccept, onReject }) => (
+const CrackedSquadAdminTab = ({ users, applications, onViewProfile, onBulkUpdate, onAccept, onReject }) => {
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(new Set());
+
+  const filtered = users.filter(u => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (u.name || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q);
+  });
+
+  const toggleSelect = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    const ids = filtered.map(u => u.id);
+    setSelected(prev => {
+      const next = new Set(prev);
+      const allSelected = ids.every(id => next.has(id));
+      if (allSelected) ids.forEach(id => next.delete(id));
+      else ids.forEach(id => next.add(id));
+      return next;
+    });
+  };
+
+  const handleBulkAction = async (action) => {
+    if (selected.size === 0) return;
+    await onBulkUpdate([...selected], action === 'add');
+    setSelected(new Set());
+  };
+
+  const memberCount = users.filter(u => u.crackedSquad).length;
+
+  return (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
     <div style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, overflow: 'hidden' }}>
       <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
-        <h2 style={{ fontSize: '16px', color: t.text, margin: 0 }}>Toggle Members</h2>
-        <p style={{ fontSize: '12px', color: t.textFaint, marginTop: '4px' }}>Manually add or remove users</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: '16px', color: t.text, margin: 0 }}>Manage Members</h2>
+            <p style={{ fontSize: '12px', color: t.textFaint, marginTop: '4px' }}>{memberCount} current member{memberCount !== 1 ? 's' : ''}</p>
+          </div>
+          {selected.size > 0 && (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={{ fontSize: '12px', color: t.textSecondary }}>{selected.size} selected</span>
+              <button onClick={() => handleBulkAction('add')} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(74,222,128,0.3)', background: 'rgba(74,222,128,0.1)', color: t.success, cursor: 'pointer', fontSize: '11px', fontWeight: '600' }}>Add to Squad</button>
+              <button onClick={() => handleBulkAction('remove')} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)', color: t.error, cursor: 'pointer', fontSize: '11px', fontWeight: '600' }}>Remove</button>
+              <button onClick={() => setSelected(new Set())} style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: t.textFaint, cursor: 'pointer', fontSize: '11px' }}>Clear</button>
+            </div>
+          )}
+        </div>
       </div>
-      <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
-        {users.map(u => (
-          <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span onClick={() => onViewProfile(u.username)} style={{ color: t.text, cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>{u.name || u.username}</span>
+      <div style={{ padding: '12px 20px 8px' }}>
+        <input type="text" placeholder="Search users..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', padding: '8px 12px', background: t.surfaceBgHover, border: '1px solid rgba(255,255,255,0.1)', borderRadius: t.radiusSm, color: t.text, fontSize: '13px' }} />
+      </div>
+      <div style={{ padding: '4px 20px 8px' }}>
+        <button onClick={selectAll} style={{ background: 'none', border: 'none', color: t.textFaint, cursor: 'pointer', fontSize: '11px', padding: '4px 0' }}>{filtered.length > 0 && filtered.every(u => selected.has(u.id)) ? 'Deselect all' : 'Select all'} ({filtered.length})</button>
+      </div>
+      <div style={{ padding: '0 20px 12px', display: 'flex', flexDirection: 'column', gap: '2px', maxHeight: '350px', overflowY: 'auto' }}>
+        {filtered.map(u => (
+          <div key={u.id} onClick={() => toggleSelect(u.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: '8px', cursor: 'pointer', background: selected.has(u.id) ? 'rgba(251,191,36,0.08)' : 'transparent', transition: 'background 0.1s' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '18px', height: '18px', borderRadius: '4px', border: `1.5px solid ${selected.has(u.id) ? t.accent : 'rgba(255,255,255,0.15)'}`, background: selected.has(u.id) ? t.accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.1s' }}>
+                {selected.has(u.id) && <span style={{ color: t.bg, fontSize: '11px', fontWeight: '700' }}>✓</span>}
+              </div>
+              <span onClick={(e) => { e.stopPropagation(); onViewProfile(u.username); }} style={{ color: t.text, cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>{u.name || u.username}</span>
               <span style={{ fontSize: '11px', color: t.textFaint }}>@{u.username}</span>
             </div>
-            <button onClick={() => onToggle(u)} style={{ padding: '4px 12px', borderRadius: '12px', border: `1px solid ${u.crackedSquad ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'}`, background: u.crackedSquad ? 'rgba(239,68,68,0.1)' : 'transparent', color: u.crackedSquad ? t.error : t.textFaint, cursor: 'pointer', fontSize: '11px', fontWeight: '500' }}>{u.crackedSquad ? 'MEMBER' : 'Add'}</button>
+            {u.crackedSquad && <span style={{ fontSize: '9px', letterSpacing: '0.05em', fontWeight: '600', color: t.error, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', padding: '2px 6px', borderRadius: '8px' }}>MEMBER</span>}
           </div>
         ))}
+        {filtered.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: t.textFaint, fontSize: '13px' }}>No users match</div>}
       </div>
     </div>
     <div style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, overflow: 'hidden' }}>
@@ -4371,7 +4444,8 @@ const CrackedSquadAdminTab = ({ users, applications, onViewProfile, onToggle, on
       )}
     </div>
   </div>
-);
+  );
+};
 
 // ============================================
 // CRACKED SQUAD PAGE
@@ -4416,10 +4490,23 @@ const CrackedSquadPage = ({ currentUser, onBack, onSignup, onLogin, onViewProfil
     if (!biggestProblem.trim() || !peersOpinion.trim()) return;
     setSubmitting(true);
     try {
+      const bp = biggestProblem.trim();
+      const po = peersOpinion.trim();
       await db.submitCrackedSquadApplication(currentUser.id, {
-        biggestProblem: biggestProblem.trim(),
-        peersOpinion: peersOpinion.trim()
+        biggestProblem: bp,
+        peersOpinion: po
       });
+      // Notify admin via email (fire-and-forget)
+      fetch('/api/notify-cracked-squad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          applicantName: currentUser.name || '',
+          applicantUsername: currentUser.username,
+          biggestProblem: bp,
+          peersOpinion: po
+        })
+      }).catch(() => {});
       setExistingApp({ status: 'pending' });
       setShowApply(false);
       showNotification('Application submitted');
@@ -4864,12 +4951,11 @@ const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) =>
           users={sorted}
           applications={csApplications}
           onViewProfile={onViewProfile}
-          onToggle={async (u) => {
-            const newVal = !u.crackedSquad;
+          onBulkUpdate={async (userIds, addToSquad) => {
             try {
-              await db.adminToggleCrackedSquad(u.id, newVal);
-              setUsers(prev => prev.map(p => p.id === u.id ? { ...p, crackedSquad: newVal } : p));
-              showNotification(`${u.name || u.username} ${newVal ? 'added to' : 'removed from'} Cracked Squad`);
+              await Promise.all(userIds.map(id => db.adminToggleCrackedSquad(id, addToSquad)));
+              setUsers(prev => prev.map(u => userIds.includes(u.id) ? { ...u, crackedSquad: addToSquad } : u));
+              showNotification(`${userIds.length} user${userIds.length !== 1 ? 's' : ''} ${addToSquad ? 'added to' : 'removed from'} Cracked Squad`);
             } catch { showNotification('Failed to update', 'error'); }
           }}
           onAccept={async (app) => {
