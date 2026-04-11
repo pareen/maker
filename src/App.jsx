@@ -1534,12 +1534,23 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
   const [newLink, setNewLink] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const fundingRef = useRef(null);
+  const valuationRef = useRef(null);
+  const usersRef = useRef(null);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (saving) return;
     setSaving(true);
     try {
-      await onSave(formData);
+      // Parse currency/number inputs that may not have blurred yet
+      const finalData = {
+        ...formData,
+        fundingRaised: fundingRef.current ? parseCurrencyInput(fundingRef.current.value) : formData.fundingRaised,
+        valuation: valuationRef.current ? parseCurrencyInput(valuationRef.current.value) : formData.valuation,
+        usersReached: usersRef.current ? parseNumberInput(usersRef.current.value) : formData.usersReached,
+      };
+      await onSave(finalData);
     } finally {
       setSaving(false);
     }
@@ -1745,6 +1756,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Funding Raised (optional)</label>
             <input
+              ref={fundingRef}
               className="input"
               inputMode="decimal"
               placeholder="e.g. $1.5M, 250K, 500000"
@@ -1763,6 +1775,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Valuation (optional)</label>
             <input
+              ref={valuationRef}
               className="input"
               inputMode="decimal"
               placeholder="e.g. $10M, 5B, 1000000"
@@ -1781,6 +1794,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Users Reached (optional)</label>
             <input
+              ref={usersRef}
               className="input"
               inputMode="decimal"
               placeholder="e.g. 50K, 2.1M, 500000"
@@ -2267,13 +2281,30 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
   const [formData, setFormData] = useState({ ...user });
   const [newDomain, setNewDomain] = useState('');
   const [saving, setSaving] = useState(false);
+  const totalRaisedRef = useRef(null);
+  const totalValuationRef = useRef(null);
+  const totalUsersRef = useRef(null);
 
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
     try {
-      await db.updateProfile(user.id, formData);
-      setUser({ ...user, ...formData });
+      // Parse headline stat overrides that may not have blurred yet
+      const finalData = { ...formData };
+      if (totalRaisedRef.current) {
+        const val = totalRaisedRef.current.value.trim();
+        finalData.totalRaised = val ? (parseCurrencyInput(val) || null) : null;
+      }
+      if (totalValuationRef.current) {
+        const val = totalValuationRef.current.value.trim();
+        finalData.totalValuation = val ? (parseCurrencyInput(val) || null) : null;
+      }
+      if (totalUsersRef.current) {
+        const val = totalUsersRef.current.value.trim();
+        finalData.totalUsers = val ? (parseNumberInput(val) || null) : null;
+      }
+      await db.updateProfile(user.id, finalData);
+      setUser({ ...user, ...finalData });
       showNotification('Profile saved!');
       onBack();
     } catch (error) {
@@ -2558,6 +2589,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total $ Raised (override)</label>
             <input
+              ref={totalRaisedRef}
               className="input"
               inputMode="decimal"
               placeholder="e.g. $5M"
@@ -2578,6 +2610,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total Valuation (override)</label>
             <input
+              ref={totalValuationRef}
               className="input"
               inputMode="decimal"
               placeholder="e.g. $50M"
@@ -2598,6 +2631,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total Users (override)</label>
             <input
+              ref={totalUsersRef}
               className="input"
               inputMode="decimal"
               placeholder="e.g. 500K"
