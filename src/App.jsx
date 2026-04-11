@@ -273,9 +273,15 @@ const App = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0c0a09', color: '#e7e5e4', fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1.6 }}>
+      <a href="#main-content" className="sr-only-focusable" style={{
+        position: 'absolute', left: '-9999px', top: 'auto', width: '1px', height: '1px', overflow: 'hidden',
+        zIndex: 1001, padding: '12px 24px', background: '#fbbf24', color: '#0c0a09', fontWeight: 600, borderRadius: 8, fontSize: 14, textDecoration: 'none'
+      }}>Skip to main content</a>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+        .sr-only-focusable:focus { position: fixed; left: 16px; top: 16px; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; z-index: 1001; }
         input, textarea, button, select { font-family: inherit; }
         input:focus, textarea:focus, select:focus { outline: none; }
         input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
@@ -380,9 +386,10 @@ const App = () => {
         />
       )}
 
+      <main id="main-content">
       {authLoading && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-          <div style={{ color: '#a8a29e', fontSize: '14px' }}>Loading...</div>
+          <div style={{ color: '#a8a29e', fontSize: '14px' }}>Loading…</div>
         </div>
       )}
 
@@ -515,6 +522,7 @@ const App = () => {
           onBack={() => { setViewingProfile(null); navigate(currentUser ? 'dashboard' : 'landing'); }}
         />
       )}
+      </main>
     </div>
   );
 };
@@ -631,13 +639,13 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600' }}>MAKERLY</div>
-        <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
+        <nav className="header-actions" aria-label="Main navigation" style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-ghost" onClick={onMemo}>Memo</button>
           <button className="btn btn-ghost" onClick={onMakers}>Browse Makers</button>
           <button className="btn btn-ghost" onClick={onHire}>Hire</button>
           <button className="btn btn-ghost" onClick={onLogin}>Log in</button>
           <button className="btn btn-primary" onClick={onSignup}>Sign up</button>
-        </div>
+        </nav>
         <MobileMenuButton onClick={() => setMobileMenuOpen(true)} isOpen={mobileMenuOpen} />
       </header>
 
@@ -1212,16 +1220,16 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
       {/* Header */}
       <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600' }}>MAKER.PROFILE</div>
-        <div className="header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <nav className="header-actions" aria-label="Dashboard navigation" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button className="btn btn-secondary" onClick={onEditProfile}>Edit Profile</button>
           <button className="btn btn-primary" onClick={onShare} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>↗</span> Share
+            <span aria-hidden="true">↗</span> Share
           </button>
           <button className="btn btn-secondary" onClick={onViewProfile}>View</button>
           <button className="btn btn-ghost" onClick={onMakers}>Makers</button>
           {onAdmin && <button className="btn btn-ghost" onClick={onAdmin} style={{ color: '#fbbf24' }}>Admin</button>}
           <button className="btn btn-ghost" onClick={onLogout}>Log out</button>
-        </div>
+        </nav>
         <MobileMenuButton onClick={() => setMobileMenuOpen(true)} isOpen={mobileMenuOpen} />
       </header>
 
@@ -1233,7 +1241,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
         <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onLogout(); }}>Log out</button>
         <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => { setMobileMenuOpen(false); onShare(); }}>
-            <span>↗</span> Share
+            <span aria-hidden="true">↗</span> Share
           </button>
         </div>
       </MobileDrawer>
@@ -1250,7 +1258,9 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
         {/* Post Update */}
         <div className="card" style={{ padding: '24px', marginBottom: '32px' }}>
           <div style={{ display: 'flex', gap: '12px' }}>
+            <label htmlFor="daily-update" className="sr-only">What are you making today?</label>
             <input
+              id="daily-update"
               className="input"
               placeholder="What are you making today?"
               value={updateText}
@@ -1283,7 +1293,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
                   <button
                     onClick={() => handleDeleteUpdate(update.id)}
                     style={{ background: 'none', border: 'none', color: '#57534e', cursor: 'pointer', fontSize: '16px', padding: '2px 6px', lineHeight: 1 }}
-                    title="Delete update"
+                    aria-label="Delete update"
                   >×</button>
                 </div>
               ))}
@@ -1316,7 +1326,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
               <p style={{ color: '#78716c', marginBottom: '24px' }}>Import from GitHub or add your first project above</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div aria-label="Your projects" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {user.projects.map(project => (
                 <ProjectCard
                   key={project.id}
@@ -1364,7 +1374,7 @@ const ProjectCard = ({ project, onEdit, onDelete }) => {
   const role = roles.find(r => r.key === project.role);
 
   return (
-    <div className="card project-card" style={{ padding: '20px 24px' }} onClick={onEdit}>
+    <div className="card project-card" style={{ padding: '20px 24px' }} onClick={onEdit} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(); } }} tabIndex={0} role="button" aria-label={`Edit project ${project.name}`}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
@@ -1400,6 +1410,7 @@ const ProjectCard = ({ project, onEdit, onDelete }) => {
           <button
             className="btn btn-ghost"
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            aria-label={`Delete project ${project.name}`}
             style={{ padding: '4px 8px', color: '#ef4444' }}
           >
             ×
@@ -1477,9 +1488,9 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="project-modal-title">
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px', maxHeight: '90vh', overflow: 'auto' }}>
-        <h2 style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '24px' }}>
+        <h2 id="project-modal-title" style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '24px' }}>
           {project ? 'Edit Project' : 'Add New Project'}
         </h2>
 
@@ -1590,10 +1601,10 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {formData.domains.map(d => (
-                <span key={d} className="tag" style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', cursor: 'pointer' }}
+                <button type="button" key={d} className="tag" aria-label={`Remove ${d}`} style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', cursor: 'pointer', border: 'none' }}
                   onClick={() => setFormData({ ...formData, domains: formData.domains.filter(x => x !== d) })}>
                   {d} ×
-                </span>
+                </button>
               ))}
             </div>
           </div>
@@ -1616,7 +1627,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
               {formData.links.map(l => (
                 <div key={l} style={{ fontSize: '13px', color: '#a8a29e', display: 'flex', justifyContent: 'space-between' }}>
                   <span>{l}</span>
-                  <button type="button" style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
+                  <button type="button" aria-label={`Remove ${l}`} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
                     onClick={() => setFormData({ ...formData, links: formData.links.filter(x => x !== l) })}>×</button>
                 </div>
               ))}
@@ -1840,9 +1851,9 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="github-modal-title">
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '80vh', overflow: 'auto' }}>
-        <h2 style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>
+        <h2 id="github-modal-title" style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>
           {step === 'review' ? `Review Projects (${reviewIndex + 1} of ${importedProjects.length})` : 'Import from GitHub'}
         </h2>
         <p style={{ color: '#78716c', marginBottom: '24px' }}>
@@ -1901,6 +1912,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
                   <input
                     className="input"
                     placeholder="GitHub username"
+                    aria-label="GitHub username"
                     value={username}
                     onChange={(e) => { setUsername(e.target.value); setFetchError(null); }}
                     onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
@@ -1935,7 +1947,12 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
                 return (
                   <div
                     key={index}
+                    role="checkbox"
+                    aria-checked={selectedRepos.has(index)}
+                    aria-disabled={alreadyImported}
+                    tabIndex={alreadyImported ? -1 : 0}
                     onClick={() => !alreadyImported && toggleRepo(index)}
+                    onKeyDown={e => { if (!alreadyImported && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleRepo(index); } }}
                     style={{
                       padding: '12px 16px',
                       background: alreadyImported ? 'rgba(255,255,255,0.02)' : selectedRepos.has(index) ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.03)',
@@ -2226,10 +2243,10 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {formData.domains.map(d => (
-              <span key={d} className="tag" style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', cursor: 'pointer' }}
+              <button type="button" key={d} className="tag" aria-label={`Remove ${d}`} style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', cursor: 'pointer', border: 'none' }}
                 onClick={() => setFormData({ ...formData, domains: formData.domains.filter(x => x !== d) })}>
                 {d} ×
-              </span>
+              </button>
             ))}
           </div>
         </div>
@@ -2560,7 +2577,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
           {isOwner && (
             <>
               <button className="btn btn-primary" onClick={onShare} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>↗</span> Share
+                <span aria-hidden="true">↗</span> Share
               </button>
               <button className="btn btn-secondary" onClick={onEdit}>Edit</button>
             </>
@@ -2627,7 +2644,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                 )}
                 {user.socials?.website && (
                   <a href={ensureUrl(user.socials.website)} target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>↗</span> Website
+                    <span aria-hidden="true">↗</span> Website
                   </a>
                 )}
               </div>
@@ -2970,8 +2987,9 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
           Let's set up your profile in 60 seconds.
         </p>
         <div style={{ maxWidth: '360px', margin: '0 auto' }}>
-          <label style={{ display: 'block', fontSize: '12px', color: '#57534e', letterSpacing: '0.1em', marginBottom: '8px', textAlign: 'left' }}>WHAT SHOULD WE CALL YOU?</label>
+          <label htmlFor="onboard-name" style={{ display: 'block', fontSize: '12px', color: '#57534e', letterSpacing: '0.1em', marginBottom: '8px', textAlign: 'left' }}>WHAT SHOULD WE CALL YOU?</label>
           <input
+            id="onboard-name"
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
@@ -3017,7 +3035,9 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
           <span style={{ color: '#a8a29e' }}>This is where it all started.</span>
         </p>
         <div style={{ maxWidth: '400px', margin: '0 auto', textAlign: 'left' }}>
+          <label htmlFor="onboard-firstmake" className="sr-only">Describe your first make</label>
           <textarea
+            id="onboard-firstmake"
             value={firstMakeDesc}
             onChange={e => setFirstMakeDesc(e.target.value)}
             placeholder="I built a..."
@@ -3036,8 +3056,9 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
             }}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
-            <label style={{ fontSize: '12px', color: '#57534e' }}>HOW OLD WERE YOU?</label>
+            <label htmlFor="onboard-age" style={{ fontSize: '12px', color: '#57534e' }}>HOW OLD WERE YOU?</label>
             <input
+              id="onboard-age"
               type="number"
               min="1"
               max="120"
@@ -3086,7 +3107,9 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
           <span style={{ color: '#a8a29e' }}>This shows up live on your profile.</span>
         </p>
         <div style={{ maxWidth: '400px', margin: '0 auto' }}>
+          <label htmlFor="onboard-making" className="sr-only">What are you making right now?</label>
           <input
+            id="onboard-making"
             type="text"
             value={todayMaking}
             onChange={e => setTodayMaking(e.target.value)}
@@ -3168,9 +3191,9 @@ const ShareModal = ({ username, todayMaking, onClose, showNotification }) => {
   ];
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="share-modal-title">
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2 style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>Share your profile</h2>
+        <h2 id="share-modal-title" style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>Share your profile</h2>
         <p style={{ color: '#78716c', marginBottom: '16px' }}>Let people see what you've built</p>
 
         {/* Currently Making */}
@@ -3311,7 +3334,9 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
         {/* Main: Maker Cards */}
         <div>
           {/* Search */}
+          <label htmlFor="maker-search" className="sr-only">Search makers</label>
           <input
+            id="maker-search"
             type="text"
             placeholder="Search makers, domains..."
             value={filter}
@@ -3334,11 +3359,15 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+          <div role="list" aria-label="Makers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
             {filtered.map(maker => (
               <div
                 key={maker.id}
+                role="listitem"
                 onClick={() => onViewProfile(maker.username)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewProfile(maker.username); } }}
+                tabIndex={0}
+                aria-label={`View ${maker.name || maker.username}'s profile`}
                 style={{
                   background: 'rgba(255,255,255,0.03)',
                   border: '1px solid rgba(255,255,255,0.06)',
@@ -3464,7 +3493,7 @@ const MemoPage = ({ onBack, onSignup, onMakers }) => {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <span onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600', cursor: 'pointer' }}>MAKERLY</span>
+        <button onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>MAKERLY</button>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-ghost" onClick={onMakers}>Makers</button>
           <button className="btn btn-ghost" onClick={onBack}>Back</button>
@@ -3608,7 +3637,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600', cursor: 'pointer' }}>MAKERLY</span>
+          <button onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>MAKERLY</button>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-ghost" onClick={onMakers}>Browse Makers</button>
@@ -3704,11 +3733,15 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
               </h2>
             </div>
 
-            <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+            <div className="desktop-grid" role="list" aria-label="Featured makers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
               {makers.map(maker => (
                 <div
                   key={maker.id}
+                  role="listitem"
                   onClick={() => onViewProfile(maker.username)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewProfile(maker.username); } }}
+                  tabIndex={0}
+                  aria-label={`View ${maker.name || maker.username}'s profile`}
                   style={{
                     background: 'rgba(255,255,255,0.03)',
                     border: '1px solid rgba(255,255,255,0.08)',
@@ -3769,7 +3802,9 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
             </div>
           ) : (
             <form onSubmit={handleNotify} style={{ display: 'flex', gap: '12px' }}>
+              <label htmlFor="hire-email" className="sr-only">Email address</label>
               <input
+                id="hire-email"
                 className="input"
                 type="email"
                 placeholder="you@company.com"
