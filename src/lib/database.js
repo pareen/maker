@@ -743,6 +743,38 @@ function projectFromDb(dbProject) {
 // PUBLIC DIRECTORY FUNCTIONS
 // ============================================
 
+export async function getPublicProjects() {
+  if (!isSupabaseConfigured()) return []
+
+  const { data: projects, error } = await supabase
+    .from('projects')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  // Get maker info for each project
+  const userIds = [...new Set((projects || []).map(p => p.user_id))]
+  if (userIds.length === 0) return []
+
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, username, name')
+    .in('id', userIds)
+
+  const profileMap = {}
+  for (const p of (profiles || [])) {
+    profileMap[p.id] = { username: p.username, name: p.name }
+  }
+
+  return (projects || []).map(p => ({
+    ...projectFromDb(p),
+    userId: p.user_id,
+    makerUsername: profileMap[p.user_id]?.username || 'unknown',
+    makerName: profileMap[p.user_id]?.name || profileMap[p.user_id]?.username || 'Unknown'
+  }))
+}
+
 export async function getPublicMakers() {
   if (!isSupabaseConfigured()) return []
 

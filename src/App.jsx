@@ -659,6 +659,7 @@ const SiteFooter = () => {
             <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>EXPLORE</span>
             <a href="/makers" style={linkStyle}>Browse Makers</a>
             <a href="/hire" style={linkStyle}>Hire Makers</a>
+            <a href="/recruiters" style={linkStyle}>For Recruiters</a>
             <a href="/memo" style={linkStyle}>Memo</a>
             <a href="/cracked-squad" style={{ ...linkStyle, color: t.error }}>Cracked Squad</a>
           </div>
@@ -4017,6 +4018,282 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
         </div>
       </div>
       </div>
+      <SiteFooter />
+    </div>
+  );
+};
+
+// ============================================
+// RECRUITER PAGE — Project Listings & Recruiter Profiles
+// ============================================
+const RecruiterPage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
+  const [projects, setProjects] = useState([]);
+  const [makers, setMakers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('');
+  const [stageFilter, setStageFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [tab, setTab] = useState('projects');
+
+  useEffect(() => {
+    document.title = 'For Recruiters — Makerly';
+    return () => { document.title = 'Makerly — Show what you\'ve made'; };
+  }, []);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [projectList, makerList] = await Promise.all([
+          db.getPublicProjects(),
+          db.getPublicMakers()
+        ]);
+        setProjects(projectList);
+        const score = (m) => {
+          let s = 0;
+          if (m.name) s += 5;
+          if (m.bio && m.bio.length > 20) s += 10;
+          if (m.domains?.length > 0) s += 5;
+          if (m.socials && Object.values(m.socials).some(v => v)) s += 5;
+          s += Math.min(m.projectCount || 0, 3) * 5;
+          if (m.todayMaking) s += 15;
+          return s;
+        };
+        setMakers(makerList.filter(m => m.projectCount > 0).sort((a, b) => score(b) - score(a)));
+      } catch (err) {
+        console.error('Failed to load recruiter data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const filteredProjects = projects.filter(p => {
+    if (stageFilter && p.currentStage !== stageFilter) return false;
+    if (roleFilter && p.role !== roleFilter) return false;
+    if (!filter) return true;
+    const q = filter.toLowerCase();
+    return (p.name || '').toLowerCase().includes(q) ||
+           (p.oneLiner || '').toLowerCase().includes(q) ||
+           (p.domains || []).some(d => d.toLowerCase().includes(q)) ||
+           (p.makerName || '').toLowerCase().includes(q);
+  });
+
+  const filteredMakers = makers.filter(m => {
+    if (!filter) return true;
+    const q = filter.toLowerCase();
+    return (m.name || '').toLowerCase().includes(q) ||
+           (m.username || '').toLowerCase().includes(q) ||
+           (m.domains || []).some(d => d.toLowerCase().includes(q)) ||
+           (m.bio || '').toLowerCase().includes(q);
+  });
+
+  const stageColor = (stage) => (stages.find(s => s.key === stage) || {}).color || t.textFaint;
+  const stageLbl = (stage) => (stages.find(s => s.key === stage) || {}).label || stage;
+  const roleLbl = (role) => (roles.find(r => r.key === role) || {}).label || role;
+
+  const totalProjects = projects.length;
+  const totalMakers = makers.length;
+  const activeProjects = projects.filter(p => p.ongoing).length;
+  const fundedProjects = projects.filter(p => ['funded', 'revenue', 'acquired', 'ipo'].includes(p.currentStage)).length;
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <div style={{ color: t.textSecondary, fontSize: '14px' }}>Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>MAKERLY</button>
+          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500', background: 'rgba(251,191,36,0.1)', border: `1px solid ${t.accentBorder}`, padding: '3px 8px', borderRadius: '8px' }}>FOR RECRUITERS</span>
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button className="btn btn-ghost" onClick={onMakers}>Browse Makers</button>
+          <button className="btn btn-ghost" onClick={onBack}>Back</button>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="desktop-content" style={{ padding: '80px 40px 60px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ fontSize: '13px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500', marginBottom: '24px' }}>RECRUITER DASHBOARD</div>
+        <h1 className="hero-title" style={{ fontSize: '48px', fontFamily: t.fontHeading, fontWeight: '500', letterSpacing: '-0.02em', maxWidth: '800px', lineHeight: 1.08, margin: '0 auto 24px' }}>
+          Find builders by what<br />
+          <span style={{ color: t.textTertiary }}>they've actually built.</span>
+        </h1>
+        <p style={{ fontSize: '17px', color: t.textSecondary, maxWidth: '540px', lineHeight: 1.6, margin: '0 auto 40px' }}>
+          Browse real projects from real makers. Filter by stage, role, and domain.
+          No resumes. No fluff. Just proof of work.
+        </p>
+        <div className="desktop-grid" style={{ display: 'flex', gap: '24px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {[
+            { label: 'Projects', value: totalProjects, color: t.accent },
+            { label: 'Makers', value: totalMakers, color: t.pink },
+            { label: 'Active', value: activeProjects, color: t.success },
+            { label: 'Funded+', value: fundedProjects, color: t.purple },
+          ].map(stat => (
+            <div key={stat.label} style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, padding: '16px 28px', minWidth: '100px' }}>
+              <div style={{ fontSize: '28px', fontFamily: t.fontHeading, color: stat.color, fontWeight: '500' }}>{stat.value}</div>
+              <div style={{ fontSize: '11px', color: t.textFaint, letterSpacing: '0.05em', marginTop: '4px' }}>{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Tabs + Filters + Listings */}
+      <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 24px', flex: 1, width: '100%' }}>
+        <div style={{ display: 'flex', gap: '0', marginBottom: '24px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+          {[
+            { key: 'projects', label: `Projects (${totalProjects})` },
+            { key: 'makers', label: `Makers (${totalMakers})` },
+          ].map(tb => (
+            <button key={tb.key} onClick={() => setTab(tb.key)} style={{
+              padding: '12px 24px', background: 'none', border: 'none',
+              borderBottom: `2px solid ${tab === tb.key ? t.accent : 'transparent'}`,
+              color: tab === tb.key ? t.text : t.textFaint,
+              fontSize: '14px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.15s'
+            }}>{tb.label}</button>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+          <label htmlFor="recruiter-search" className="sr-only">Search</label>
+          <input id="recruiter-search" type="text"
+            placeholder={tab === 'projects' ? 'Search projects, domains, makers...' : 'Search makers, domains...'}
+            value={filter} onChange={e => setFilter(e.target.value)}
+            style={{ flex: 1, minWidth: '200px', padding: '10px 16px', background: t.surfaceBgHover, border: '1px solid rgba(255,255,255,0.1)', borderRadius: t.radiusSm, color: t.text, fontSize: '14px' }}
+          />
+          {tab === 'projects' && (
+            <>
+              <select value={stageFilter} onChange={e => setStageFilter(e.target.value)} aria-label="Filter by stage"
+                style={{ padding: '10px 12px', background: t.surfaceBgHover, border: '1px solid rgba(255,255,255,0.1)', borderRadius: t.radiusSm, color: stageFilter ? t.text : t.textFaint, fontSize: '13px', cursor: 'pointer' }}>
+                <option value="">All stages</option>
+                {stages.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+              </select>
+              <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} aria-label="Filter by role"
+                style={{ padding: '10px 12px', background: t.surfaceBgHover, border: '1px solid rgba(255,255,255,0.1)', borderRadius: t.radiusSm, color: roleFilter ? t.text : t.textFaint, fontSize: '13px', cursor: 'pointer' }}>
+                <option value="">All roles</option>
+                {roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+              </select>
+            </>
+          )}
+        </div>
+
+        {/* Project Listings */}
+        {tab === 'projects' && (
+          <>
+            {filteredProjects.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '60px', color: t.textFaint }}>
+                {filter || stageFilter || roleFilter ? 'No projects match your filters' : 'No projects yet'}
+              </div>
+            )}
+            <div aria-label="Projects" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '12px' }}>
+              {filteredProjects.map(project => (
+                <div key={project.id} role="button" onClick={() => onViewProfile(project.makerUsername)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewProfile(project.makerUsername); } }}
+                  tabIndex={0} aria-label={`${project.name} by ${project.makerName}`}
+                  style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, padding: '20px', cursor: 'pointer', transition: 'all 0.15s' }}
+                  onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                  onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                >
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '16px', fontWeight: '500', color: t.text }}>{project.name}</span>
+                      {project.ongoing && <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.success, flexShrink: 0 }} />}
+                    </div>
+                    {project.oneLiner && <p style={{ fontSize: '13px', color: t.textSecondary, marginTop: '4px', lineHeight: 1.4 }}>{project.oneLiner}</p>}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '10px', letterSpacing: '0.05em', fontWeight: '600', color: stageColor(project.currentStage), background: `${stageColor(project.currentStage)}15`, border: `1px solid ${stageColor(project.currentStage)}30`, padding: '2px 8px', borderRadius: '8px' }}>
+                      {stageLbl(project.currentStage)}
+                    </span>
+                    <span style={{ fontSize: '10px', letterSpacing: '0.05em', fontWeight: '600', color: t.textFaint, background: t.surfaceBgHover, padding: '2px 8px', borderRadius: '8px' }}>
+                      {roleLbl(project.role)}
+                    </span>
+                  </div>
+
+                  {(project.fundingRaised > 0 || project.usersReached > 0) && (
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
+                      {project.fundingRaised > 0 && <div style={{ fontSize: '12px' }}><span style={{ color: t.textFaint }}>Raised: </span><span style={{ color: t.purple, fontWeight: '500' }}>{formatCurrency(project.fundingRaised)}</span></div>}
+                      {project.usersReached > 0 && <div style={{ fontSize: '12px' }}><span style={{ color: t.textFaint }}>Users: </span><span style={{ color: t.cyan, fontWeight: '500' }}>{formatNumber(project.usersReached)}</span></div>}
+                    </div>
+                  )}
+
+                  {project.domains?.length > 0 && (
+                    <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                      {project.domains.slice(0, 4).map(d => <span key={d} style={{ fontSize: '10px', color: t.textFaint, background: t.surfaceBgHover, padding: '2px 6px', borderRadius: '6px' }}>{d}</span>)}
+                    </div>
+                  )}
+
+                  <div style={{ borderTop: `1px solid ${t.surfaceBorder}`, paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12px', color: t.textTertiary }}>by <span style={{ color: t.textSecondary, fontWeight: '500' }}>{project.makerName}</span></span>
+                    <span style={{ fontSize: '11px', color: t.textFaint }}>makerly.me/{project.makerUsername}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Maker Profiles Tab */}
+        {tab === 'makers' && (
+          <>
+            {filteredMakers.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '60px', color: t.textFaint }}>
+                {filter ? 'No makers match your search' : 'No makers yet'}
+              </div>
+            )}
+            <div aria-label="Makers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+              {filteredMakers.map(maker => (
+                <div key={maker.id} role="button" onClick={() => onViewProfile(maker.username)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewProfile(maker.username); } }}
+                  tabIndex={0} aria-label={`View ${maker.name || maker.username}'s profile`}
+                  style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, padding: '20px', cursor: 'pointer', transition: 'all 0.15s' }}
+                  onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                  onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '16px', fontWeight: '500', color: t.text }}>{maker.name || maker.username}</span>
+                        {maker.crackedSquad && <span style={{ fontSize: '9px', letterSpacing: '0.05em', fontWeight: '600', color: t.error, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', padding: '2px 6px', borderRadius: '8px' }}>CRACKED</span>}
+                        {maker.todayMaking && <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.success, flexShrink: 0 }} />}
+                      </div>
+                      <div style={{ fontSize: '12px', color: t.textFaint, marginTop: '2px' }}>makerly.me/{maker.username}</div>
+                    </div>
+                    {maker.projectCount > 0 && <span style={{ fontSize: '13px', color: t.accent, fontWeight: '500', whiteSpace: 'nowrap' }}>{maker.projectCount} made</span>}
+                  </div>
+                  {maker.bio && <p style={{ color: t.textSecondary, fontSize: '13px', marginTop: '8px', lineHeight: '1.5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{maker.bio}</p>}
+                  {maker.todayMaking && (
+                    <div style={{ marginTop: '10px', padding: '6px 10px', background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.15)', borderRadius: '6px', fontSize: '12px', color: t.textSecondary }}>
+                      <span style={{ color: t.success, fontWeight: '500' }}>Building now:</span> {maker.todayMaking}
+                    </div>
+                  )}
+                  {maker.domains?.length > 0 && (
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
+                      {maker.domains.slice(0, 4).map(d => <span key={d} style={{ fontSize: '11px', color: t.textFaint, background: t.surfaceBgHover, padding: '2px 8px', borderRadius: t.radiusSm }}>{d}</span>)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+
+      <section className="section-padding" style={{ padding: '60px 40px', textAlign: 'center', borderTop: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '28px', fontFamily: t.fontHeading, marginBottom: '16px' }}>Are you a maker?</h2>
+          <p style={{ fontSize: '15px', color: t.textSecondary, marginBottom: '28px' }}>Create your profile and let recruiters find you by what you've built.</p>
+          <button className="btn btn-primary" style={{ padding: '14px 40px', fontSize: '15px' }} onClick={onSignup}>Create your profile</button>
+        </div>
+      </section>
+
       <SiteFooter />
     </div>
   );
