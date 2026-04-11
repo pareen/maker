@@ -7,10 +7,15 @@ import { isSupabaseConfigured } from './lib/supabase';
 const ensureUrl = (url) => {
   if (!url) return url;
   if (/^https?:\/\//i.test(url)) return url;
-  // If it looks like a domain (contains a dot), prepend https://
+  if (/^(javascript|data|vbscript):/i.test(url)) return '';
   if (url.includes('.')) return `https://${url}`;
-  // Otherwise it's just a username — return as-is (caller should handle)
   return url;
+};
+
+const safeImageUrl = (url) => {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  return '';
 };
 
 // ============================================
@@ -18,7 +23,7 @@ const ensureUrl = (url) => {
 // ============================================
 
 // Design tokens — single source of truth for visual system
-const t = {
+const t = Object.freeze({
   // Colors: Tailwind Stone scale + semantic accents
   bg: '#0c0a09',           // stone-950
   surface: '#1c1917',      // stone-900
@@ -61,7 +66,7 @@ const t = {
   accentBgSubtle: 'rgba(251,191,36,0.05)',
   successBorder: 'rgba(74,222,128,0.2)',
   successBgSubtle: 'rgba(74,222,128,0.1)',
-};
+});
 
 // Define stages and roles FIRST (used by multiple components)
 const stages = [
@@ -93,6 +98,7 @@ function getInitialRoute() {
   if (path === 'makers') return { view: 'makers' };
   if (path === 'hire') return { view: 'hire' };
   if (path === 'memo') return { view: 'memo' };
+  if (path === 'cracked-squad') return { view: 'crackedSquad' };
   if (path && path !== '' && !path.includes('/')) return { view: 'publicProfile', username: path };
   return { view: null }; // null = determine after auth check
 }
@@ -124,6 +130,7 @@ const App = () => {
     else if (view === 'makers') path = '/makers';
     else if (view === 'hire') path = '/hire';
     else if (view === 'memo') path = '/memo';
+    else if (view === 'crackedSquad') path = '/cracked-squad';
     else if (view === 'login') path = '/login';
     else if (view === 'signup') path = '/signup';
     const method = replace ? 'replaceState' : 'pushState';
@@ -159,6 +166,8 @@ const App = () => {
       setCurrentView('hire');
     } else if (route.view === 'memo') {
       setCurrentView('memo');
+    } else if (route.view === 'crackedSquad') {
+      setCurrentView('crackedSquad');
     } else if (route.view === 'admin') {
       if (user && db.isAdmin(user.id)) {
         setCurrentView('admin');
@@ -303,6 +312,8 @@ const App = () => {
         setCurrentView('hire');
       } else if (route.view === 'memo') {
         setCurrentView('memo');
+      } else if (route.view === 'crackedSquad') {
+        setCurrentView('crackedSquad');
       } else if (route.view === 'admin' && currentUser && db.isAdmin(currentUser.id)) {
         setCurrentView('admin');
       } else if (route.view === 'login') {
@@ -329,7 +340,6 @@ const App = () => {
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
         .sr-only-focusable:focus { position: fixed; left: 16px; top: 16px; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; z-index: 1001; }
         input, textarea, button, select { font-family: inherit; }
-        input:focus, textarea:focus, select:focus { outline: none; }
         input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
         button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
         a { color: inherit; text-decoration: none; }
@@ -543,6 +553,17 @@ const App = () => {
           onBack={() => navigate(currentUser ? 'dashboard' : 'landing')}
           onSignup={() => navigate('signup')}
           onMakers={() => navigate('makers')}
+        />
+      )}
+
+      {currentView === 'crackedSquad' && (
+        <CrackedSquadPage
+          currentUser={currentUser}
+          onBack={() => navigate(currentUser ? 'dashboard' : 'landing')}
+          onSignup={() => navigate('signup')}
+          onLogin={() => navigate('login')}
+          onViewProfile={(username) => viewPublicProfile(username)}
+          showNotification={showNotification}
         />
       )}
 
@@ -1238,7 +1259,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
     const existingIds = new Set(user.projects.map(p => p.id));
     for (const project of projects) {
       try {
-        const { _github, ...projectData } = project;
+        const { _github: _meta, ...projectData } = project;
         const result = await db.createProject(user.id, projectData);
         // createProject returns existing project if deduped — only count truly new ones
         if (!existingIds.has(result.id)) {
@@ -1720,7 +1741,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
             />
             {formData.imageUrl && (
               <div style={{ marginTop: '8px', borderRadius: t.radiusSm, overflow: 'hidden', maxHeight: '120px' }}>
-                <img src={formData.imageUrl} alt="Preview" style={{ width: '100%', height: '120px', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                <img src={safeImageUrl(formData.imageUrl)} alt="Preview" style={{ width: '100%', height: '120px', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
               </div>
             )}
           </div>
@@ -1762,7 +1783,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
   const [selectedRepos, setSelectedRepos] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState('input'); // input | select | review
-  const [isOAuthConnected, setIsOAuthConnected] = useState(false);
+  const [, setIsOAuthConnected] = useState(false);
   const [fetchError, setFetchError] = useState(null);
 
   // Review step state
@@ -1858,7 +1879,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
       setReviewIndex(0);
       setReviewData({ ...projects[0] });
       setStep('review');
-    } catch (error) {
+    } catch {
       showNotification('Failed to import projects', 'error');
     } finally {
       setLoading(false);
@@ -1879,7 +1900,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
       await db.updateProject(importedProjects[reviewIndex].id, reviewData);
       importedProjects[reviewIndex] = { ...importedProjects[reviewIndex], ...reviewData };
       moveToNext();
-    } catch (error) {
+    } catch {
       showNotification('Failed to save changes', 'error');
     } finally {
       setReviewSaving(false);
@@ -2409,6 +2430,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
 // TWITTER EMBED
 // ============================================
 const TwitterEmbed = ({ username }) => {
+  const sanitized = (username || '').replace(/[^a-zA-Z0-9_]/g, '');
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -2424,8 +2446,8 @@ const TwitterEmbed = ({ username }) => {
     anchor.setAttribute('data-theme', 'dark');
     anchor.setAttribute('data-chrome', 'noheader nofooter noborders transparent');
     anchor.setAttribute('data-tweet-limit', '3');
-    anchor.href = `https://twitter.com/${username}`;
-    anchor.textContent = `Tweets by @${username}`;
+    anchor.href = `https://twitter.com/${sanitized}`;
+    anchor.textContent = `Tweets by @${sanitized}`;
     container.appendChild(anchor);
 
     // Load or re-run the Twitter widget script
@@ -2653,8 +2675,22 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
               </div>
             )}
 
-            <h1 className="profile-name" style={{ fontSize: '48px', fontFamily: t.fontHeading, marginBottom: '12px' }}>
+            <h1 className="profile-name" style={{ fontSize: '48px', fontFamily: t.fontHeading, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
               {user.name || user.username}
+              {user.crackedSquad && (
+                <span style={{
+                  fontSize: '11px',
+                  fontFamily: t.fontBody,
+                  letterSpacing: '0.1em',
+                  fontWeight: '600',
+                  color: t.error,
+                  background: 'rgba(239,68,68,0.1)',
+                  border: '1px solid rgba(239,68,68,0.25)',
+                  padding: '4px 12px',
+                  borderRadius: '16px',
+                  whiteSpace: 'nowrap'
+                }}>CRACKED SQUAD</span>
+              )}
             </h1>
             {user.bio && <p style={{ fontSize: '18px', color: t.textSecondary, marginBottom: '32px', lineHeight: 1.5 }}>{user.bio}</p>}
 
@@ -2802,7 +2838,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                   <div key={project.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
                     {project.imageUrl && (
                       <div style={{ width: '100%', height: '180px', overflow: 'hidden' }}>
-                        <img src={project.imageUrl} alt={project.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={safeImageUrl(project.imageUrl)} alt={project.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                     )}
                     <div style={{ padding: '24px' }}>
@@ -2896,7 +2932,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                     {/* Cover image */}
                     {project.imageUrl && (
                       <div style={{ marginBottom: '12px', borderRadius: t.radiusSm, overflow: 'hidden', maxHeight: '160px' }}>
-                        <img src={project.imageUrl} alt={project.name} style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
+                        <img src={safeImageUrl(project.imageUrl)} alt={project.name} style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
                       </div>
                     )}
 
@@ -3294,6 +3330,7 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
   const [recentUpdates, setRecentUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
+  const [crackedOnly, setCrackedOnly] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -3339,6 +3376,7 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
   }, []);
 
   const filtered = makers.filter(m => {
+    if (crackedOnly && !m.crackedSquad) return false;
     if (!filter) return true;
     const q = filter.toLowerCase();
     return (m.name || '').toLowerCase().includes(q) ||
@@ -3390,24 +3428,43 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
         {/* Main: Maker Cards */}
         <div>
           {/* Search */}
-          <label htmlFor="maker-search" className="sr-only">Search makers</label>
-          <input
-            id="maker-search"
-            type="text"
-            placeholder="Search makers, domains..."
-            value={filter}
-            onChange={e => setFilter(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              background: t.surfaceBgHover,
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: t.radiusSm,
-              color: t.text,
-              fontSize: '14px',
-              marginBottom: '20px'
-            }}
-          />
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+            <label htmlFor="maker-search" className="sr-only">Search makers</label>
+            <input
+              id="maker-search"
+              type="text"
+              placeholder="Search makers, domains..."
+              value={filter}
+              onChange={e => setFilter(e.target.value)}
+              style={{
+                flex: 1,
+                padding: '12px 16px',
+                background: t.surfaceBgHover,
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: t.radiusSm,
+                color: t.text,
+                fontSize: '14px'
+              }}
+            />
+            <button
+              onClick={() => setCrackedOnly(!crackedOnly)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: t.radiusSm,
+                border: `1px solid ${crackedOnly ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                background: crackedOnly ? 'rgba(239,68,68,0.1)' : 'transparent',
+                color: crackedOnly ? t.error : t.textFaint,
+                cursor: 'pointer',
+                fontSize: '11px',
+                fontWeight: '600',
+                letterSpacing: '0.05em',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s'
+              }}
+            >
+              CRACKED SQUAD
+            </button>
+          </div>
 
           {filtered.length === 0 && (
             <div style={{ textAlign: 'center', padding: '40px', color: t.textFaint }}>
@@ -3415,11 +3472,11 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
             </div>
           )}
 
-          <div role="list" aria-label="Makers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+          <div aria-label="Makers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
             {filtered.map(maker => (
               <div
                 key={maker.id}
-                role="listitem"
+                role="button"
                 onClick={() => onViewProfile(maker.username)}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewProfile(maker.username); } }}
                 tabIndex={0}
@@ -3439,6 +3496,9 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '16px', fontWeight: '500', color: t.text }}>{maker.name || maker.username}</span>
+                      {maker.crackedSquad && (
+                        <span style={{ fontSize: '9px', letterSpacing: '0.05em', fontWeight: '600', color: t.error, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', padding: '2px 6px', borderRadius: '8px', whiteSpace: 'nowrap' }}>CRACKED</span>
+                      )}
                       {maker.todayMaking && (
                         <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.success, flexShrink: 0 }} />
                       )}
@@ -3789,11 +3849,11 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
               </h2>
             </div>
 
-            <div className="desktop-grid" role="list" aria-label="Featured makers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+            <div className="desktop-grid" aria-label="Featured makers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
               {makers.map(maker => (
                 <div
                   key={maker.id}
-                  role="listitem"
+                  role="button"
                   onClick={() => onViewProfile(maker.username)}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewProfile(maker.username); } }}
                   tabIndex={0}
@@ -3898,9 +3958,258 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
 };
 
 // ============================================
+// CRACKED SQUAD PAGE
+// ============================================
+const CrackedSquadPage = ({ currentUser, onBack, onSignup, onLogin, onViewProfile, showNotification }) => {
+  const [showApply, setShowApply] = useState(false);
+  const [biggestProblem, setBiggestProblem] = useState('');
+  const [peersOpinion, setPeersOpinion] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [existingApp, setExistingApp] = useState(null);
+  const [, setAppChecked] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(true);
+
+  useEffect(() => {
+    document.title = 'Cracked Squad — Makerly';
+    return () => { document.title = 'Maker Portfolio — The portfolio for people who make things'; };
+  }, []);
+
+  // Check if user already applied
+  useEffect(() => {
+    if (currentUser) {
+      db.getCrackedSquadApplication(currentUser.id).then(app => {
+        setExistingApp(app);
+        setAppChecked(true);
+      }).catch(() => setAppChecked(true));
+    } else {
+      setAppChecked(true);
+    }
+  }, [currentUser]);
+
+  // Load cracked squad members
+  useEffect(() => {
+    db.getPublicMakers().then(makers => {
+      setMembers(makers.filter(m => m.crackedSquad));
+      setLoadingMembers(false);
+    }).catch(() => setLoadingMembers(false));
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!biggestProblem.trim() || !peersOpinion.trim()) return;
+    setSubmitting(true);
+    try {
+      await db.submitCrackedSquadApplication(currentUser.id, {
+        biggestProblem: biggestProblem.trim(),
+        peersOpinion: peersOpinion.trim()
+      });
+      setExistingApp({ status: 'pending' });
+      setShowApply(false);
+      showNotification('Application submitted');
+    } catch (err) {
+      showNotification(err.message || 'Failed to submit', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isMember = currentUser?.crackedSquad;
+
+  return (
+    <div style={{ minHeight: '100vh', background: t.bg }}>
+      {/* Header */}
+      <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <button className="btn btn-ghost" onClick={onBack}>← Back</button>
+        <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.textFaint }}>MAKERLY</span>
+      </header>
+
+      {/* Hero */}
+      <section style={{ padding: '120px 40px 80px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+          <div style={{ fontSize: '11px', letterSpacing: '0.3em', color: t.error, fontWeight: '600', marginBottom: '24px' }}>BY INVITATION & APPLICATION ONLY</div>
+          <h1 style={{ fontSize: '56px', fontFamily: t.fontHeading, lineHeight: 1.1, marginBottom: '24px', color: t.text }}>
+            Cracked Squad
+          </h1>
+          <p style={{ fontSize: '20px', color: t.textTertiary, lineHeight: 1.6, marginBottom: '48px', maxWidth: '540px', margin: '0 auto 48px' }}>
+            A small group of teenage builders who are unreasonably ambitious, unreasonably hardworking, and unreasonably good at making things people want.
+          </p>
+          <div style={{ width: '40px', height: '1px', background: t.textDim, margin: '0 auto' }} />
+        </div>
+      </section>
+
+      {/* The filter */}
+      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '28px', fontFamily: t.fontHeading, marginBottom: '40px', textAlign: 'center' }}>This is not for you if</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {[
+              'You need someone to tell you what to work on.',
+              'You think "networking" is a strategy.',
+              'You optimize for credentials over output.',
+              'You talk about ideas more than you build them.',
+              'You want to be told you\'re special before you\'ve done anything.',
+              'You think you deserve a seat at the table. You should be building the table.',
+            ].map((line, i) => (
+              <div key={i} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <span style={{ color: t.error, fontSize: '14px', flexShrink: 0, marginTop: '2px' }}>✕</span>
+                <span style={{ fontSize: '15px', color: t.textSecondary, lineHeight: 1.5 }}>{line}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* What it is */}
+      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '28px', fontFamily: t.fontHeading, marginBottom: '40px', textAlign: 'center' }}>This is for you if</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {[
+              'You\'ve shipped something real. Not a school project. Something people use.',
+              'You think about problems all day. You can\'t help it.',
+              'You don\'t wait for permission. You figure it out.',
+              'You\'re 14–19 and already building things most adults can\'t.',
+              'You want to be surrounded by people who make you feel slow.',
+              'If you need to be convinced, this isn\'t for you.',
+            ].map((line, i) => (
+              <div key={i} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <span style={{ color: t.success, fontSize: '14px', flexShrink: 0, marginTop: '2px' }}>→</span>
+                <span style={{ fontSize: '15px', color: t.textSecondary, lineHeight: 1.5 }}>{line}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Members */}
+      {!loadingMembers && members.length > 0 && (
+        <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '28px', fontFamily: t.fontHeading, marginBottom: '12px', textAlign: 'center' }}>Current Members</h2>
+            <p style={{ fontSize: '14px', color: t.textFaint, textAlign: 'center', marginBottom: '40px' }}>{members.length} builder{members.length !== 1 ? 's' : ''}</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' }}>
+              {members.map(m => (
+                <div
+                  key={m.id}
+                  onClick={() => onViewProfile(m.username)}
+                  style={{
+                    background: t.surfaceBg,
+                    border: `1px solid ${t.surfaceBorder}`,
+                    borderRadius: t.radiusMd,
+                    padding: '20px',
+                    cursor: 'pointer',
+                    transition: 'border-color 0.15s'
+                  }}
+                  onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'}
+                  onMouseOut={e => e.currentTarget.style.borderColor = t.surfaceBorder}
+                >
+                  <div style={{ fontSize: '16px', fontFamily: t.fontHeading, marginBottom: '4px' }}>{m.name || m.username}</div>
+                  <div style={{ fontSize: '11px', color: t.textFaint }}>makerly.me/{m.username}</div>
+                  {m.bio && <p style={{ fontSize: '12px', color: t.textTertiary, marginTop: '8px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{m.bio}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Apply CTA */}
+      <section className="section-padding" style={{ padding: '100px 40px', textAlign: 'center' }}>
+        <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+          {isMember ? (
+            <div>
+              <div style={{ fontSize: '14px', color: t.error, fontWeight: '600', letterSpacing: '0.1em', marginBottom: '12px' }}>CRACKED SQUAD</div>
+              <h2 style={{ fontSize: '28px', fontFamily: t.fontHeading, marginBottom: '16px' }}>You're in.</h2>
+              <p style={{ fontSize: '14px', color: t.textTertiary }}>Keep building. Keep shipping. That's all.</p>
+            </div>
+          ) : existingApp ? (
+            <div>
+              <h2 style={{ fontSize: '28px', fontFamily: t.fontHeading, marginBottom: '16px' }}>
+                {existingApp.status === 'pending' ? 'Application received.' : existingApp.status === 'accepted' ? 'You\'re in.' : 'Not this time.'}
+              </h2>
+              <p style={{ fontSize: '14px', color: t.textTertiary }}>
+                {existingApp.status === 'pending' ? 'We\'ll review it. No timeline. We take this seriously.' : existingApp.status === 'accepted' ? 'Welcome to Cracked Squad.' : 'Keep building. Apply again when you have more to show.'}
+              </p>
+            </div>
+          ) : showApply && currentUser ? (
+            <form onSubmit={handleSubmit} style={{ textAlign: 'left' }}>
+              <h2 style={{ fontSize: '28px', fontFamily: t.fontHeading, marginBottom: '8px', textAlign: 'center' }}>Apply</h2>
+              <p style={{ fontSize: '12px', color: t.textFaint, textAlign: 'center', marginBottom: '32px' }}>
+                Your answers will never be published anywhere. Ever.
+              </p>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ fontSize: '14px', color: t.text, display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                  What is the biggest problem in your life right now?
+                </label>
+                <textarea
+                  className="input"
+                  value={biggestProblem}
+                  onChange={e => setBiggestProblem(e.target.value)}
+                  rows={4}
+                  required
+                  style={{ resize: 'vertical', minHeight: '100px' }}
+                  placeholder="Be honest."
+                />
+              </div>
+
+              <div style={{ marginBottom: '32px' }}>
+                <label style={{ fontSize: '14px', color: t.text, display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                  What do you think of your peers? What do they do all day?
+                </label>
+                <textarea
+                  className="input"
+                  value={peersOpinion}
+                  onChange={e => setPeersOpinion(e.target.value)}
+                  rows={4}
+                  required
+                  style={{ resize: 'vertical', minHeight: '100px' }}
+                  placeholder="Be honest."
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <button type="button" className="btn btn-ghost" onClick={() => setShowApply(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submitting} style={{ padding: '14px 36px' }}>
+                  {submitting ? 'Submitting...' : 'Submit Application'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div>
+              <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '16px' }}>Think you belong here?</h2>
+              <p style={{ fontSize: '15px', color: t.textTertiary, marginBottom: '32px' }}>
+                Most people don't. That's the point.
+              </p>
+              {currentUser ? (
+                <button className="btn btn-primary" onClick={() => setShowApply(true)} style={{ padding: '16px 48px', fontSize: '16px' }}>
+                  Apply
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                  <button className="btn btn-primary" onClick={onSignup} style={{ padding: '16px 36px' }}>
+                    Create profile first
+                  </button>
+                  <button className="btn btn-secondary" onClick={onLogin} style={{ padding: '16px 36px' }}>
+                    Log in
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <SiteFooter onCrackedSquad={() => {}} />
+    </div>
+  );
+};
+
+// ============================================
 // ADMIN PANEL
 // ============================================
-const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
+const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) => {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
   const [errorLogs, setErrorLogs] = useState([]);
@@ -3908,18 +4217,21 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
   const [sortField, setSortField] = useState('createdAt');
   const [sortDir, setSortDir] = useState('desc');
   const [activeTab, setActiveTab] = useState('users');
+  const [csApplications, setCsApplications] = useState([]);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [userList, statsData, logs] = await Promise.all([
+        const [userList, statsData, logs, apps] = await Promise.all([
           db.adminGetAllUsers(),
           db.adminGetStats(),
-          db.adminGetErrorLogs(50)
+          db.adminGetErrorLogs(50),
+          db.adminGetCrackedSquadApplications()
         ]);
         setUsers(userList);
         setStats(statsData);
         setErrorLogs(logs);
+        setCsApplications(apps);
       } catch (err) {
         console.error('Admin load error:', err);
         showNotification('Failed to load admin data', 'error');
@@ -4019,6 +4331,7 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
       <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: t.surfaceBg, borderRadius: '10px', padding: '4px', width: 'fit-content' }}>
         {[
           { key: 'users', label: `Users (${users.length})` },
+          { key: 'crackedSquad', label: `Cracked Squad (${csApplications.length})` },
           { key: 'errors', label: `Errors (${errorLogs.length})` },
         ].map(tab => (
           <button

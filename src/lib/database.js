@@ -7,8 +7,8 @@ let _authMode = null // 'supabase' | 'local' | null
 export function setAuthMode(mode) { _authMode = mode }
 export function getAuthMode() { return _authMode }
 
-// Use Supabase for CRUD operations only if configured AND user has a Supabase session
-function useSupabase() {
+// Check if Supabase should be used for CRUD operations (configured AND user has a Supabase session)
+function shouldUseSupabase() {
   return isSupabaseConfigured() && _authMode === 'supabase'
 }
 
@@ -28,7 +28,7 @@ export async function logError(action, error, metadata = {}) {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       userId = session?.user?.id || null
-    } catch {}
+    } catch { /* session fetch is best-effort */ }
 
     await supabase.from('error_logs').insert({
       user_id: userId,
@@ -348,7 +348,7 @@ export function onAuthStateChange(callback) {
 // ============================================
 
 export async function getProfile(userId) {
-  if (!useSupabase()) {
+  if (!shouldUseSupabase()) {
     return getProfileLocal(userId)
   }
 
@@ -363,8 +363,8 @@ export async function getProfile(userId) {
 }
 
 export async function getProfileByUsername(username) {
-  // Public profile lookup — always query Supabase directly (not gated by useSupabase()).
-  // useSupabase() checks _authMode which is null for logged-out visitors,
+  // Public profile lookup — always query Supabase directly (not gated by shouldUseSupabase()).
+  // shouldUseSupabase() checks _authMode which is null for logged-out visitors,
   // but public profiles must be readable by anyone. RLS allows public SELECT.
   if (isSupabaseConfigured()) {
     const { data, error } = await supabase
@@ -379,7 +379,7 @@ export async function getProfileByUsername(username) {
     if (data) {
       const profile = profileFromDb(data)
 
-      // Query projects and updates directly (bypass useSupabase() gate)
+      // Query projects and updates directly (bypass shouldUseSupabase() gate)
       const { data: projectRows } = await supabase
         .from('projects')
         .select('*')
@@ -420,12 +420,13 @@ function profileFromDb(dbProfile) {
     socials: dbProfile.socials || { twitter: '', github: '', linkedin: '', substack: '', website: '' },
     embedFeed: dbProfile.embed_feed || { type: null, url: '' },
     showEmail: dbProfile.show_email || false,
-    contactEmail: dbProfile.contact_email || ''
+    contactEmail: dbProfile.contact_email || '',
+    crackedSquad: dbProfile.cracked_squad || false
   }
 }
 
 export async function updateProfile(userId, updates) {
-  if (!useSupabase()) {
+  if (!shouldUseSupabase()) {
     return updateProfileLocal(userId, updates)
   }
 
@@ -468,7 +469,7 @@ export async function updateProfile(userId, updates) {
 // ============================================
 
 export async function getProjectsByUserId(userId) {
-  if (!useSupabase()) {
+  if (!shouldUseSupabase()) {
     return getProjectsByUserIdLocal(userId)
   }
 
@@ -483,7 +484,7 @@ export async function getProjectsByUserId(userId) {
 }
 
 export async function createProject(userId, project) {
-  if (!useSupabase()) {
+  if (!shouldUseSupabase()) {
     return createProjectLocal(userId, project)
   }
 
@@ -542,7 +543,7 @@ export async function createProject(userId, project) {
 }
 
 export async function updateProject(projectId, updates) {
-  if (!useSupabase()) {
+  if (!shouldUseSupabase()) {
     return updateProjectLocal(projectId, updates)
   }
 
@@ -580,7 +581,7 @@ export async function updateProject(projectId, updates) {
 }
 
 export async function deleteProject(projectId) {
-  if (!useSupabase()) {
+  if (!shouldUseSupabase()) {
     return deleteProjectLocal(projectId)
   }
 
@@ -602,7 +603,7 @@ export async function deleteProject(projectId) {
 // ============================================
 
 export async function getUpdatesByUserId(userId) {
-  if (!useSupabase()) {
+  if (!shouldUseSupabase()) {
     return getUpdatesByUserIdLocal(userId)
   }
 
@@ -617,7 +618,7 @@ export async function getUpdatesByUserId(userId) {
 }
 
 export async function createUpdate(userId, content) {
-  if (!useSupabase()) {
+  if (!shouldUseSupabase()) {
     return createUpdateLocal(userId, content)
   }
 
@@ -644,7 +645,7 @@ export async function createUpdate(userId, content) {
 }
 
 export async function deleteUpdate(updateId, userId) {
-  if (!useSupabase()) {
+  if (!shouldUseSupabase()) {
     return deleteUpdateLocal(updateId, userId)
   }
 
@@ -878,6 +879,87 @@ export async function adminGetErrorLogs(limit = 50) {
     return []
   }
   return data || []
+}
+
+// ============================================
+// CRACKED SQUAD FUNCTIONS
+// ============================================
+
+export async function adminToggleCrackedSquad(userId, value) {
+  if (!isSupabaseConfigured()) return
+  const { error } = await supabase
+    .from('profiles')
+    .update({ cracked_squad: value })
+    .eq('id', userId)
+  if (error) throw error
+}
+
+export async function submitCrackedSquadApplication(userId, answers) {
+  if (!isSupabaseConfigured()) return null
+
+  // Check for existing application
+  const { data: existing } = await supabase
+    .from('cracked_squad_applications')
+    .select('id, status')
+    .eq('user_id', userId)
+    .limit(1)
+
+  if (existing?.length > 0) {
+    throw new Error('You have already applied')
+  }
+
+  const { data, error } = await supabase
+    .from('cracked_squad_applications')
+    .insert({
+      user_id: userId,
+      biggest_problem: answers.biggestProblem,
+      peers_opinion: answers.peersOpinion
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function getCrackedSquadApplication(userId) {
+  if (!isSupabaseConfigured()) return null
+
+  const { data, error } = await supabase
+    .from('cracked_squad_applications')
+    .select('*')
+    .eq('user_id', userId)
+    .limit(1)
+    .single()
+
+  if (error && error.code !== 'PGRST116') throw error
+  return data || null
+}
+
+export async function adminGetCrackedSquadApplications() {
+  if (!isSupabaseConfigured()) return []
+
+  const { data, error } = await supabase
+    .from('cracked_squad_applications')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Failed to fetch cracked squad applications:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function adminUpdateApplicationStatus(applicationId, status) {
+  if (!isSupabaseConfigured()) return
+
+  const { error } = await supabase
+    .from('cracked_squad_applications')
+    .update({ status })
+    .eq('id', applicationId)
+
+  if (error) throw error
 }
 
 // ============================================
