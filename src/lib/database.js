@@ -521,7 +521,10 @@ export async function createProject(userId, project) {
       domains: project.domains || [],
       links: project.links || [],
       outcome: project.outcome || null,
-      description: project.description || null
+      description: project.description || null,
+      image_url: project.imageUrl || null,
+      featured: project.featured || false,
+      key_metric: project.keyMetric || null
     }
 
     const { data, error } = await supabase
@@ -555,7 +558,10 @@ export async function updateProject(projectId, updates) {
       domains: updates.domains || [],
       links: updates.links || [],
       outcome: updates.outcome || null,
-      description: updates.description || null
+      description: updates.description || null,
+      image_url: updates.imageUrl || null,
+      featured: updates.featured || false,
+      key_metric: updates.keyMetric || null
     }
 
     const { data, error } = await supabase
@@ -679,7 +685,10 @@ function projectFromDb(dbProject) {
     domains: dbProject.domains || [],
     links: dbProject.links || [],
     outcome: dbProject.outcome,
-    description: dbProject.description || ''
+    description: dbProject.description || '',
+    imageUrl: dbProject.image_url || '',
+    featured: dbProject.featured || false,
+    keyMetric: dbProject.key_metric || ''
   }
 }
 

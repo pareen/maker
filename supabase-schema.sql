@@ -37,6 +37,9 @@ CREATE TABLE projects (
   links TEXT[] DEFAULT '{}',
   outcome TEXT,
   description TEXT,
+  image_url TEXT,
+  featured BOOLEAN DEFAULT FALSE,
+  key_metric TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -182,3 +185,8 @@ CREATE INDEX error_logs_user_id_idx ON error_logs(user_id);
 
 -- Migration: Add description field to projects (run if upgrading existing database)
 -- ALTER TABLE projects ADD COLUMN IF NOT EXISTS description TEXT;
+
+-- Migration: Add image_url, featured, key_metric fields to projects
+-- ALTER TABLE projects ADD COLUMN IF NOT EXISTS image_url TEXT;
+-- ALTER TABLE projects ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT FALSE;
+-- ALTER TABLE projects ADD COLUMN IF NOT EXISTS key_metric TEXT;
