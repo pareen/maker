@@ -5,7 +5,6 @@ import { supabase, isSupabaseConfigured } from './supabase'
 // so CRUD functions must route based on auth mode, not just isSupabaseConfigured().
 let _authMode = null // 'supabase' | 'local' | null
 export function setAuthMode(mode) { _authMode = mode }
-export function getAuthMode() { return _authMode }
 
 // Check if Supabase should be used for CRUD operations (configured AND user has a Supabase session)
 function shouldUseSupabase() {
@@ -16,7 +15,7 @@ function shouldUseSupabase() {
 // ERROR LOGGING
 // ============================================
 
-export async function logError(action, error, metadata = {}) {
+async function logError(action, error, metadata = {}) {
   // Log to console always
   console.error(`[${action}]`, error, metadata)
 

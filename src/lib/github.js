@@ -139,13 +139,6 @@ export async function getGitHubConnection() {
 }
 
 /**
- * Disconnect GitHub (clear stored token)
- */
-export function disconnectGitHub() {
-  localStorage.removeItem('makerPortfolio_githubToken');
-}
-
-/**
  * Fetch public repositories for a GitHub user
  */
 export async function fetchUserRepos(username) {
