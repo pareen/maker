@@ -17,25 +17,71 @@ const ensureUrl = (url) => {
 // MAKER PORTFOLIO - Full Functional App
 // ============================================
 
+// Design tokens — single source of truth for visual system
+const t = {
+  // Colors: Tailwind Stone scale + semantic accents
+  bg: '#0c0a09',           // stone-950
+  surface: '#1c1917',      // stone-900
+  text: '#e7e5e4',         // stone-200
+  textSecondary: '#a8a29e', // stone-400
+  textTertiary: '#78716c',  // stone-500
+  textFaint: '#57534e',     // stone-600
+  textDim: '#44403c',       // stone-700
+  textMuted: '#d6d3d1',     // stone-300
+  accent: '#fbbf24',        // amber-400
+  accentHover: '#f59e0b',   // amber-500
+  accentActive: '#d97706',  // amber-600
+  success: '#4ade80',       // green-400
+  error: '#ef4444',         // red-500
+  errorBg: '#7f1d1d',       // red-900
+  errorText: '#fca5a5',     // red-300
+  successBg: '#166534',     // green-900
+  pink: '#f472b6',
+  purple: '#a78bfa',
+  cyan: '#22d3ee',
+  orange: '#fb923c',
+  white: '#fff',
+  // Typography
+  fontHeading: "'Newsreader', Georgia, serif",
+  fontBody: "'IBM Plex Mono', monospace",
+  // Border radius
+  radiusSm: '8px',
+  radiusMd: '12px',
+  radiusLg: '16px',
+  radiusXl: '20px',
+  // Common surfaces
+  surfaceBorder: 'rgba(255,255,255,0.06)',
+  surfaceBorderLight: 'rgba(255,255,255,0.08)',
+  surfaceBorderHover: 'rgba(255,255,255,0.15)',
+  surfaceBg: 'rgba(255,255,255,0.03)',
+  surfaceBgHover: 'rgba(255,255,255,0.05)',
+  // Accent surfaces
+  accentBorder: 'rgba(251,191,36,0.2)',
+  accentBg: 'rgba(251,191,36,0.1)',
+  accentBgSubtle: 'rgba(251,191,36,0.05)',
+  successBorder: 'rgba(74,222,128,0.2)',
+  successBgSubtle: 'rgba(74,222,128,0.1)',
+};
+
 // Define stages and roles FIRST (used by multiple components)
 const stages = [
-  { key: 'idea', label: 'Idea', color: '#57534e' },
-  { key: 'mvp', label: 'MVP', color: '#78716c' },
-  { key: 'launch', label: 'Launch', color: '#a8a29e' },
-  { key: 'believers', label: 'Believers', color: '#fbbf24' },
-  { key: 'users', label: 'Users', color: '#fb923c' },
-  { key: 'paying', label: 'Paying', color: '#f472b6' },
-  { key: 'funded', label: 'Funded', color: '#a78bfa' },
-  { key: 'revenue', label: 'Revenue', color: '#4ade80' },
-  { key: 'acquired', label: 'Acquired', color: '#22d3ee' },
-  { key: 'ipo', label: 'IPO', color: '#fff' },
+  { key: 'idea', label: 'Idea', color: t.textFaint },
+  { key: 'mvp', label: 'MVP', color: t.textTertiary },
+  { key: 'launch', label: 'Launch', color: t.textSecondary },
+  { key: 'believers', label: 'Believers', color: t.accent },
+  { key: 'users', label: 'Users', color: t.orange },
+  { key: 'paying', label: 'Paying', color: t.pink },
+  { key: 'funded', label: 'Funded', color: t.purple },
+  { key: 'revenue', label: 'Revenue', color: t.success },
+  { key: 'acquired', label: 'Acquired', color: t.cyan },
+  { key: 'ipo', label: 'IPO', color: t.white },
 ];
 
 const roles = [
-  { key: 'solo', label: 'Solo', color: '#fbbf24' },
-  { key: 'cofounder', label: 'Co-founder', color: '#f472b6' },
-  { key: 'early_team', label: 'Early team', color: '#a78bfa' },
-  { key: 'contributor', label: 'Contributor', color: '#22d3ee' },
+  { key: 'solo', label: 'Solo', color: t.accent },
+  { key: 'cofounder', label: 'Co-founder', color: t.pink },
+  { key: 'early_team', label: 'Early team', color: t.purple },
+  { key: 'contributor', label: 'Contributor', color: t.cyan },
 ];
 
 // Parse the URL path to determine initial view
@@ -272,10 +318,10 @@ const App = () => {
   }, [currentUser]);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0c0a09', color: '#e7e5e4', fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1.6 }}>
+    <div style={{ minHeight: '100vh', backgroundColor: t.bg, color: t.text, fontFamily: t.fontBody, lineHeight: 1.6 }}>
       <a href="#main-content" className="sr-only-focusable" style={{
         position: 'absolute', left: '-9999px', top: 'auto', width: '1px', height: '1px', overflow: 'hidden',
-        zIndex: 1001, padding: '12px 24px', background: '#fbbf24', color: '#0c0a09', fontWeight: 600, borderRadius: 8, fontSize: 14, textDecoration: 'none'
+        zIndex: 1001, padding: '12px 24px', background: t.accent, color: t.bg, fontWeight: 600, borderRadius: 8, fontSize: 14, textDecoration: 'none'
       }}>Skip to main content</a>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap');
@@ -389,7 +435,7 @@ const App = () => {
       <main id="main-content">
       {authLoading && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-          <div style={{ color: '#a8a29e', fontSize: '14px' }}>Loading…</div>
+          <div style={{ color: t.textSecondary, fontSize: '14px' }}>Loading…</div>
         </div>
       )}
 
@@ -511,7 +557,7 @@ const App = () => {
 
       {currentView === 'publicProfile' && profileLoading && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-          <div style={{ color: '#a8a29e', fontSize: '14px' }}>Loading profile...</div>
+          <div style={{ color: t.textSecondary, fontSize: '14px' }}>Loading profile...</div>
         </div>
       )}
 
@@ -556,31 +602,31 @@ const builderQuotes = [
 ];
 
 const SiteFooter = ({ onMakers, onHire, onMemo, onSignup }) => (
-  <footer className="footer-wrap" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '48px 40px 32px', marginTop: 'auto' }}>
+  <footer className="footer-wrap" style={{ borderTop: `1px solid ${t.surfaceBorder}`, padding: '48px 40px 32px', marginTop: 'auto' }}>
     <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '32px' }}>
       <div>
-        <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600', marginBottom: '16px' }}>MAKERLY</div>
-        <p style={{ fontSize: '13px', color: '#78716c', maxWidth: '260px', lineHeight: 1.5 }}>
+        <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600', marginBottom: '16px' }}>MAKERLY</div>
+        <p style={{ fontSize: '13px', color: t.textTertiary, maxWidth: '260px', lineHeight: 1.5 }}>
           Resumes are dead. Show what you've made.
         </p>
       </div>
       <div className="footer-links" style={{ display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', fontWeight: '500' }}>EXPLORE</span>
-          {onMakers && <a onClick={onMakers} style={{ fontSize: '13px', color: '#a8a29e', cursor: 'pointer', textDecoration: 'none' }}>Makers</a>}
-          {onHire && <a onClick={onHire} style={{ fontSize: '13px', color: '#a8a29e', cursor: 'pointer', textDecoration: 'none' }}>Hire</a>}
-          {onMemo && <a onClick={onMemo} style={{ fontSize: '13px', color: '#a8a29e', cursor: 'pointer', textDecoration: 'none' }}>Memo</a>}
+          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>EXPLORE</span>
+          {onMakers && <a onClick={onMakers} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Makers</a>}
+          {onHire && <a onClick={onHire} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Hire</a>}
+          {onMemo && <a onClick={onMemo} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Memo</a>}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', fontWeight: '500' }}>CONNECT</span>
-          <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: '#a8a29e', textDecoration: 'none' }}>Twitter</a>
-          {onSignup && <a onClick={onSignup} style={{ fontSize: '13px', color: '#a8a29e', cursor: 'pointer', textDecoration: 'none' }}>Create profile</a>}
+          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>CONNECT</span>
+          <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: t.textSecondary, textDecoration: 'none' }}>Twitter</a>
+          {onSignup && <a onClick={onSignup} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Create profile</a>}
         </div>
       </div>
     </div>
     <div style={{ maxWidth: '900px', margin: '24px auto 0', paddingTop: '24px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-      <span style={{ fontSize: '12px', color: '#57534e' }}>Made by <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', textDecoration: 'none' }}>Pareen</a></span>
-      <span style={{ fontSize: '12px', color: '#44403c' }}>&copy; {new Date().getFullYear()} Makerly</span>
+      <span style={{ fontSize: '12px', color: t.textFaint }}>Made by <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: t.accent, textDecoration: 'none' }}>Pareen</a></span>
+      <span style={{ fontSize: '12px', color: t.textDim }}>&copy; {new Date().getFullYear()} Makerly</span>
     </div>
   </footer>
 );
@@ -606,7 +652,7 @@ const MobileDrawer = ({ isOpen, onClose, children }) => {
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} onClick={onClose} />
       <nav style={{
         position: 'absolute', top: 0, right: 0, bottom: 0, width: '280px',
-        background: '#1c1917', borderLeft: '1px solid rgba(255,255,255,0.08)',
+        background: t.surface, borderLeft: '1px solid rgba(255,255,255,0.08)',
         padding: '24px', display: 'flex', flexDirection: 'column', gap: '4px',
         animation: 'slideInRight 0.2s ease', overflowY: 'auto'
       }}>
@@ -628,17 +674,17 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
   })).filter(r => r.count > 0);
 
   const sampleStats = [
-    { label: "Things made", value: sampleMaker.projects.length, color: '#e7e5e4' },
-    { label: "Reached users", value: sampleMaker.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 4).length, color: '#fb923c' },
-    { label: "Reached paying", value: sampleMaker.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 5).length, color: '#f472b6' },
-    { label: "Funded", value: sampleMaker.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 6).length, color: '#a78bfa' },
-    { label: "Acquisitions", value: sampleMaker.projects.filter(p => p.currentStage === 'acquired').length, color: '#22d3ee' },
+    { label: "Things made", value: sampleMaker.projects.length, color: t.text },
+    { label: "Reached users", value: sampleMaker.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 4).length, color: t.orange },
+    { label: "Reached paying", value: sampleMaker.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 5).length, color: t.pink },
+    { label: "Funded", value: sampleMaker.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 6).length, color: t.purple },
+    { label: "Acquisitions", value: sampleMaker.projects.filter(p => p.currentStage === 'acquired').length, color: t.cyan },
   ];
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600' }}>MAKERLY</div>
+      <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600' }}>MAKERLY</div>
         <nav className="header-actions" aria-label="Main navigation" style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-ghost" onClick={onMemo}>Memo</button>
           <button className="btn btn-ghost" onClick={onMakers}>Browse Makers</button>
@@ -660,13 +706,13 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
       </MobileDrawer>
 
       {/* Hero */}
-      <section className="desktop-content" style={{ padding: '100px 40px 80px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ fontSize: '13px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500', marginBottom: '24px' }}>FOR THE ONES WHO BUILD</div>
-        <h1 className="hero-title" style={{ fontSize: '60px', fontFamily: "'Newsreader', Georgia, serif", fontWeight: '500', letterSpacing: '-0.02em', maxWidth: '750px', lineHeight: 1.05, margin: '0 auto 28px' }}>
+      <section className="desktop-content" style={{ padding: '100px 40px 80px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ fontSize: '13px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500', marginBottom: '24px' }}>FOR THE ONES WHO BUILD</div>
+        <h1 className="hero-title" style={{ fontSize: '60px', fontFamily: t.fontHeading, fontWeight: '500', letterSpacing: '-0.02em', maxWidth: '750px', lineHeight: 1.05, margin: '0 auto 28px' }}>
           Resumes are dead.<br />
-          <span style={{ color: '#78716c' }}>Show what you've made.</span>
+          <span style={{ color: t.textTertiary }}>Show what you've made.</span>
         </h1>
-        <p className="hero-subtitle" style={{ fontSize: '18px', color: '#a8a29e', maxWidth: '520px', lineHeight: 1.6, margin: '0 auto 48px' }}>
+        <p className="hero-subtitle" style={{ fontSize: '18px', color: t.textSecondary, maxWidth: '520px', lineHeight: 1.6, margin: '0 auto 48px' }}>
           In the AI era, you are what you build. The smartest people don't send resumes —
           they send their Makerly.
         </p>
@@ -674,75 +720,75 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
           <button className="btn btn-primary" style={{ padding: '16px 48px', fontSize: '16px' }} onClick={onSignup}>
             Start your maker profile
           </button>
-          <button className="btn btn-ghost" style={{ padding: '16px 32px', fontSize: '16px', color: '#78716c' }} onClick={onHire}>
+          <button className="btn btn-ghost" style={{ padding: '16px 32px', fontSize: '16px', color: t.textTertiary }} onClick={onHire}>
             I'm hiring →
           </button>
         </div>
       </section>
 
       {/* The Contrast: LinkedIn vs Makerly */}
-      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif" }}>Cool people don't send resumes.</h2>
-            <p style={{ color: '#57534e', fontSize: '14px', marginTop: '8px' }}>They send their Makerly.</p>
+            <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading }}>Cool people don't send resumes.</h2>
+            <p style={{ color: t.textFaint, fontSize: '14px', marginTop: '8px' }}>They send their Makerly.</p>
           </div>
 
           <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             {/* LinkedIn/Resume side */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '32px', opacity: 0.6 }}>
-              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#57534e', marginBottom: '24px', fontWeight: '500' }}>WHAT A RESUME SHOWS</div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusLg, padding: '32px', opacity: 0.6 }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.textFaint, marginBottom: '24px', fontWeight: '500' }}>WHAT A RESUME SHOWS</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '14px', color: '#78716c' }}>Software Engineer</div>
-                  <div style={{ fontSize: '12px', color: '#57534e' }}>Some Corp · 2022 — Present</div>
+                <div style={{ padding: '12px 16px', background: t.surfaceBg, borderRadius: t.radiusSm }}>
+                  <div style={{ fontSize: '14px', color: t.textTertiary }}>Software Engineer</div>
+                  <div style={{ fontSize: '12px', color: t.textFaint }}>Some Corp · 2022 — Present</div>
                 </div>
-                <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '14px', color: '#78716c' }}>Junior Developer</div>
-                  <div style={{ fontSize: '12px', color: '#57534e' }}>Another Inc · 2020 — 2022</div>
+                <div style={{ padding: '12px 16px', background: t.surfaceBg, borderRadius: t.radiusSm }}>
+                  <div style={{ fontSize: '14px', color: t.textTertiary }}>Junior Developer</div>
+                  <div style={{ fontSize: '12px', color: t.textFaint }}>Another Inc · 2020 — 2022</div>
                 </div>
-                <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '14px', color: '#78716c' }}>B.Tech Computer Science</div>
-                  <div style={{ fontSize: '12px', color: '#57534e' }}>Some University · 2020</div>
+                <div style={{ padding: '12px 16px', background: t.surfaceBg, borderRadius: t.radiusSm }}>
+                  <div style={{ fontSize: '14px', color: t.textTertiary }}>B.Tech Computer Science</div>
+                  <div style={{ fontSize: '12px', color: t.textFaint }}>Some University · 2020</div>
                 </div>
-                <div style={{ padding: '8px 16px', fontSize: '12px', color: '#57534e', fontStyle: 'italic' }}>
+                <div style={{ padding: '8px 16px', fontSize: '12px', color: t.textFaint, fontStyle: 'italic' }}>
                   Skills: JavaScript, React, Node.js, "Team Player"
                 </div>
               </div>
-              <div style={{ marginTop: '20px', fontSize: '13px', color: '#57534e', textAlign: 'center', fontStyle: 'italic' }}>Where you worked. What title you held. Yawn.</div>
+              <div style={{ marginTop: '20px', fontSize: '13px', color: t.textFaint, textAlign: 'center', fontStyle: 'italic' }}>Where you worked. What title you held. Yawn.</div>
             </div>
 
             {/* Makerly side */}
-            <div style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.05) 0%, rgba(251,191,36,0.01) 100%)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '16px', padding: '32px' }}>
-              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', marginBottom: '24px', fontWeight: '500' }}>WHAT MAKERLY SHOWS</div>
+            <div style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.05) 0%, rgba(251,191,36,0.01) 100%)', border: `1px solid ${t.accentBorder}`, borderRadius: t.radiusLg, padding: '32px' }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.accent, marginBottom: '24px', fontWeight: '500' }}>WHAT MAKERLY SHOWS</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ padding: '12px 16px', background: 'rgba(251,191,36,0.05)', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.1)' }}>
-                  <div style={{ fontSize: '14px', color: '#e7e5e4' }}>6 things built — 2 ongoing</div>
-                  <div style={{ fontSize: '12px', color: '#a8a29e' }}>Solo, co-founder, early team</div>
+                <div style={{ padding: '12px 16px', background: t.accentBgSubtle, borderRadius: t.radiusSm, border: '1px solid rgba(251,191,36,0.1)' }}>
+                  <div style={{ fontSize: '14px', color: t.text }}>6 things built — 2 ongoing</div>
+                  <div style={{ fontSize: '12px', color: t.textSecondary }}>Solo, co-founder, early team</div>
                 </div>
-                <div style={{ padding: '12px 16px', background: 'rgba(251,191,36,0.05)', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.1)' }}>
-                  <div style={{ fontSize: '14px', color: '#e7e5e4' }}>Reached paying users twice</div>
-                  <div style={{ fontSize: '12px', color: '#a8a29e' }}>From idea → IPO, tracked at every stage</div>
+                <div style={{ padding: '12px 16px', background: t.accentBgSubtle, borderRadius: t.radiusSm, border: '1px solid rgba(251,191,36,0.1)' }}>
+                  <div style={{ fontSize: '14px', color: t.text }}>Reached paying users twice</div>
+                  <div style={{ fontSize: '12px', color: t.textSecondary }}>From idea → IPO, tracked at every stage</div>
                 </div>
-                <div style={{ padding: '12px 16px', background: 'rgba(251,191,36,0.05)', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.1)' }}>
-                  <div style={{ fontSize: '14px', color: '#e7e5e4' }}>First make: cardboard marble run, age 8</div>
-                  <div style={{ fontSize: '12px', color: '#a8a29e' }}>Where it all started</div>
+                <div style={{ padding: '12px 16px', background: t.accentBgSubtle, borderRadius: t.radiusSm, border: '1px solid rgba(251,191,36,0.1)' }}>
+                  <div style={{ fontSize: '14px', color: t.text }}>First make: cardboard marble run, age 8</div>
+                  <div style={{ fontSize: '12px', color: t.textSecondary }}>Where it all started</div>
                 </div>
                 <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80' }} />
-                  <span style={{ fontSize: '13px', color: '#4ade80' }}>Right now: building a CLI tool</span>
+                  <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.success }} />
+                  <span style={{ fontSize: '13px', color: t.success }}>Right now: building a CLI tool</span>
                 </div>
               </div>
-              <div style={{ marginTop: '20px', fontSize: '13px', color: '#fbbf24', textAlign: 'center', fontWeight: '500' }}>What you built. How far it went. What's next.</div>
+              <div style={{ marginTop: '20px', fontSize: '13px', color: t.accent, textAlign: 'center', fontWeight: '500' }}>What you built. How far it went. What's next.</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Everything Counts */}
-      <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '28px' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '28px' }}>
             Everything counts.
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
@@ -754,41 +800,41 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
               "A robot made from cardboard and tape.",
               "An app your friends actually use.",
             ].map((line, i) => (
-              <div key={i} style={{ padding: '14px 20px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', fontSize: '15px', color: '#a8a29e', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ color: '#fbbf24', fontSize: '18px' }}>+</span>
+              <div key={i} style={{ padding: '14px 20px', background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: '10px', fontSize: '15px', color: t.textSecondary, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ color: t.accent, fontSize: '18px' }}>+</span>
                 {line}
               </div>
             ))}
           </div>
-          <p style={{ color: '#57534e', fontSize: '14px', marginTop: '28px', lineHeight: 1.6 }}>
+          <p style={{ color: t.textFaint, fontSize: '14px', marginTop: '28px', lineHeight: 1.6 }}>
             Most platforms only show wins. Makerly shows the whole journey.<br />
-            <span style={{ color: '#a8a29e' }}>Because makers aren't defined by one thing — they're defined by everything they've made.</span>
+            <span style={{ color: t.textSecondary }}>Because makers aren't defined by one thing — they're defined by everything they've made.</span>
           </p>
         </div>
       </section>
 
       {/* Quotes */}
-      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500' }}>THE BUILDER ETHOS</span>
-            <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginTop: '12px' }}>The world runs on people who make things.</h2>
+            <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500' }}>THE BUILDER ETHOS</span>
+            <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginTop: '12px' }}>The world runs on people who make things.</h2>
           </div>
 
           <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
             {builderQuotes.map((q, i) => (
               <div key={i} style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                borderRadius: '16px',
+                background: t.surfaceBg,
+                border: `1px solid ${t.surfaceBorder}`,
+                borderRadius: t.radiusLg,
                 padding: '28px'
               }}>
-                <p style={{ fontSize: '16px', fontFamily: "'Newsreader', Georgia, serif", color: '#e7e5e4', lineHeight: 1.5, marginBottom: '16px' }}>
+                <p style={{ fontSize: '16px', fontFamily: t.fontHeading, color: t.text, lineHeight: 1.5, marginBottom: '16px' }}>
                   "{q.quote}"
                 </p>
                 <div>
-                  <div style={{ fontSize: '13px', color: '#a8a29e', fontWeight: '500' }}>{q.author}</div>
-                  <div style={{ fontSize: '11px', color: '#57534e' }}>{q.role}</div>
+                  <div style={{ fontSize: '13px', color: t.textSecondary, fontWeight: '500' }}>{q.author}</div>
+                  <div style={{ fontSize: '11px', color: t.textFaint }}>{q.role}</div>
                 </div>
               </div>
             ))}
@@ -799,61 +845,61 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
       {/* Sample Profile */}
       <section className="section-padding" style={{ padding: '80px 40px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500' }}>EXAMPLE PROFILE</span>
-          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginTop: '12px' }}>This is Priya. She's made 6 things.<br /><span style={{ color: '#78716c' }}>Some worked, some didn't. That's the point.</span></h2>
+          <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500' }}>EXAMPLE PROFILE</span>
+          <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginTop: '12px' }}>This is Priya. She's made 6 things.<br /><span style={{ color: t.textTertiary }}>Some worked, some didn't. That's the point.</span></h2>
         </div>
 
         {/* Sample Profile Card */}
-        <div className="sample-profile-card" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '40px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+        <div className="sample-profile-card" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)', border: `1px solid ${t.surfaceBorderLight}`, borderRadius: t.radiusXl, padding: '40px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
 
           <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '48px' }}>
             {/* Left: Profile Info */}
             <div>
               {/* Making Today */}
-              <div style={{ marginBottom: '20px', padding: '10px 14px', background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80' }} />
-                <span style={{ fontSize: '12px', color: '#4ade80', fontWeight: '500' }}>MAKING: </span>
-                <span style={{ color: '#a8a29e', fontSize: '13px' }}>{sampleMaker.todayMaking}</span>
+              <div style={{ marginBottom: '20px', padding: '10px 14px', background: t.successBgSubtle, border: `1px solid ${t.successBorder}`, borderRadius: t.radiusSm, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.success }} />
+                <span style={{ fontSize: '12px', color: t.success, fontWeight: '500' }}>MAKING: </span>
+                <span style={{ color: t.textSecondary, fontSize: '13px' }}>{sampleMaker.todayMaking}</span>
               </div>
 
-              <h3 style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>{sampleMaker.name}</h3>
-              <p style={{ color: '#78716c', fontSize: '13px', marginBottom: '16px' }}>makerly.me/{sampleMaker.username}</p>
-              <p style={{ fontSize: '16px', color: '#a8a29e', marginBottom: '24px', lineHeight: 1.5 }}>{sampleMaker.bio}</p>
+              <h3 style={{ fontSize: '24px', fontFamily: t.fontHeading, marginBottom: '8px' }}>{sampleMaker.name}</h3>
+              <p style={{ color: t.textTertiary, fontSize: '13px', marginBottom: '16px' }}>makerly.me/{sampleMaker.username}</p>
+              <p style={{ fontSize: '16px', color: t.textSecondary, marginBottom: '24px', lineHeight: 1.5 }}>{sampleMaker.bio}</p>
 
               {/* First Make */}
               <div style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.1) 0%, rgba(251,191,36,0.03) 100%)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: '10px', padding: '16px 20px', marginBottom: '20px' }}>
-                <div style={{ fontSize: '10px', letterSpacing: '0.1em', color: '#fbbf24', marginBottom: '6px', fontWeight: '500' }}>FIRST MAKE · AGE {sampleMaker.firstMake.age}</div>
-                <p style={{ fontSize: '14px', fontFamily: "'Newsreader', Georgia, serif", lineHeight: 1.5, color: '#e7e5e4' }}>"{sampleMaker.firstMake.description}"</p>
+                <div style={{ fontSize: '10px', letterSpacing: '0.1em', color: t.accent, marginBottom: '6px', fontWeight: '500' }}>FIRST MAKE · AGE {sampleMaker.firstMake.age}</div>
+                <p style={{ fontSize: '14px', fontFamily: t.fontHeading, lineHeight: 1.5, color: t.text }}>"{sampleMaker.firstMake.description}"</p>
               </div>
 
               {/* Domains */}
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '16px' }}>
                 {sampleMaker.domains.map(d => (
-                  <span key={d} className="tag" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24', fontSize: '11px' }}>{d}</span>
+                  <span key={d} className="tag" style={{ background: t.accentBg, border: '1px solid rgba(251,191,36,0.3)', color: t.accent, fontSize: '11px' }}>{d}</span>
                 ))}
               </div>
 
               {/* Socials */}
               <div style={{ display: 'flex', gap: '16px' }}>
-                <span style={{ color: '#78716c', fontSize: '12px' }}>𝕏 Twitter</span>
-                <span style={{ color: '#78716c', fontSize: '12px' }}>◐ GitHub</span>
+                <span style={{ color: t.textTertiary, fontSize: '12px' }}>𝕏 Twitter</span>
+                <span style={{ color: t.textTertiary, fontSize: '12px' }}>◐ GitHub</span>
               </div>
             </div>
 
             {/* Right: Stats */}
             <div>
-              <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '12px', padding: '16px 20px', marginBottom: '12px' }}>
-                <div style={{ fontSize: '10px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '12px' }}>OUTCOMES</div>
+              <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: t.radiusMd, padding: '16px 20px', marginBottom: '12px' }}>
+                <div style={{ fontSize: '10px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '12px' }}>OUTCOMES</div>
                 {sampleStats.map(stat => (
                   <div key={stat.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <span style={{ color: '#78716c', fontSize: '12px' }}>{stat.label}</span>
+                    <span style={{ color: t.textTertiary, fontSize: '12px' }}>{stat.label}</span>
                     <span style={{ fontSize: '16px', fontWeight: '600', color: stat.color }}>{stat.value}</span>
                   </div>
                 ))}
               </div>
 
-              <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '12px', padding: '16px 20px' }}>
-                <div style={{ fontSize: '10px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '12px' }}>ROLE BREAKDOWN</div>
+              <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: t.radiusMd, padding: '16px 20px' }}>
+                <div style={{ fontSize: '10px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '12px' }}>ROLE BREAKDOWN</div>
                 <div style={{ display: 'flex', height: '6px', borderRadius: '3px', overflow: 'hidden', marginBottom: '10px' }}>
                   {sampleRoleBreakdown.map(r => (
                     <div key={r.key} style={{ width: `${r.percentage}%`, background: r.color }} />
@@ -863,8 +909,8 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
                   {sampleRoleBreakdown.map(r => (
                     <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
                       <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: r.color }} />
-                      <span style={{ color: '#a8a29e' }}>{r.label}</span>
-                      <span style={{ color: '#57534e' }}>{r.count}</span>
+                      <span style={{ color: t.textSecondary }}>{r.label}</span>
+                      <span style={{ color: t.textFaint }}>{r.count}</span>
                     </div>
                   ))}
                 </div>
@@ -873,8 +919,8 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
           </div>
 
           {/* Projects List */}
-          <div style={{ marginTop: '32px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '24px' }}>
-            <div style={{ fontSize: '10px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>
+          <div style={{ marginTop: '32px', borderTop: `1px solid ${t.surfaceBorder}`, paddingTop: '24px' }}>
+            <div style={{ fontSize: '10px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '16px' }}>
               PROJECTS ({sampleMaker.projects.length})
             </div>
 
@@ -890,10 +936,10 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
                           <span style={{ fontSize: '14px', fontWeight: '500' }}>{project.name}</span>
-                          {project.ongoing && <span className="ongoing-pulse" style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#4ade80' }} />}
+                          {project.ongoing && <span className="ongoing-pulse" style={{ width: '5px', height: '5px', borderRadius: '50%', background: t.success }} />}
                           <span className="tag" style={{ background: `${role?.color}20`, color: role?.color, fontSize: '10px', padding: '2px 8px' }}>{role?.label}</span>
                         </div>
-                        <p style={{ color: '#78716c', fontSize: '12px' }}>{project.oneLiner}</p>
+                        <p style={{ color: t.textTertiary, fontSize: '12px' }}>{project.oneLiner}</p>
                       </div>
                       <span className="tag" style={{ background: `${stage?.color}20`, color: stage?.color, fontSize: '10px', padding: '2px 8px' }}>{stage?.label}</span>
                     </div>
@@ -929,12 +975,12 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
       </section>
 
       {/* Hiring pitch */}
-      <section className="section-padding" style={{ padding: '60px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '60px 40px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={{ maxWidth: '500px', margin: '0 auto' }}>
-          <p style={{ fontSize: '15px', color: '#78716c', lineHeight: 1.6 }}>
+          <p style={{ fontSize: '15px', color: t.textTertiary, lineHeight: 1.6 }}>
             Hiring? Every person on Makerly has built something. That's the filter.
           </p>
-          <button className="btn btn-ghost" onClick={onHire} style={{ marginTop: '12px', color: '#fbbf24' }}>
+          <button className="btn btn-ghost" onClick={onHire} style={{ marginTop: '12px', color: t.accent }}>
             Browse makers for your team →
           </button>
         </div>
@@ -983,10 +1029,10 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
       <div style={{ width: '100%', maxWidth: '400px' }}>
         <button className="btn btn-ghost" onClick={onBack} style={{ marginBottom: '32px' }}>← Back</button>
 
-        <h1 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>
+        <h1 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '8px' }}>
           {mode === 'login' ? 'Welcome back' : 'Create your profile'}
         </h1>
-        <p style={{ color: '#78716c', marginBottom: '32px' }}>
+        <p style={{ color: t.textTertiary, marginBottom: '32px' }}>
           {mode === 'login' ? 'Log in to your maker profile' : 'Start tracking what you make'}
         </p>
 
@@ -1002,10 +1048,10 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
           style={{
             width: '100%',
             padding: '12px',
-            background: '#fff',
-            color: '#1c1917',
+            background: t.white,
+            color: t.surface,
             border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
+            borderRadius: t.radiusSm,
             cursor: 'pointer',
             fontWeight: '500',
             display: 'flex',
@@ -1020,14 +1066,14 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', margin: '24px 0' }}>
           <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-          <span style={{ fontSize: '12px', color: '#57534e' }}>or</span>
+          <span style={{ fontSize: '12px', color: t.textFaint }}>or</span>
           <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
         </div>
 
         <form onSubmit={handleSubmit}>
           {mode === 'signup' && (
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Username</label>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Username</label>
               <input
                 className="input"
                 type="text"
@@ -1036,12 +1082,12 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
                 required
               />
-              <div style={{ fontSize: '11px', color: '#57534e', marginTop: '4px' }}>makerly.me/{username || 'yourname'}</div>
+              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>makerly.me/{username || 'yourname'}</div>
             </div>
           )}
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Email</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Email</label>
             <input
               className="input"
               type="email"
@@ -1053,7 +1099,7 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
           </div>
 
           <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Password</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Password</label>
             <input
               className="input"
               type="password"
@@ -1070,9 +1116,9 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: '24px', color: '#78716c', fontSize: '14px' }}>
+        <p style={{ textAlign: 'center', marginTop: '24px', color: t.textTertiary, fontSize: '14px' }}>
           {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
-          <button onClick={onSwitch} style={{ color: '#fbbf24', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <button onClick={onSwitch} style={{ color: t.accent, background: 'none', border: 'none', cursor: 'pointer' }}>
             {mode === 'login' ? 'Sign up' : 'Log in'}
           </button>
         </p>
@@ -1218,8 +1264,8 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   return (
     <div style={{ minHeight: '100vh' }}>
       {/* Header */}
-      <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap', gap: '8px' }}>
-        <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600' }}>MAKER.PROFILE</div>
+      <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}`, flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600' }}>MAKER.PROFILE</div>
         <nav className="header-actions" aria-label="Dashboard navigation" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button className="btn btn-secondary" onClick={onEditProfile}>Edit Profile</button>
           <button className="btn btn-primary" onClick={onShare} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1227,7 +1273,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
           </button>
           <button className="btn btn-secondary" onClick={onViewProfile}>View</button>
           <button className="btn btn-ghost" onClick={onMakers}>Makers</button>
-          {onAdmin && <button className="btn btn-ghost" onClick={onAdmin} style={{ color: '#fbbf24' }}>Admin</button>}
+          {onAdmin && <button className="btn btn-ghost" onClick={onAdmin} style={{ color: t.accent }}>Admin</button>}
           <button className="btn btn-ghost" onClick={onLogout}>Log out</button>
         </nav>
         <MobileMenuButton onClick={() => setMobileMenuOpen(true)} isOpen={mobileMenuOpen} />
@@ -1237,7 +1283,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
         <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onEditProfile(); }}>Edit Profile</button>
         <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onViewProfile(); }}>View Profile</button>
         <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onMakers(); }}>Makers</button>
-        {onAdmin && <button className="btn btn-ghost" style={{ textAlign: 'left', color: '#fbbf24' }} onClick={() => { setMobileMenuOpen(false); onAdmin(); }}>Admin</button>}
+        {onAdmin && <button className="btn btn-ghost" style={{ textAlign: 'left', color: t.accent }} onClick={() => { setMobileMenuOpen(false); onAdmin(); }}>Admin</button>}
         <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onLogout(); }}>Log out</button>
         <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => { setMobileMenuOpen(false); onShare(); }}>
@@ -1249,10 +1295,10 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
       <div className="desktop-content" style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
         {/* Welcome */}
         <div style={{ marginBottom: '48px' }}>
-          <h1 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>
+          <h1 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '8px' }}>
             Hey{user.name ? `, ${user.name.split(' ')[0]}` : ''}
           </h1>
-          <p style={{ color: '#78716c' }}>What are you making today?</p>
+          <p style={{ color: t.textTertiary }}>What are you making today?</p>
         </div>
 
         {/* Post Update */}
@@ -1270,7 +1316,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
             />
             <button className="btn btn-primary" onClick={postUpdate}>Post</button>
           </div>
-          <div style={{ marginTop: '8px', fontSize: '12px', color: '#57534e' }}>
+          <div style={{ marginTop: '8px', fontSize: '12px', color: t.textFaint }}>
             Latest update shows on your public profile. All updates are saved as a timeline.
           </div>
         </div>
@@ -1278,13 +1324,13 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
         {/* Updates Timeline */}
         {updates.length > 0 && (
           <div style={{ marginBottom: '32px' }}>
-            <h2 style={{ fontSize: '12px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>UPDATES ({updates.length})</h2>
+            <h2 style={{ fontSize: '12px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '16px' }}>UPDATES ({updates.length})</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
               {updates.slice(0, updatesPage * UPDATES_PER_PAGE).map((update) => (
                 <div key={update.id} className="card" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
                   <div style={{ flex: 1 }}>
-                    <span style={{ color: '#d6d3d1', fontSize: '14px' }}>{update.content}</span>
-                    <div style={{ fontSize: '11px', color: '#57534e', marginTop: '6px' }}>
+                    <span style={{ color: t.textMuted, fontSize: '14px' }}>{update.content}</span>
+                    <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '6px' }}>
                       {new Date(update.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       {' · '}
                       {new Date(update.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
@@ -1292,7 +1338,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
                   </div>
                   <button
                     onClick={() => handleDeleteUpdate(update.id)}
-                    style={{ background: 'none', border: 'none', color: '#57534e', cursor: 'pointer', fontSize: '16px', padding: '2px 6px', lineHeight: 1 }}
+                    style={{ background: 'none', border: 'none', color: t.textFaint, cursor: 'pointer', fontSize: '16px', padding: '2px 6px', lineHeight: 1 }}
                     aria-label="Delete update"
                   >×</button>
                 </div>
@@ -1313,7 +1359,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
         {/* Projects */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '12px', letterSpacing: '0.1em', color: '#57534e' }}>YOUR PROJECTS ({user.projects.length})</h2>
+            <h2 style={{ fontSize: '12px', letterSpacing: '0.1em', color: t.textFaint }}>YOUR PROJECTS ({user.projects.length})</h2>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => setShowGitHubImport(true)}>Import from GitHub</button>
               <button className="btn btn-primary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => { setEditingProject(null); setShowProjectModal(true); }}>+ Add Project</button>
@@ -1322,8 +1368,8 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
 
           {user.projects.length === 0 ? (
             <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-              <h2 style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>Build your maker timeline</h2>
-              <p style={{ color: '#78716c', marginBottom: '24px' }}>Import from GitHub or add your first project above</p>
+              <h2 style={{ fontSize: '24px', fontFamily: t.fontHeading, marginBottom: '8px' }}>Build your maker timeline</h2>
+              <p style={{ color: t.textTertiary, marginBottom: '24px' }}>Import from GitHub or add your first project above</p>
             </div>
           ) : (
             <div aria-label="Your projects" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1380,11 +1426,11 @@ const ProjectCard = ({ project, onEdit, onDelete }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '500' }}>{project.name}</h3>
             {project.ongoing && (
-              <span className="ongoing-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4ade80' }} />
+              <span className="ongoing-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: t.success }} />
             )}
             <span className="tag" style={{ background: `${role?.color}20`, color: role?.color }}>{role?.label}</span>
           </div>
-          <p style={{ color: '#78716c', fontSize: '14px', marginBottom: '12px' }}>{project.oneLiner}</p>
+          <p style={{ color: t.textTertiary, fontSize: '14px', marginBottom: '12px' }}>{project.oneLiner}</p>
 
           {/* Stage dots */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1411,7 +1457,7 @@ const ProjectCard = ({ project, onEdit, onDelete }) => {
             className="btn btn-ghost"
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
             aria-label={`Delete project ${project.name}`}
-            style={{ padding: '4px 8px', color: '#ef4444' }}
+            style={{ padding: '4px 8px', color: t.error }}
           >
             ×
           </button>
@@ -1490,13 +1536,13 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
   return (
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="project-modal-title">
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px', maxHeight: '90vh', overflow: 'auto' }}>
-        <h2 id="project-modal-title" style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '24px' }}>
+        <h2 id="project-modal-title" style={{ fontSize: '24px', fontFamily: t.fontHeading, marginBottom: '24px' }}>
           {project ? 'Edit Project' : 'Add New Project'}
         </h2>
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Project Name *</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Project Name *</label>
             <input
               className="input"
               placeholder="My Awesome Project"
@@ -1507,7 +1553,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>One-liner *</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>One-liner *</label>
             <input
               className="input"
               placeholder="A tool that does something cool"
@@ -1518,7 +1564,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Description</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Description</label>
             <textarea
               className="input"
               placeholder="Tell the story of this project. What problem were you solving? How did you build it? What happened?"
@@ -1531,7 +1577,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Your Role</label>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Your Role</label>
               <select
                 className="input"
                 value={formData.role}
@@ -1541,7 +1587,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Current Stage</label>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Current Stage</label>
               <select
                 className="input"
                 value={formData.currentStage}
@@ -1554,7 +1600,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start</label>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Start</label>
               <input
                 className="input"
                 type="month"
@@ -1563,7 +1609,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End</label>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>End</label>
               <input
                 className="input"
                 type="month"
@@ -1581,14 +1627,14 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
                   onChange={(e) => setFormData({ ...formData, ongoing: e.target.checked, endDate: e.target.checked ? '' : formData.endDate })}
                   style={{ width: '16px', height: '16px' }}
                 />
-                <span style={{ fontSize: '14px', color: '#a8a29e' }}>Ongoing</span>
+                <span style={{ fontSize: '14px', color: t.textSecondary }}>Ongoing</span>
               </label>
             </div>
           </div>
 
           {/* Domains */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Domains/Tags</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Domains/Tags</label>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               <input
                 className="input"
@@ -1601,7 +1647,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {formData.domains.map(d => (
-                <button type="button" key={d} className="tag" aria-label={`Remove ${d}`} style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', cursor: 'pointer', border: 'none' }}
+                <button type="button" key={d} className="tag" aria-label={`Remove ${d}`} style={{ background: t.accentBg, color: t.accent, cursor: 'pointer', border: 'none' }}
                   onClick={() => setFormData({ ...formData, domains: formData.domains.filter(x => x !== d) })}>
                   {d} ×
                 </button>
@@ -1611,7 +1657,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
 
           {/* Links */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Links</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Links</label>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               <input
                 className="input"
@@ -1622,12 +1668,12 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
               />
               <button type="button" className="btn btn-secondary" onClick={addLink}>Add</button>
             </div>
-            {linkError && <div style={{ color: '#ef4444', fontSize: '12px', marginBottom: '4px' }}>{linkError}</div>}
+            {linkError && <div style={{ color: t.error, fontSize: '12px', marginBottom: '4px' }}>{linkError}</div>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {formData.links.map(l => (
-                <div key={l} style={{ fontSize: '13px', color: '#a8a29e', display: 'flex', justifyContent: 'space-between' }}>
+                <div key={l} style={{ fontSize: '13px', color: t.textSecondary, display: 'flex', justifyContent: 'space-between' }}>
                   <span>{l}</span>
-                  <button type="button" aria-label={`Remove ${l}`} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
+                  <button type="button" aria-label={`Remove ${l}`} style={{ color: t.error, background: 'none', border: 'none', cursor: 'pointer' }}
                     onClick={() => setFormData({ ...formData, links: formData.links.filter(x => x !== l) })}>×</button>
                 </div>
               ))}
@@ -1635,7 +1681,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Outcome (optional)</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Outcome (optional)</label>
             <input
               className="input"
               placeholder="e.g. Acquired by X, 10k users, shut down"
@@ -1645,7 +1691,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Key Metric (optional)</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Key Metric (optional)</label>
             <input
               className="input"
               placeholder="e.g. 50k MAU, $2k MRR, #1 on HN"
@@ -1655,7 +1701,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Cover Image URL (optional)</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Cover Image URL (optional)</label>
             <input
               className="input"
               placeholder="https://example.com/screenshot.png"
@@ -1663,7 +1709,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
               onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
             />
             {formData.imageUrl && (
-              <div style={{ marginTop: '8px', borderRadius: '8px', overflow: 'hidden', maxHeight: '120px' }}>
+              <div style={{ marginTop: '8px', borderRadius: t.radiusSm, overflow: 'hidden', maxHeight: '120px' }}>
                 <img src={formData.imageUrl} alt="Preview" style={{ width: '100%', height: '120px', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
               </div>
             )}
@@ -1677,14 +1723,14 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
                 onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
                 style={{ width: '16px', height: '16px' }}
               />
-              <span style={{ fontSize: '14px', color: '#a8a29e' }}>Feature this project</span>
-              <span style={{ fontSize: '11px', color: '#57534e' }}>(shows as a hero card on your profile)</span>
+              <span style={{ fontSize: '14px', color: t.textSecondary }}>Feature this project</span>
+              <span style={{ fontSize: '11px', color: t.textFaint }}>(shows as a hero card on your profile)</span>
             </label>
           </div>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'space-between' }}>
             {onDelete ? (
-              <button type="button" className="btn btn-ghost" onClick={onDelete} style={{ color: '#ef4444' }}>Delete</button>
+              <button type="button" className="btn btn-ghost" onClick={onDelete} style={{ color: t.error }}>Delete</button>
             ) : <div />}
             <div style={{ display: 'flex', gap: '12px' }}>
               <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
@@ -1853,10 +1899,10 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
   return (
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="github-modal-title">
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '80vh', overflow: 'auto' }}>
-        <h2 id="github-modal-title" style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>
+        <h2 id="github-modal-title" style={{ fontSize: '24px', fontFamily: t.fontHeading, marginBottom: '8px' }}>
           {step === 'review' ? `Review Projects (${reviewIndex + 1} of ${importedProjects.length})` : 'Import from GitHub'}
         </h2>
-        <p style={{ color: '#78716c', marginBottom: '24px' }}>
+        <p style={{ color: t.textTertiary, marginBottom: '24px' }}>
           {step === 'input' && 'Enter a GitHub username to fetch repositories'}
           {step === 'select' && `Select repositories to import (${selectedRepos.size} selected)`}
           {step === 'review' && 'Add details to your imported projects'}
@@ -1867,7 +1913,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
             {loading ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
                 <div style={{ fontSize: '24px', marginBottom: '12px', animation: 'spin 1s linear infinite' }}>◐</div>
-                <div style={{ color: '#a8a29e' }}>Fetching repositories...</div>
+                <div style={{ color: t.textSecondary }}>Fetching repositories...</div>
                 <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
               </div>
             ) : (
@@ -1876,10 +1922,10 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
                   <div style={{
                     background: 'rgba(239, 68, 68, 0.1)',
                     border: '1px solid rgba(239, 68, 68, 0.3)',
-                    borderRadius: '8px',
+                    borderRadius: t.radiusSm,
                     padding: '12px 16px',
                     marginBottom: '16px',
-                    color: '#fca5a5',
+                    color: t.errorText,
                     fontSize: '14px'
                   }}>
                     {fetchError}
@@ -1903,7 +1949,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
                     </button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
                       <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-                      <span style={{ color: '#57534e', fontSize: '12px' }}>or fetch public repos</span>
+                      <span style={{ color: t.textFaint, fontSize: '12px' }}>or fetch public repos</span>
                       <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
                     </div>
                   </div>
@@ -1957,7 +2003,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
                       padding: '12px 16px',
                       background: alreadyImported ? 'rgba(255,255,255,0.02)' : selectedRepos.has(index) ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.03)',
                       border: selectedRepos.has(index) ? '1px solid rgba(251, 191, 36, 0.3)' : '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: '8px',
+                      borderRadius: t.radiusSm,
                       cursor: alreadyImported ? 'default' : 'pointer',
                       transition: 'all 0.15s',
                       opacity: alreadyImported ? 0.5 : 1
@@ -1967,13 +2013,13 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                           <span style={{ fontWeight: '500' }}>{repo.name}</span>
-                          {alreadyImported && <span className="tag" style={{ fontSize: '10px', background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}>imported</span>}
+                          {alreadyImported && <span className="tag" style={{ fontSize: '10px', background: 'rgba(74,222,128,0.15)', color: t.success }}>imported</span>}
                           {repo._github.isFork && <span className="tag" style={{ fontSize: '10px' }}>fork</span>}
                           {repo._github.isArchived && <span className="tag" style={{ fontSize: '10px' }}>archived</span>}
                         </div>
-                        <div style={{ fontSize: '13px', color: '#78716c' }}>{repo.oneLiner}</div>
+                        <div style={{ fontSize: '13px', color: t.textTertiary }}>{repo.oneLiner}</div>
                       </div>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px', color: '#57534e' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px', color: t.textFaint }}>
                         {repo._github.language && <span>{repo._github.language}</span>}
                         <span>★ {repo._github.stars}</span>
                       </div>
@@ -1982,7 +2028,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
                 );
               })}
               {repos.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '24px', color: '#57534e' }}>
+                <div style={{ textAlign: 'center', padding: '24px', color: t.textFaint }}>
                   No public repositories found
                 </div>
               )}
@@ -2000,15 +2046,15 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
         {step === 'review' && reviewData && (
           <>
             {/* Project header */}
-            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
+            <div style={{ background: t.surfaceBg, borderRadius: t.radiusSm, padding: '16px', marginBottom: '20px' }}>
               <div style={{ fontWeight: '500', fontSize: '16px', marginBottom: '4px' }}>{reviewData.name}</div>
-              <div style={{ fontSize: '13px', color: '#78716c' }}>{reviewData.oneLiner}</div>
+              <div style={{ fontSize: '13px', color: t.textTertiary }}>{reviewData.oneLiner}</div>
             </div>
 
             {/* Editable fields */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Role</label>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Role</label>
                 <select
                   className="input"
                   value={reviewData.role}
@@ -2018,7 +2064,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Stage</label>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Stage</label>
                 <select
                   className="input"
                   value={reviewData.currentStage}
@@ -2031,7 +2077,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start</label>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Start</label>
                 <input
                   className="input"
                   type="month"
@@ -2040,7 +2086,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End</label>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>End</label>
                 <input
                   className="input"
                   type="month"
@@ -2058,13 +2104,13 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
                     onChange={(e) => setReviewData({ ...reviewData, ongoing: e.target.checked, endDate: e.target.checked ? '' : reviewData.endDate })}
                     style={{ width: '16px', height: '16px' }}
                   />
-                  <span style={{ fontSize: '14px', color: '#a8a29e' }}>Ongoing</span>
+                  <span style={{ fontSize: '14px', color: t.textSecondary }}>Ongoing</span>
                 </label>
               </div>
             </div>
 
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Outcome</label>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Outcome</label>
               <input
                 className="input"
                 placeholder="e.g. 1000 users, acquired, shut down, still active"
@@ -2074,7 +2120,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
             </div>
 
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Description</label>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Description</label>
               <textarea
                 className="input"
                 placeholder="Tell the story of this project. What problem were you solving? How did you build it? What happened?"
@@ -2089,10 +2135,10 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
               <div style={{
                 background: 'rgba(239, 68, 68, 0.1)',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
-                borderRadius: '8px',
+                borderRadius: t.radiusSm,
                 padding: '10px 14px',
                 marginBottom: '16px',
-                color: '#fca5a5',
+                color: t.errorText,
                 fontSize: '13px'
               }}>
                 {dateError}
@@ -2152,20 +2198,20 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
 
   return (
     <div style={{ minHeight: '100vh' }}>
-      <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <button className="btn btn-ghost" onClick={onBack}>← Back</button>
         <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
       </header>
 
       <div className="desktop-content" style={{ padding: '40px', maxWidth: '700px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '32px' }}>Edit Profile</h1>
+        <h1 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '32px' }}>Edit Profile</h1>
 
         {/* Basic Info */}
         <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: '#78716c', marginBottom: '20px' }}>BASIC INFO</h2>
+          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>BASIC INFO</h2>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#57534e', marginBottom: '8px' }}>Name</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Name</label>
             <input
               className="input"
               placeholder="Your name"
@@ -2175,13 +2221,13 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#57534e', marginBottom: '8px' }}>Username</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Username</label>
             <input className="input" value={formData.username} disabled style={{ opacity: 0.6 }} />
-            <div style={{ fontSize: '11px', color: '#57534e', marginTop: '4px' }}>makerly.me/{formData.username}</div>
+            <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>makerly.me/{formData.username}</div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', color: '#57534e', marginBottom: '8px' }}>Bio</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Bio</label>
             <textarea
               className="input"
               placeholder="I make things that..."
@@ -2195,13 +2241,13 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
 
         {/* First Make */}
         <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: '#78716c', marginBottom: '20px' }}>FIRST MAKE</h2>
-          <p style={{ fontSize: '13px', color: '#57534e', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>FIRST MAKE</h2>
+          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
             What do you remember as your first make? A Lego set? A school project? A treehouse?
           </p>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#57534e', marginBottom: '8px' }}>What was it?</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>What was it?</label>
             <textarea
               className="input"
               placeholder="A marble run out of cardboard tubes and tape. Spent three weeks on it."
@@ -2212,7 +2258,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', color: '#57534e', marginBottom: '8px' }}>How old were you?</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>How old were you?</label>
             <input
               className="input"
               placeholder="8"
@@ -2225,8 +2271,8 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
 
         {/* Domains */}
         <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: '#78716c', marginBottom: '20px' }}>DOMAINS</h2>
-          <p style={{ fontSize: '13px', color: '#57534e', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>DOMAINS</h2>
+          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
             What kinds of things do you make? Apps, hardware, communities, art, music...
           </p>
 
@@ -2243,7 +2289,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {formData.domains.map(d => (
-              <button type="button" key={d} className="tag" aria-label={`Remove ${d}`} style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', cursor: 'pointer', border: 'none' }}
+              <button type="button" key={d} className="tag" aria-label={`Remove ${d}`} style={{ background: t.accentBg, color: t.accent, cursor: 'pointer', border: 'none' }}
                 onClick={() => setFormData({ ...formData, domains: formData.domains.filter(x => x !== d) })}>
                 {d} ×
               </button>
@@ -2253,7 +2299,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
 
         {/* Social Links */}
         <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: '#78716c', marginBottom: '20px' }}>SOCIAL & PROOF OF WORK</h2>
+          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>SOCIAL & PROOF OF WORK</h2>
 
           {[
             { key: 'twitter', label: 'Twitter/X', placeholder: 'https://twitter.com/yourhandle' },
@@ -2263,7 +2309,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
             { key: 'website', label: 'Personal Website', placeholder: 'https://yoursite.com' },
           ].map(({ key, label, placeholder }) => (
             <div key={key} style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '12px', color: '#57534e', marginBottom: '8px' }}>{label}</label>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>{label}</label>
               <input
                 className="input"
                 placeholder={placeholder}
@@ -2276,8 +2322,8 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
 
         {/* Contact */}
         <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: '#78716c', marginBottom: '20px' }}>CONTACT</h2>
-          <p style={{ fontSize: '13px', color: '#57534e', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>CONTACT</h2>
+          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
             Let people reach you directly from your profile. Your email will be visible to anyone who visits.
           </p>
 
@@ -2289,13 +2335,13 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
                 onChange={(e) => setFormData({ ...formData, showEmail: e.target.checked })}
                 style={{ width: '16px', height: '16px' }}
               />
-              <span style={{ fontSize: '14px', color: '#a8a29e' }}>Show my email on my profile</span>
+              <span style={{ fontSize: '14px', color: t.textSecondary }}>Show my email on my profile</span>
             </label>
           </div>
 
           {formData.showEmail && (
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#57534e', marginBottom: '8px' }}>Contact email</label>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Contact email</label>
               <input
                 className="input"
                 type="email"
@@ -2303,20 +2349,20 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
                 value={formData.contactEmail || ''}
                 onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
               />
-              <div style={{ fontSize: '11px', color: '#57534e', marginTop: '4px' }}>This will be shown as a "Get in touch" button on your public profile.</div>
+              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>This will be shown as a "Get in touch" button on your public profile.</div>
             </div>
           )}
         </div>
 
         {/* Embed Feed */}
         <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: '#78716c', marginBottom: '20px' }}>EMBED FEED</h2>
-          <p style={{ fontSize: '13px', color: '#57534e', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>EMBED FEED</h2>
+          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
             Show your latest tweets or Substack posts on your profile.
           </p>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#57534e', marginBottom: '8px' }}>Feed Type</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Feed Type</label>
             <select
               className="input"
               value={formData.embedFeed?.type || ''}
@@ -2330,7 +2376,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
 
           {formData.embedFeed?.type && (
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#57534e', marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>
                 {formData.embedFeed.type === 'twitter' ? 'Twitter Username' : 'Substack URL'}
               </label>
               <input
@@ -2399,20 +2445,20 @@ const CollapsibleDescription = ({ text, maxLines = 3 }) => {
   const needsCollapse = lines.length > maxLines || text.length > 200;
 
   if (!needsCollapse) {
-    return <p style={{ color: '#a8a29e', fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{text}</p>;
+    return <p style={{ color: t.textSecondary, fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{text}</p>;
   }
 
   return (
     <div>
       <p style={{
-        color: '#a8a29e', fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap',
+        color: t.textSecondary, fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap',
         ...(expanded ? {} : { display: '-webkit-box', WebkitLineClamp: maxLines, WebkitBoxOrient: 'vertical', overflow: 'hidden' })
       }}>
         {text}
       </p>
       <button
         onClick={() => setExpanded(!expanded)}
-        style={{ background: 'none', border: 'none', color: '#78716c', fontSize: '12px', cursor: 'pointer', padding: '4px 0', marginTop: '4px' }}
+        style={{ background: 'none', border: 'none', color: t.textTertiary, fontSize: '12px', cursor: 'pointer', padding: '4px 0', marginTop: '4px' }}
       >
         {expanded ? '← Show less' : 'Read more →'}
       </button>
@@ -2459,7 +2505,7 @@ function getLinkLabel(url) {
 // ============================================
 const TimelineView = ({ projects }) => {
   const projectsWithDates = projects.filter(p => p.startDate);
-  if (projectsWithDates.length === 0) return <div style={{ color: '#57534e', padding: '24px', textAlign: 'center' }}>No date information available for timeline view.</div>;
+  if (projectsWithDates.length === 0) return <div style={{ color: t.textFaint, padding: '24px', textAlign: 'center' }}>No date information available for timeline view.</div>;
 
   const sorted = [...projectsWithDates].sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
   const minYear = parseInt(sorted[0].startDate?.slice(0, 4) || new Date().getFullYear());
@@ -2471,7 +2517,7 @@ const TimelineView = ({ projects }) => {
       {/* Year markers */}
       <div style={{ display: 'flex', position: 'relative', minWidth: `${totalYears * 120}px`, marginBottom: '8px' }}>
         {Array.from({ length: totalYears }, (_, i) => (
-          <div key={i} style={{ flex: 1, textAlign: 'left', fontSize: '11px', color: '#57534e', borderLeft: '1px solid rgba(255,255,255,0.06)', paddingLeft: '8px' }}>
+          <div key={i} style={{ flex: 1, textAlign: 'left', fontSize: '11px', color: t.textFaint, borderLeft: '1px solid rgba(255,255,255,0.06)', paddingLeft: '8px' }}>
             {minYear + i}
           </div>
         ))}
@@ -2513,7 +2559,7 @@ const TimelineView = ({ projects }) => {
                   top: '4px'
                 }}
               >
-                {project.ongoing && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', marginRight: '6px', flexShrink: 0 }} />}
+                {project.ongoing && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.success, marginRight: '6px', flexShrink: 0 }} />}
                 <span style={{ fontSize: '12px', fontWeight: '500', color: stage?.color || '#a8a29e', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</span>
               </div>
             </div>
@@ -2553,20 +2599,20 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
   })).filter(r => r.count > 0);
 
   const stats = [
-    { label: "Things made", value: user.projects.length, color: '#e7e5e4' },
-    { label: "Reached users", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 4).length, color: '#fb923c' },
-    { label: "Reached paying", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 5).length, color: '#f472b6' },
-    { label: "Funded", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 6).length, color: '#a78bfa' },
-    { label: "Acquisitions", value: user.projects.filter(p => p.currentStage === 'acquired').length, color: '#22d3ee' },
+    { label: "Things made", value: user.projects.length, color: t.text },
+    { label: "Reached users", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 4).length, color: t.orange },
+    { label: "Reached paying", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 5).length, color: t.pink },
+    { label: "Funded", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 6).length, color: t.purple },
+    { label: "Acquisitions", value: user.projects.filter(p => p.currentStage === 'acquired').length, color: t.cyan },
   ].filter(s => s.value > 0 || s.label === 'Things made');
 
   return (
     <div style={{ minHeight: '100vh' }}>
       {/* Header */}
-      <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button className="btn btn-ghost" onClick={onBack}>← Back</button>
-          <span className="hide-mobile" style={{ fontSize: '14px', letterSpacing: '0.1em', color: '#57534e' }}>makerly.me/{user.username}</span>
+          <span className="hide-mobile" style={{ fontSize: '14px', letterSpacing: '0.1em', color: t.textFaint }}>makerly.me/{user.username}</span>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           {!isOwner && user.showEmail && user.contactEmail && (
@@ -2591,22 +2637,22 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
           <div>
             {/* Latest Update */}
             {user.todayMaking && (
-              <div style={{ marginBottom: '24px', padding: '12px 16px', background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '8px' }}>
-                <span style={{ fontSize: '11px', color: '#4ade80', fontWeight: '500' }}>LATEST: </span>
-                <span style={{ color: '#a8a29e' }}>{user.todayMaking}</span>
+              <div style={{ marginBottom: '24px', padding: '12px 16px', background: t.successBgSubtle, border: `1px solid ${t.successBorder}`, borderRadius: t.radiusSm }}>
+                <span style={{ fontSize: '11px', color: t.success, fontWeight: '500' }}>LATEST: </span>
+                <span style={{ color: t.textSecondary }}>{user.todayMaking}</span>
               </div>
             )}
 
-            <h1 className="profile-name" style={{ fontSize: '48px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '12px' }}>
+            <h1 className="profile-name" style={{ fontSize: '48px', fontFamily: t.fontHeading, marginBottom: '12px' }}>
               {user.name || user.username}
             </h1>
-            {user.bio && <p style={{ fontSize: '18px', color: '#a8a29e', marginBottom: '32px', lineHeight: 1.5 }}>{user.bio}</p>}
+            {user.bio && <p style={{ fontSize: '18px', color: t.textSecondary, marginBottom: '32px', lineHeight: 1.5 }}>{user.bio}</p>}
 
             {/* First Make */}
             {user.firstMake?.description && (
-              <div style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(251,191,36,0.02) 100%)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '12px', padding: '20px 24px', marginBottom: '24px' }}>
-                <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#fbbf24', marginBottom: '8px', fontWeight: '500' }}>FIRST MAKE {user.firstMake.age && `· AGE ${user.firstMake.age}`}</div>
-                <p style={{ fontSize: '16px', fontFamily: "'Newsreader', Georgia, serif", lineHeight: 1.5 }}>"{user.firstMake.description}"</p>
+              <div style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(251,191,36,0.02) 100%)', border: `1px solid ${t.accentBorder}`, borderRadius: t.radiusMd, padding: '20px 24px', marginBottom: '24px' }}>
+                <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.accent, marginBottom: '8px', fontWeight: '500' }}>FIRST MAKE {user.firstMake.age && `· AGE ${user.firstMake.age}`}</div>
+                <p style={{ fontSize: '16px', fontFamily: t.fontHeading, lineHeight: 1.5 }}>"{user.firstMake.description}"</p>
               </div>
             )}
 
@@ -2614,7 +2660,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
             {user.domains?.length > 0 && (
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
                 {user.domains.map(d => (
-                  <span key={d} className="tag" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}>{d}</span>
+                  <span key={d} className="tag" style={{ background: t.accentBg, border: '1px solid rgba(251,191,36,0.3)', color: t.accent }}>{d}</span>
                 ))}
               </div>
             )}
@@ -2623,27 +2669,27 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
             {Object.values(user.socials || {}).some(v => v) && (
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                 {user.socials?.twitter && (
-                  <a href={user.socials.twitter.includes('.') ? ensureUrl(user.socials.twitter) : `https://twitter.com/${user.socials.twitter.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={user.socials.twitter.includes('.') ? ensureUrl(user.socials.twitter) : `https://twitter.com/${user.socials.twitter.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: t.textSecondary, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>𝕏</span> Twitter
                   </a>
                 )}
                 {user.socials?.github && (
-                  <a href={user.socials.github.includes('.') ? ensureUrl(user.socials.github) : `https://github.com/${user.socials.github}`} target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={user.socials.github.includes('.') ? ensureUrl(user.socials.github) : `https://github.com/${user.socials.github}`} target="_blank" rel="noopener noreferrer" style={{ color: t.textSecondary, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>◐</span> GitHub
                   </a>
                 )}
                 {user.socials?.linkedin && (
-                  <a href={user.socials.linkedin.includes('.') ? ensureUrl(user.socials.linkedin) : `https://linkedin.com/in/${user.socials.linkedin}`} target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={user.socials.linkedin.includes('.') ? ensureUrl(user.socials.linkedin) : `https://linkedin.com/in/${user.socials.linkedin}`} target="_blank" rel="noopener noreferrer" style={{ color: t.textSecondary, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>in</span> LinkedIn
                   </a>
                 )}
                 {user.socials?.substack && (
-                  <a href={user.socials.substack.includes('.') ? ensureUrl(user.socials.substack) : `https://${user.socials.substack}.substack.com`} target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={user.socials.substack.includes('.') ? ensureUrl(user.socials.substack) : `https://${user.socials.substack}.substack.com`} target="_blank" rel="noopener noreferrer" style={{ color: t.textSecondary, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>◉</span> Substack
                   </a>
                 )}
                 {user.socials?.website && (
-                  <a href={ensureUrl(user.socials.website)} target="_blank" rel="noopener noreferrer" style={{ color: '#a8a29e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <a href={ensureUrl(user.socials.website)} target="_blank" rel="noopener noreferrer" style={{ color: t.textSecondary, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span aria-hidden="true">↗</span> Website
                   </a>
                 )}
@@ -2654,10 +2700,10 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
           {/* Stats */}
           <div>
             <div className="card" style={{ padding: '20px 24px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>OUTCOMES</div>
+              <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '16px' }}>OUTCOMES</div>
               {stats.map(stat => (
                 <div key={stat.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <span style={{ color: '#78716c', fontSize: '13px' }}>{stat.label}</span>
+                  <span style={{ color: t.textTertiary, fontSize: '13px' }}>{stat.label}</span>
                   <span style={{ fontSize: '18px', fontWeight: '600', color: stat.color }}>{stat.value}</span>
                 </div>
               ))}
@@ -2665,7 +2711,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
 
             {roleBreakdown.length > 0 && (
               <div className="card" style={{ padding: '20px 24px' }}>
-                <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>ROLE BREAKDOWN</div>
+                <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '16px' }}>ROLE BREAKDOWN</div>
                 <div style={{ display: 'flex', height: '6px', borderRadius: '3px', overflow: 'hidden', marginBottom: '12px' }}>
                   {roleBreakdown.map(r => (
                     <div key={r.key} style={{ width: `${r.percentage}%`, background: r.color }} />
@@ -2675,8 +2721,8 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                   {roleBreakdown.map(r => (
                     <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
                       <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: r.color }} />
-                      <span style={{ color: '#a8a29e' }}>{r.label}</span>
-                      <span style={{ color: '#57534e' }}>{r.count}</span>
+                      <span style={{ color: t.textSecondary }}>{r.label}</span>
+                      <span style={{ color: t.textFaint }}>{r.count}</span>
                     </div>
                   ))}
                 </div>
@@ -2688,13 +2734,13 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         {/* Embed Feed */}
         {user.embedFeed?.type && user.embedFeed?.url && (
           <div className="card" style={{ padding: '24px', marginBottom: '48px' }}>
-            <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>
+            <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '16px' }}>
               {user.embedFeed.type === 'twitter' ? 'LATEST TWEETS' : 'LATEST POSTS'}
             </div>
             {user.embedFeed.type === 'twitter' ? (
               <TwitterEmbed username={user.embedFeed.url.replace('@', '')} />
             ) : (
-              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '24px', textAlign: 'center', color: '#57534e' }}>
+              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: t.radiusSm, padding: '24px', textAlign: 'center', color: t.textFaint }}>
                 <p style={{ marginBottom: '12px' }}>Substack feed from {user.embedFeed.url}</p>
                 <a href={user.embedFeed.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
                   View on Substack ↗
@@ -2707,15 +2753,15 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         {/* Updates Timeline */}
         {updates?.length > 0 && (
           <div style={{ marginBottom: '48px' }}>
-            <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>
+            <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '16px' }}>
               UPDATES ({updates.length})
             </div>
             <div style={{ borderLeft: '2px solid rgba(74, 222, 128, 0.2)', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {(showAllUpdates ? updates : updates.slice(0, PROFILE_UPDATES_LIMIT)).map((update) => (
                 <div key={update.id} style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: '-27px', top: '6px', width: '10px', height: '10px', borderRadius: '50%', background: '#1c1917', border: '2px solid rgba(74, 222, 128, 0.4)' }} />
-                  <div style={{ color: '#d6d3d1', fontSize: '14px', lineHeight: 1.5 }}>{update.content}</div>
-                  <div style={{ fontSize: '11px', color: '#57534e', marginTop: '4px' }}>
+                  <div style={{ position: 'absolute', left: '-27px', top: '6px', width: '10px', height: '10px', borderRadius: '50%', background: t.surface, border: '2px solid rgba(74, 222, 128, 0.4)' }} />
+                  <div style={{ color: t.textMuted, fontSize: '14px', lineHeight: 1.5 }}>{update.content}</div>
+                  <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>
                     {new Date(update.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
                 </div>
@@ -2736,7 +2782,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         {/* Featured Projects */}
         {user.projects.filter(p => p.featured).length > 0 && (
           <div style={{ marginBottom: '48px' }}>
-            <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>FEATURED</div>
+            <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '16px' }}>FEATURED</div>
             <div style={{ display: 'grid', gridTemplateColumns: user.projects.filter(p => p.featured).length === 1 ? '1fr' : '1fr 1fr', gap: '16px' }}>
               {user.projects.filter(p => p.featured).map(project => {
                 const stageIndex = stages.findIndex(s => s.key === project.currentStage);
@@ -2751,23 +2797,23 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                     )}
                     <div style={{ padding: '24px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                        <h3 style={{ fontSize: '20px', fontWeight: '600', fontFamily: "'Newsreader', Georgia, serif" }}>{project.name}</h3>
-                        {project.ongoing && <span className="ongoing-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4ade80' }} />}
+                        <h3 style={{ fontSize: '20px', fontWeight: '600', fontFamily: t.fontHeading }}>{project.name}</h3>
+                        {project.ongoing && <span className="ongoing-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: t.success }} />}
                       </div>
-                      <p style={{ color: '#a8a29e', fontSize: '15px', marginBottom: '12px' }}>{project.oneLiner}</p>
+                      <p style={{ color: t.textSecondary, fontSize: '15px', marginBottom: '12px' }}>{project.oneLiner}</p>
 
                       {/* Key metric callout */}
                       {project.keyMetric && (
-                        <div style={{ padding: '10px 14px', background: 'rgba(74, 222, 128, 0.08)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '8px', marginBottom: '12px' }}>
-                          <span style={{ fontSize: '16px', fontWeight: '600', color: '#4ade80' }}>{project.keyMetric}</span>
+                        <div style={{ padding: '10px 14px', background: 'rgba(74, 222, 128, 0.08)', border: `1px solid ${t.successBorder}`, borderRadius: t.radiusSm, marginBottom: '12px' }}>
+                          <span style={{ fontSize: '16px', fontWeight: '600', color: t.success }}>{project.keyMetric}</span>
                         </div>
                       )}
 
                       {/* Outcome */}
                       {project.outcome && (
-                        <div style={{ padding: '8px 12px', background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.2)', borderRadius: '8px', marginBottom: '12px' }}>
-                          <span style={{ fontSize: '11px', letterSpacing: '0.05em', color: '#fbbf24', fontWeight: '500' }}>OUTCOME: </span>
-                          <span style={{ color: '#fbbf24', fontSize: '14px' }}>{project.outcome}</span>
+                        <div style={{ padding: '8px 12px', background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.2)', borderRadius: t.radiusSm, marginBottom: '12px' }}>
+                          <span style={{ fontSize: '11px', letterSpacing: '0.05em', color: t.accent, fontWeight: '500' }}>OUTCOME: </span>
+                          <span style={{ color: t.accent, fontSize: '14px' }}>{project.outcome}</span>
                         </div>
                       )}
 
@@ -2775,7 +2821,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                         <span className="tag" style={{ background: `${role?.color}20`, color: role?.color }}>{role?.label}</span>
                         <span className="tag" style={{ background: `${stage?.color}20`, color: stage?.color }}>{stage?.label}</span>
                         {project.startDate && (
-                          <span className="tag" style={{ background: 'rgba(255,255,255,0.05)', color: '#78716c' }}>
+                          <span className="tag" style={{ background: t.surfaceBgHover, color: t.textTertiary }}>
                             {project.startDate.slice(0, 4)}{project.endDate ? `–${project.endDate.slice(0, 4)}` : project.ongoing ? '–now' : ''}
                           </span>
                         )}
@@ -2784,7 +2830,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                       {project.links?.length > 0 && (
                         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                           {project.links.map(link => (
-                            <a key={link} href={link} target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <a key={link} href={link} target="_blank" rel="noopener noreferrer" style={{ color: t.accent, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               ↗ {getLinkLabel(link)}
                             </a>
                           ))}
@@ -2801,19 +2847,19 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         {/* Projects */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e' }}>
+            <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint }}>
               PROJECTS ({user.projects.length})
             </div>
             <div style={{ display: 'flex', gap: '4px' }}>
               <button
                 onClick={() => setProjectViewMode('list')}
-                style={{ background: projectViewMode === 'list' ? 'rgba(255,255,255,0.08)' : 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', color: projectViewMode === 'list' ? '#e7e5e4' : '#57534e', cursor: 'pointer' }}
+                style={{ background: projectViewMode === 'list' ? 'rgba(255,255,255,0.08)' : 'none', border: `1px solid ${t.surfaceBorderLight}`, borderRadius: '6px', padding: '4px 10px', fontSize: '11px', color: projectViewMode === 'list' ? t.text : t.textFaint, cursor: 'pointer' }}
               >
                 List
               </button>
               <button
                 onClick={() => setProjectViewMode('timeline')}
-                style={{ background: projectViewMode === 'timeline' ? 'rgba(255,255,255,0.08)' : 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', color: projectViewMode === 'timeline' ? '#e7e5e4' : '#57534e', cursor: 'pointer' }}
+                style={{ background: projectViewMode === 'timeline' ? 'rgba(255,255,255,0.08)' : 'none', border: `1px solid ${t.surfaceBorderLight}`, borderRadius: '6px', padding: '4px 10px', fontSize: '11px', color: projectViewMode === 'timeline' ? t.text : t.textFaint, cursor: 'pointer' }}
               >
                 Timeline
               </button>
@@ -2821,7 +2867,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
           </div>
 
           {user.projects.length === 0 ? (
-            <div className="card" style={{ padding: '48px', textAlign: 'center', color: '#57534e' }}>
+            <div className="card" style={{ padding: '48px', textAlign: 'center', color: t.textFaint }}>
               No projects yet
             </div>
           ) : projectViewMode === 'timeline' ? (
@@ -2839,7 +2885,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                   <div key={project.id} style={{ padding: '20px 24px', borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
                     {/* Cover image */}
                     {project.imageUrl && (
-                      <div style={{ marginBottom: '12px', borderRadius: '8px', overflow: 'hidden', maxHeight: '160px' }}>
+                      <div style={{ marginBottom: '12px', borderRadius: t.radiusSm, overflow: 'hidden', maxHeight: '160px' }}>
                         <img src={project.imageUrl} alt={project.name} style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
                       </div>
                     )}
@@ -2848,15 +2894,15 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
                           <h3 style={{ fontSize: '16px', fontWeight: '500' }}>{project.name}</h3>
-                          {project.ongoing && <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80' }} />}
+                          {project.ongoing && <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.success }} />}
                           <span className="tag" style={{ background: `${role?.color}20`, color: role?.color }}>{role?.label}</span>
                           {project.startDate && (
-                            <span style={{ fontSize: '12px', color: '#57534e' }}>
+                            <span style={{ fontSize: '12px', color: t.textFaint }}>
                               {project.startDate.slice(0, 4)}{project.endDate ? `–${project.endDate.slice(0, 4)}` : project.ongoing ? '–now' : ''}
                             </span>
                           )}
                         </div>
-                        <p style={{ color: '#78716c', fontSize: '14px' }}>{project.oneLiner}</p>
+                        <p style={{ color: t.textTertiary, fontSize: '14px' }}>{project.oneLiner}</p>
                       </div>
                       <span className="tag" style={{ background: `${stage?.color}20`, color: stage?.color }}>{stage?.label}</span>
                     </div>
@@ -2883,16 +2929,16 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
 
                     {/* Key metric callout */}
                     {project.keyMetric && (
-                      <div style={{ display: 'inline-block', padding: '6px 12px', background: 'rgba(74, 222, 128, 0.08)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '6px', marginBottom: '10px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#4ade80' }}>{project.keyMetric}</span>
+                      <div style={{ display: 'inline-block', padding: '6px 12px', background: 'rgba(74, 222, 128, 0.08)', border: `1px solid ${t.successBorder}`, borderRadius: '6px', marginBottom: '10px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: t.success }}>{project.keyMetric}</span>
                       </div>
                     )}
 
                     {/* Outcome */}
                     {project.outcome && (
                       <div style={{ display: 'inline-block', padding: '6px 12px', background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.2)', borderRadius: '6px', marginBottom: '10px', marginLeft: project.keyMetric ? '8px' : 0 }}>
-                        <span style={{ fontSize: '11px', letterSpacing: '0.05em', color: '#fbbf24', fontWeight: '500' }}>OUTCOME </span>
-                        <span style={{ color: '#fbbf24', fontSize: '13px' }}>{project.outcome}</span>
+                        <span style={{ fontSize: '11px', letterSpacing: '0.05em', color: t.accent, fontWeight: '500' }}>OUTCOME </span>
+                        <span style={{ color: t.accent, fontSize: '13px' }}>{project.outcome}</span>
                       </div>
                     )}
 
@@ -2900,7 +2946,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                     {project.domains?.length > 0 && (
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
                         {project.domains.map(d => (
-                          <span key={d} className="tag" style={{ background: 'rgba(255,255,255,0.04)', color: '#78716c', fontSize: '11px', padding: '2px 8px' }}>{d}</span>
+                          <span key={d} className="tag" style={{ background: 'rgba(255,255,255,0.04)', color: t.textTertiary, fontSize: '11px', padding: '2px 8px' }}>{d}</span>
                         ))}
                       </div>
                     )}
@@ -2916,7 +2962,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                     {project.links?.length > 0 && (
                       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                         {project.links.map(link => (
-                          <a key={link} href={link} target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <a key={link} href={link} target="_blank" rel="noopener noreferrer" style={{ color: t.accent, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             ↗ {getLinkLabel(link)}
                           </a>
                         ))}
@@ -2979,15 +3025,15 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
           width: '80px', height: '4px', borderRadius: '2px', margin: '0 auto 32px',
           background: 'linear-gradient(90deg, #fbbf24, #f472b6, #a78bfa)'
         }} />
-        <h1 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '12px' }}>
+        <h1 style={{ fontSize: '36px', fontFamily: t.fontHeading, marginBottom: '12px' }}>
           Welcome to Makerly.
         </h1>
-        <p style={{ color: '#78716c', fontSize: '15px', lineHeight: 1.6, marginBottom: '40px', maxWidth: '400px', margin: '0 auto 40px' }}>
+        <p style={{ color: t.textTertiary, fontSize: '15px', lineHeight: 1.6, marginBottom: '40px', maxWidth: '400px', margin: '0 auto 40px' }}>
           You just joined a community of people who build things.<br />
           Let's set up your profile in 60 seconds.
         </p>
         <div style={{ maxWidth: '360px', margin: '0 auto' }}>
-          <label htmlFor="onboard-name" style={{ display: 'block', fontSize: '12px', color: '#57534e', letterSpacing: '0.1em', marginBottom: '8px', textAlign: 'left' }}>WHAT SHOULD WE CALL YOU?</label>
+          <label htmlFor="onboard-name" style={{ display: 'block', fontSize: '12px', color: t.textFaint, letterSpacing: '0.1em', marginBottom: '8px', textAlign: 'left' }}>WHAT SHOULD WE CALL YOU?</label>
           <input
             id="onboard-name"
             type="text"
@@ -2998,10 +3044,10 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
             style={{
               width: '100%',
               padding: '16px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: '12px',
-              color: '#e7e5e4',
+              background: t.surfaceBgHover,
+              border: `1px solid ${t.surfaceBorderHover}`,
+              borderRadius: t.radiusMd,
+              color: t.text,
               fontSize: '18px',
               textAlign: 'center'
             }}
@@ -3027,12 +3073,12 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
           width: '80px', height: '4px', borderRadius: '2px', margin: '0 auto 32px',
           background: 'linear-gradient(90deg, #fbbf24 33%, rgba(255,255,255,0.1) 33%)'
         }} />
-        <h1 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '12px' }}>
+        <h1 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '12px' }}>
           What was the first thing you ever made?
         </h1>
-        <p style={{ color: '#78716c', fontSize: '14px', lineHeight: 1.6, marginBottom: '36px', maxWidth: '440px', margin: '0 auto 36px' }}>
+        <p style={{ color: t.textTertiary, fontSize: '14px', lineHeight: 1.6, marginBottom: '36px', maxWidth: '440px', margin: '0 auto 36px' }}>
           A paper airplane. A birthday card. A birdhouse. A terrible website.<br />
-          <span style={{ color: '#a8a29e' }}>This is where it all started.</span>
+          <span style={{ color: t.textSecondary }}>This is where it all started.</span>
         </p>
         <div style={{ maxWidth: '400px', margin: '0 auto', textAlign: 'left' }}>
           <label htmlFor="onboard-firstmake" className="sr-only">Describe your first make</label>
@@ -3046,17 +3092,17 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
             style={{
               width: '100%',
               padding: '16px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: '12px',
-              color: '#e7e5e4',
+              background: t.surfaceBgHover,
+              border: `1px solid ${t.surfaceBorderHover}`,
+              borderRadius: t.radiusMd,
+              color: t.text,
               fontSize: '15px',
               resize: 'none',
               lineHeight: 1.5
             }}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
-            <label htmlFor="onboard-age" style={{ fontSize: '12px', color: '#57534e' }}>HOW OLD WERE YOU?</label>
+            <label htmlFor="onboard-age" style={{ fontSize: '12px', color: t.textFaint }}>HOW OLD WERE YOU?</label>
             <input
               id="onboard-age"
               type="number"
@@ -3068,10 +3114,10 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
               style={{
                 width: '80px',
                 padding: '12px',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.15)',
+                background: t.surfaceBgHover,
+                border: `1px solid ${t.surfaceBorderHover}`,
                 borderRadius: '10px',
-                color: '#e7e5e4',
+                color: t.text,
                 fontSize: '15px',
                 textAlign: 'center'
               }}
@@ -3099,12 +3145,12 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
           width: '80px', height: '4px', borderRadius: '2px', margin: '0 auto 32px',
           background: 'linear-gradient(90deg, #fbbf24 66%, rgba(255,255,255,0.1) 66%)'
         }} />
-        <h1 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '12px' }}>
+        <h1 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '12px' }}>
           What are you making right now?
         </h1>
-        <p style={{ color: '#78716c', fontSize: '14px', lineHeight: 1.6, marginBottom: '36px', maxWidth: '440px', margin: '0 auto 36px' }}>
+        <p style={{ color: t.textTertiary, fontSize: '14px', lineHeight: 1.6, marginBottom: '36px', maxWidth: '440px', margin: '0 auto 36px' }}>
           Could be anything. An app, a song, a zine, a robot, a business.<br />
-          <span style={{ color: '#a8a29e' }}>This shows up live on your profile.</span>
+          <span style={{ color: t.textSecondary }}>This shows up live on your profile.</span>
         </p>
         <div style={{ maxWidth: '400px', margin: '0 auto' }}>
           <label htmlFor="onboard-making" className="sr-only">What are you making right now?</label>
@@ -3118,10 +3164,10 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
             style={{
               width: '100%',
               padding: '16px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: '12px',
-              color: '#e7e5e4',
+              background: t.surfaceBgHover,
+              border: `1px solid ${t.surfaceBorderHover}`,
+              borderRadius: t.radiusMd,
+              color: t.text,
               fontSize: '18px',
               textAlign: 'center'
             }}
@@ -3156,7 +3202,7 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
         <button
           className="btn btn-ghost"
           onClick={handleFinish}
-          style={{ display: 'block', margin: '40px auto 0', fontSize: '12px', color: '#57534e' }}
+          style={{ display: 'block', margin: '40px auto 0', fontSize: '12px', color: t.textFaint }}
         >
           Skip setup — go to dashboard
         </button>
@@ -3193,22 +3239,22 @@ const ShareModal = ({ username, todayMaking, onClose, showNotification }) => {
   return (
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="share-modal-title">
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2 id="share-modal-title" style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>Share your profile</h2>
-        <p style={{ color: '#78716c', marginBottom: '16px' }}>Let people see what you've built</p>
+        <h2 id="share-modal-title" style={{ fontSize: '24px', fontFamily: t.fontHeading, marginBottom: '8px' }}>Share your profile</h2>
+        <p style={{ color: t.textTertiary, marginBottom: '16px' }}>Let people see what you've built</p>
 
         {/* Currently Making */}
         {todayMaking && (
-          <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: '8px', padding: '10px 14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
-            <span style={{ fontSize: '13px', color: '#a8a29e' }}>
-              <span style={{ color: '#4ade80', fontWeight: '500' }}>Making: </span>{todayMaking}
+          <div style={{ background: t.successBgSubtle, border: `1px solid ${t.successBorder}`, borderRadius: t.radiusSm, padding: '10px 14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.success, flexShrink: 0 }} />
+            <span style={{ fontSize: '13px', color: t.textSecondary }}>
+              <span style={{ color: t.success, fontWeight: '500' }}>Making: </span>{todayMaking}
             </span>
           </div>
         )}
 
         {/* URL Preview */}
-        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <span style={{ color: '#a8a29e', fontSize: '14px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>https://{profileUrl}</span>
+        <div style={{ background: t.surfaceBgHover, border: '1px solid rgba(255,255,255,0.1)', borderRadius: t.radiusSm, padding: '12px 16px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <span style={{ color: t.textSecondary, fontSize: '14px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>https://{profileUrl}</span>
           <button className="btn btn-primary" onClick={copyLink} style={{ padding: '8px 16px', flexShrink: 0 }}>
             {copied ? 'Copied!' : 'Copy'}
           </button>
@@ -3219,7 +3265,7 @@ const ShareModal = ({ username, todayMaking, onClose, showNotification }) => {
           {shareOptions.map(option => (
             <button key={option.name} className="social-btn" onClick={option.action}>
               <span style={{ fontSize: '16px', width: '20px', textAlign: 'center' }}>{option.icon}</span>
-              <span style={{ color: '#e7e5e4' }}>{option.name}</span>
+              <span style={{ color: t.text }}>{option.name}</span>
             </button>
           ))}
         </div>
@@ -3307,7 +3353,7 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <div style={{ color: '#a8a29e', fontSize: '14px' }}>Loading makers...</div>
+        <div style={{ color: t.textSecondary, fontSize: '14px' }}>Loading makers...</div>
       </div>
     );
   }
@@ -3317,11 +3363,11 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", color: '#e7e5e4', margin: 0 }}>Maker Directory</h1>
-          <p style={{ color: '#57534e', fontSize: '13px', marginTop: '4px' }}>{makers.length} people who build things</p>
+          <h1 style={{ fontSize: '32px', fontFamily: t.fontHeading, color: t.text, margin: 0 }}>Maker Directory</h1>
+          <p style={{ color: t.textFaint, fontSize: '13px', marginTop: '4px' }}>{makers.length} people who build things</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          {onHire && <button className="btn btn-ghost" onClick={onHire} style={{ color: '#fbbf24' }}>Hiring?</button>}
+          {onHire && <button className="btn btn-ghost" onClick={onHire} style={{ color: t.accent }}>Hiring?</button>}
           {currentUser ? (
             <button className="btn btn-ghost" onClick={onBack}>Dashboard</button>
           ) : (
@@ -3344,17 +3390,17 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
             style={{
               width: '100%',
               padding: '12px 16px',
-              background: 'rgba(255,255,255,0.05)',
+              background: t.surfaceBgHover,
               border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '8px',
-              color: '#e7e5e4',
+              borderRadius: t.radiusSm,
+              color: t.text,
               fontSize: '14px',
               marginBottom: '20px'
             }}
           />
 
           {filtered.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#57534e' }}>
+            <div style={{ textAlign: 'center', padding: '40px', color: t.textFaint }}>
               {filter ? 'No makers match your search' : 'No makers yet'}
             </div>
           )}
@@ -3369,9 +3415,9 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
                 tabIndex={0}
                 aria-label={`View ${maker.name || maker.username}'s profile`}
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: '12px',
+                  background: t.surfaceBg,
+                  border: `1px solid ${t.surfaceBorder}`,
+                  borderRadius: t.radiusMd,
                   padding: '20px',
                   cursor: 'pointer',
                   transition: 'all 0.15s'
@@ -3382,33 +3428,33 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '16px', fontWeight: '500', color: '#e7e5e4' }}>{maker.name || maker.username}</span>
+                      <span style={{ fontSize: '16px', fontWeight: '500', color: t.text }}>{maker.name || maker.username}</span>
                       {maker.todayMaking && (
-                        <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
+                        <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.success, flexShrink: 0 }} />
                       )}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#57534e', marginTop: '2px' }}>makerly.me/{maker.username}</div>
+                    <div style={{ fontSize: '12px', color: t.textFaint, marginTop: '2px' }}>makerly.me/{maker.username}</div>
                   </div>
                   {maker.projectCount > 0 && (
-                    <span style={{ fontSize: '13px', color: '#fbbf24', fontWeight: '500', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '13px', color: t.accent, fontWeight: '500', whiteSpace: 'nowrap' }}>
                       {maker.projectCount} made
                     </span>
                   )}
                 </div>
                 {maker.bio && (
-                  <p style={{ color: '#a8a29e', fontSize: '13px', marginTop: '8px', lineHeight: '1.5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p style={{ color: t.textSecondary, fontSize: '13px', marginTop: '8px', lineHeight: '1.5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {maker.bio}
                   </p>
                 )}
                 {maker.todayMaking && (
-                  <div style={{ marginTop: '10px', padding: '6px 10px', background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.15)', borderRadius: '6px', fontSize: '12px', color: '#a8a29e' }}>
-                    <span style={{ color: '#4ade80', fontWeight: '500' }}>Building now:</span> {maker.todayMaking}
+                  <div style={{ marginTop: '10px', padding: '6px 10px', background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.15)', borderRadius: '6px', fontSize: '12px', color: t.textSecondary }}>
+                    <span style={{ color: t.success, fontWeight: '500' }}>Building now:</span> {maker.todayMaking}
                   </div>
                 )}
                 {maker.domains?.length > 0 && (
                   <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
                     {maker.domains.slice(0, 4).map(d => (
-                      <span key={d} style={{ fontSize: '11px', color: '#57534e', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '8px' }}>{d}</span>
+                      <span key={d} style={{ fontSize: '11px', color: t.textFaint, background: t.surfaceBgHover, padding: '2px 8px', borderRadius: t.radiusSm }}>{d}</span>
                     ))}
                   </div>
                 )}
@@ -3419,16 +3465,16 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
 
         {/* Sidebar: Latest Updates */}
         <div style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: '12px',
+          background: t.surfaceBg,
+          border: `1px solid ${t.surfaceBorder}`,
+          borderRadius: t.radiusMd,
           padding: '20px',
           position: 'sticky',
           top: '24px'
         }}>
-          <h3 style={{ fontSize: '14px', color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '16px' }}>Latest Updates</h3>
+          <h3 style={{ fontSize: '14px', color: t.textTertiary, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '16px' }}>Latest Updates</h3>
           {recentUpdates.length === 0 ? (
-            <p style={{ color: '#57534e', fontSize: '13px' }}>No updates yet</p>
+            <p style={{ color: t.textFaint, fontSize: '13px' }}>No updates yet</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
               {recentUpdates.map((update, i) => (
@@ -3439,15 +3485,15 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                     <span
                       onClick={() => onViewProfile(update.username)}
-                      style={{ fontSize: '12px', color: '#a8a29e', cursor: 'pointer', fontWeight: '500' }}
-                      onMouseOver={e => e.target.style.color = '#e7e5e4'}
-                      onMouseOut={e => e.target.style.color = '#a8a29e'}
+                      style={{ fontSize: '12px', color: t.textSecondary, cursor: 'pointer', fontWeight: '500' }}
+                      onMouseOver={e => e.target.style.color = t.text}
+                      onMouseOut={e => e.target.style.color = t.textSecondary}
                     >
                       {update.name}
                     </span>
-                    <span style={{ fontSize: '11px', color: '#57534e' }}>{formatRelative(update.createdAt)}</span>
+                    <span style={{ fontSize: '11px', color: t.textFaint }}>{formatRelative(update.createdAt)}</span>
                   </div>
-                  <p style={{ fontSize: '13px', color: '#d6d3d1', lineHeight: '1.4', margin: 0 }}>{update.content}</p>
+                  <p style={{ fontSize: '13px', color: t.textMuted, lineHeight: '1.4', margin: 0 }}>{update.content}</p>
                 </div>
               ))}
             </div>
@@ -3492,8 +3538,8 @@ const MemoPage = ({ onBack, onSignup, onMakers }) => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <button onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>MAKERLY</button>
+      <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <button onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>MAKERLY</button>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-ghost" onClick={onMakers}>Makers</button>
           <button className="btn btn-ghost" onClick={onBack}>Back</button>
@@ -3503,8 +3549,8 @@ const MemoPage = ({ onBack, onSignup, onMakers }) => {
       <article className="memo-article" style={{ maxWidth: '640px', margin: '0 auto', padding: '80px 24px 60px', width: '100%' }}>
         {/* Title */}
         <div style={{ marginBottom: '60px' }}>
-          <div style={{ fontSize: '12px', letterSpacing: '0.2em', color: '#fbbf24', fontWeight: '500', marginBottom: '20px' }}>A MEMO FOR THE AI AGE</div>
-          <h1 className="memo-title" style={{ fontSize: '48px', fontFamily: "'Newsreader', Georgia, serif", fontWeight: '500', lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: '0' }}>
+          <div style={{ fontSize: '12px', letterSpacing: '0.2em', color: t.accent, fontWeight: '500', marginBottom: '20px' }}>A MEMO FOR THE AI AGE</div>
+          <h1 className="memo-title" style={{ fontSize: '48px', fontFamily: t.fontHeading, fontWeight: '500', lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: '0' }}>
             Makers vs Takers
           </h1>
         </div>
@@ -3517,7 +3563,7 @@ const MemoPage = ({ onBack, onSignup, onMakers }) => {
                 <h2 key={i} style={{
                   fontSize: '13px',
                   letterSpacing: '0.15em',
-                  color: '#fbbf24',
+                  color: t.accent,
                   fontWeight: '500',
                   marginTop: '48px',
                   marginBottom: '20px',
@@ -3531,8 +3577,8 @@ const MemoPage = ({ onBack, onSignup, onMakers }) => {
               return (
                 <p key={i} style={{
                   fontSize: '22px',
-                  fontFamily: "'Newsreader', Georgia, serif",
-                  color: '#e7e5e4',
+                  fontFamily: t.fontHeading,
+                  color: t.text,
                   lineHeight: 1.5,
                   marginTop: '48px',
                   marginBottom: '0',
@@ -3546,7 +3592,7 @@ const MemoPage = ({ onBack, onSignup, onMakers }) => {
               <p key={i} style={{
                 fontSize: '17px',
                 lineHeight: 1.75,
-                color: p.highlight ? '#e7e5e4' : '#a8a29e',
+                color: p.highlight ? t.text : t.textSecondary,
                 marginBottom: '24px',
                 ...(p.highlight ? {
                   borderLeft: '2px solid rgba(251,191,36,0.4)',
@@ -3561,8 +3607,8 @@ const MemoPage = ({ onBack, onSignup, onMakers }) => {
         </div>
 
         {/* CTA */}
-        <div style={{ marginTop: '60px', paddingTop: '40px', borderTop: '1px solid rgba(255,255,255,0.06)', textAlign: 'center' }}>
-          <p style={{ fontSize: '15px', color: '#78716c', marginBottom: '24px' }}>
+        <div style={{ marginTop: '60px', paddingTop: '40px', borderTop: `1px solid ${t.surfaceBorder}`, textAlign: 'center' }}>
+          <p style={{ fontSize: '15px', color: t.textTertiary, marginBottom: '24px' }}>
             Makerly is where makers show what they've built.
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -3635,9 +3681,9 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>MAKERLY</button>
+          <button onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>MAKERLY</button>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-ghost" onClick={onMakers}>Browse Makers</button>
@@ -3646,13 +3692,13 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       </header>
 
       {/* Hero */}
-      <section className="desktop-content" style={{ padding: '100px 40px 80px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ fontSize: '13px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500', marginBottom: '24px' }}>FOR FOUNDERS & HIRING MANAGERS</div>
-        <h1 className="hero-title" style={{ fontSize: '56px', fontFamily: "'Newsreader', Georgia, serif", fontWeight: '500', letterSpacing: '-0.02em', maxWidth: '800px', lineHeight: 1.08, margin: '0 auto 28px' }}>
+      <section className="desktop-content" style={{ padding: '100px 40px 80px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ fontSize: '13px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500', marginBottom: '24px' }}>FOR FOUNDERS & HIRING MANAGERS</div>
+        <h1 className="hero-title" style={{ fontSize: '56px', fontFamily: t.fontHeading, fontWeight: '500', letterSpacing: '-0.02em', maxWidth: '800px', lineHeight: 1.08, margin: '0 auto 28px' }}>
           Stop reading resumes.<br />
-          <span style={{ color: '#78716c' }}>See what they've built.</span>
+          <span style={{ color: t.textTertiary }}>See what they've built.</span>
         </h1>
-        <p style={{ fontSize: '18px', color: '#a8a29e', maxWidth: '560px', lineHeight: 1.6, margin: '0 auto 48px' }}>
+        <p style={{ fontSize: '18px', color: t.textSecondary, maxWidth: '560px', lineHeight: 1.6, margin: '0 auto 48px' }}>
           Every person on Makerly has built something. No job titles. No endorsements. No fluff.<br />
           Just proof of work.
         </p>
@@ -3662,35 +3708,35 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       </section>
 
       {/* The difference */}
-      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", textAlign: 'center', marginBottom: '48px' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, textAlign: 'center', marginBottom: '48px' }}>
             LinkedIn is a list of places people worked.<br />
-            <span style={{ color: '#78716c' }}>Makerly is a list of things people made.</span>
+            <span style={{ color: t.textTertiary }}>Makerly is a list of things people made.</span>
           </h2>
 
           <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
             {/* What you see on LinkedIn */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '32px', opacity: 0.5 }}>
-              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#57534e', marginBottom: '24px', fontWeight: '500' }}>A LINKEDIN PROFILE TELLS YOU</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', color: '#78716c', fontSize: '15px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusLg, padding: '32px', opacity: 0.5 }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.textFaint, marginBottom: '24px', fontWeight: '500' }}>A LINKEDIN PROFILE TELLS YOU</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', color: t.textTertiary, fontSize: '15px' }}>
                 <div>Where they went to school</div>
                 <div>Which companies hired them</div>
                 <div>What titles they held</div>
                 <div>Who endorsed their "skills"</div>
-                <div style={{ fontSize: '13px', color: '#57534e', fontStyle: 'italic', marginTop: '8px' }}>None of this tells you if they can build.</div>
+                <div style={{ fontSize: '13px', color: t.textFaint, fontStyle: 'italic', marginTop: '8px' }}>None of this tells you if they can build.</div>
               </div>
             </div>
 
             {/* What you see on Makerly */}
-            <div style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(251,191,36,0.01) 100%)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '16px', padding: '32px' }}>
-              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', marginBottom: '24px', fontWeight: '500' }}>A MAKERLY PROFILE TELLS YOU</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', color: '#e7e5e4', fontSize: '15px' }}>
+            <div style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(251,191,36,0.01) 100%)', border: `1px solid ${t.accentBorder}`, borderRadius: t.radiusLg, padding: '32px' }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.accent, marginBottom: '24px', fontWeight: '500' }}>A MAKERLY PROFILE TELLS YOU</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', color: t.text, fontSize: '15px' }}>
                 <div>What they've built — from age 8 to today</div>
                 <div>How far each project went (idea → users → revenue)</div>
                 <div>Whether they're solo founders or team players</div>
                 <div>What they're building right now</div>
-                <div style={{ fontSize: '13px', color: '#fbbf24', fontWeight: '500', marginTop: '8px' }}>This tells you everything.</div>
+                <div style={{ fontSize: '13px', color: t.accent, fontWeight: '500', marginTop: '8px' }}>This tells you everything.</div>
               </div>
             </div>
           </div>
@@ -3698,12 +3744,12 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       </section>
 
       {/* The filter */}
-      <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '20px' }}>
             Makerly is the filter.
           </h2>
-          <p style={{ fontSize: '17px', color: '#a8a29e', lineHeight: 1.6, marginBottom: '40px' }}>
+          <p style={{ fontSize: '17px', color: t.textSecondary, lineHeight: 1.6, marginBottom: '40px' }}>
             You don't need algorithms to find great people here. Everyone on Makerly has made something.
             That's the entire bar. And it's higher than any resume screen you've ever run.
           </p>
@@ -3713,9 +3759,9 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
               { num: 'Every', desc: 'person here has shipped something' },
               { num: 'Real', desc: 'projects you can click and verify' },
             ].map((item, i) => (
-              <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '24px' }}>
-                <div style={{ fontSize: '20px', fontFamily: "'Newsreader', Georgia, serif", color: '#fbbf24', marginBottom: '8px' }}>{item.num}</div>
-                <div style={{ fontSize: '13px', color: '#a8a29e' }}>{item.desc}</div>
+              <div key={i} style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, padding: '24px' }}>
+                <div style={{ fontSize: '20px', fontFamily: t.fontHeading, color: t.accent, marginBottom: '8px' }}>{item.num}</div>
+                <div style={{ fontSize: '13px', color: t.textSecondary }}>{item.desc}</div>
               </div>
             ))}
           </div>
@@ -3724,11 +3770,11 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
 
       {/* Real makers */}
       {!loading && makers.length > 0 && (
-        <section className="section-padding" style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
           <div style={{ maxWidth: '900px', margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-              <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500' }}>REAL MAKERS ON MAKERLY</span>
-              <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginTop: '12px' }}>
+              <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500' }}>REAL MAKERS ON MAKERLY</span>
+              <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginTop: '12px' }}>
                 These people have built things. See for yourself.
               </h2>
             </div>
@@ -3743,9 +3789,9 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
                   tabIndex={0}
                   aria-label={`View ${maker.name || maker.username}'s profile`}
                   style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '12px',
+                    background: t.surfaceBg,
+                    border: `1px solid ${t.surfaceBorderLight}`,
+                    borderRadius: t.radiusMd,
                     padding: '24px',
                     cursor: 'pointer',
                     transition: 'all 0.15s'
@@ -3753,14 +3799,14 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
                   onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(251,191,36,0.3)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                   onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                 >
-                  <div style={{ fontSize: '18px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '4px' }}>{maker.name || maker.username}</div>
-                  <div style={{ fontSize: '12px', color: '#57534e', marginBottom: '12px' }}>makerly.me/{maker.username}</div>
-                  {maker.bio && <p style={{ fontSize: '13px', color: '#a8a29e', lineHeight: 1.5, marginBottom: '12px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{maker.bio}</p>}
+                  <div style={{ fontSize: '18px', fontFamily: t.fontHeading, marginBottom: '4px' }}>{maker.name || maker.username}</div>
+                  <div style={{ fontSize: '12px', color: t.textFaint, marginBottom: '12px' }}>makerly.me/{maker.username}</div>
+                  {maker.bio && <p style={{ fontSize: '13px', color: t.textSecondary, lineHeight: 1.5, marginBottom: '12px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{maker.bio}</p>}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13px', color: '#fbbf24' }}>{maker.projectCount} project{maker.projectCount !== 1 ? 's' : ''}</span>
+                    <span style={{ fontSize: '13px', color: t.accent }}>{maker.projectCount} project{maker.projectCount !== 1 ? 's' : ''}</span>
                     {maker.todayMaking && (
-                      <span style={{ fontSize: '11px', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span className="ongoing-pulse" style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#4ade80' }} />
+                      <span style={{ fontSize: '11px', color: t.success, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span className="ongoing-pulse" style={{ width: '5px', height: '5px', borderRadius: '50%', background: t.success }} />
                         active
                       </span>
                     )}
@@ -3768,7 +3814,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
                   {maker.domains?.length > 0 && (
                     <div style={{ display: 'flex', gap: '4px', marginTop: '10px', flexWrap: 'wrap' }}>
                       {maker.domains.slice(0, 3).map(d => (
-                        <span key={d} style={{ fontSize: '10px', color: '#57534e', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '6px' }}>{d}</span>
+                        <span key={d} style={{ fontSize: '10px', color: t.textFaint, background: t.surfaceBgHover, padding: '2px 6px', borderRadius: '6px' }}>{d}</span>
                       ))}
                     </div>
                   )}
@@ -3786,19 +3832,19 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       )}
 
       {/* Email capture */}
-      <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={{ maxWidth: '500px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '16px' }}>
             Get notified when new makers join.
           </h2>
-          <p style={{ fontSize: '14px', color: '#78716c', marginBottom: '32px' }}>
+          <p style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '32px' }}>
             We'll email you when interesting builders create their profiles.
           </p>
 
           {submitted ? (
-            <div style={{ background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '12px', padding: '24px' }}>
-              <div style={{ fontSize: '18px', fontFamily: "'Newsreader', Georgia, serif", color: '#4ade80', marginBottom: '8px' }}>You're on the list.</div>
-              <div style={{ fontSize: '13px', color: '#a8a29e' }}>We'll let you know when new makers join.</div>
+            <div style={{ background: t.successBgSubtle, border: `1px solid ${t.successBorder}`, borderRadius: t.radiusMd, padding: '24px' }}>
+              <div style={{ fontSize: '18px', fontFamily: t.fontHeading, color: t.success, marginBottom: '8px' }}>You're on the list.</div>
+              <div style={{ fontSize: '13px', color: t.textSecondary }}>We'll let you know when new makers join.</div>
             </div>
           ) : (
             <form onSubmit={handleNotify} style={{ display: 'flex', gap: '12px' }}>
@@ -3824,10 +3870,10 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       {/* Bottom CTA */}
       <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center' }}>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '16px' }}>
             Are you a maker?
           </h2>
-          <p style={{ fontSize: '16px', color: '#a8a29e', marginBottom: '32px' }}>
+          <p style={{ fontSize: '16px', color: t.textSecondary, marginBottom: '32px' }}>
             The smartest people don't send resumes. They send their Makerly.
           </p>
           <button className="btn btn-primary" style={{ padding: '16px 48px', fontSize: '16px' }} onClick={onSignup}>
@@ -3920,7 +3966,7 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <div style={{ color: '#a8a29e', fontSize: '14px' }}>Loading admin data...</div>
+        <div style={{ color: t.textSecondary, fontSize: '14px' }}>Loading admin data...</div>
       </div>
     );
   }
@@ -3930,8 +3976,8 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontFamily: "'Newsreader', Georgia, serif", color: '#e7e5e4', margin: 0 }}>Admin</h1>
-          <p style={{ color: '#57534e', fontSize: '13px', marginTop: '4px' }}>User management & analytics</p>
+          <h1 style={{ fontSize: '28px', fontFamily: t.fontHeading, color: t.text, margin: 0 }}>Admin</h1>
+          <p style={{ color: t.textFaint, fontSize: '13px', marginTop: '4px' }}>User management & analytics</p>
         </div>
         <button className="btn btn-ghost" onClick={onBack}>Back to Dashboard</button>
       </div>
@@ -3940,19 +3986,19 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
       {stats && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '32px' }}>
           {[
-            { label: 'Total Users', value: stats.totalUsers, color: '#fbbf24' },
-            { label: 'Total Projects', value: stats.totalProjects, color: '#a78bfa' },
-            { label: 'Total Updates', value: stats.totalUpdates, color: '#4ade80' },
-            { label: 'New Users (7d)', value: stats.newUsersThisWeek, color: '#22d3ee' },
-            { label: 'Updates (7d)', value: stats.updatesThisWeek, color: '#f472b6' },
+            { label: 'Total Users', value: stats.totalUsers, color: t.accent },
+            { label: 'Total Projects', value: stats.totalProjects, color: t.purple },
+            { label: 'Total Updates', value: stats.totalUpdates, color: t.success },
+            { label: 'New Users (7d)', value: stats.newUsersThisWeek, color: t.cyan },
+            { label: 'Updates (7d)', value: stats.updatesThisWeek, color: t.pink },
           ].map(card => (
             <div key={card.label} style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: '12px',
+              background: t.surfaceBg,
+              border: `1px solid ${t.surfaceBorder}`,
+              borderRadius: t.radiusMd,
               padding: '20px'
             }}>
-              <div style={{ fontSize: '12px', color: '#57534e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>{card.label}</div>
+              <div style={{ fontSize: '12px', color: t.textFaint, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>{card.label}</div>
               <div style={{ fontSize: '32px', fontWeight: '600', color: card.color }}>{card.value}</div>
             </div>
           ))}
@@ -3960,7 +4006,7 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
       )}
 
       {/* Tab Switcher */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '4px', width: 'fit-content' }}>
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: t.surfaceBg, borderRadius: '10px', padding: '4px', width: 'fit-content' }}>
         {[
           { key: 'users', label: `Users (${users.length})` },
           { key: 'errors', label: `Errors (${errorLogs.length})` },
@@ -3970,10 +4016,10 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
             onClick={() => setActiveTab(tab.key)}
             style={{
               padding: '8px 20px',
-              borderRadius: '8px',
+              borderRadius: t.radiusSm,
               border: 'none',
               background: activeTab === tab.key ? 'rgba(255,255,255,0.1)' : 'transparent',
-              color: activeTab === tab.key ? '#e7e5e4' : '#57534e',
+              color: activeTab === tab.key ? t.text : t.textFaint,
               cursor: 'pointer',
               fontSize: '13px',
               fontWeight: '500'
@@ -3986,18 +4032,18 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
 
       {/* Users Table */}
       {activeTab === 'users' && <div style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: '12px',
+        background: t.surfaceBg,
+        border: `1px solid ${t.surfaceBorder}`,
+        borderRadius: t.radiusMd,
         overflow: 'hidden'
       }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <h2 style={{ fontSize: '16px', color: '#e7e5e4', margin: 0 }}>All Users ({users.length})</h2>
+        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+          <h2 style={{ fontSize: '16px', color: t.text, margin: 0 }}>All Users ({users.length})</h2>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <tr style={{ borderBottom: `1px solid ${t.surfaceBorder}` }}>
                 {[
                   { key: 'username', label: 'User' },
                   { key: 'projectCount', label: 'Projects' },
@@ -4011,7 +4057,7 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
                     style={{
                       padding: '12px 16px',
                       textAlign: 'left',
-                      color: '#78716c',
+                      color: t.textTertiary,
                       fontWeight: '500',
                       cursor: col.key !== 'completeness' ? 'pointer' : 'default',
                       whiteSpace: 'nowrap',
@@ -4032,19 +4078,19 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <span
                           onClick={() => onViewProfile(u.username)}
-                          style={{ color: '#e7e5e4', cursor: 'pointer', fontWeight: '500' }}
+                          style={{ color: t.text, cursor: 'pointer', fontWeight: '500' }}
                           onMouseOver={e => e.target.style.textDecoration = 'underline'}
                           onMouseOut={e => e.target.style.textDecoration = 'none'}
                         >
                           {u.name || u.username}
                         </span>
-                        <span style={{ color: '#57534e', fontSize: '12px' }}>@{u.username}</span>
+                        <span style={{ color: t.textFaint, fontSize: '12px' }}>@{u.username}</span>
                       </div>
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#a8a29e' }}>{u.projectCount}</td>
-                    <td style={{ padding: '12px 16px', color: '#a8a29e' }}>{u.updateCount}</td>
-                    <td style={{ padding: '12px 16px', color: '#a8a29e', whiteSpace: 'nowrap' }}>{formatDate(u.createdAt)}</td>
-                    <td style={{ padding: '12px 16px', color: '#a8a29e', whiteSpace: 'nowrap' }}>{formatRelative(u.lastUpdateAt)}</td>
+                    <td style={{ padding: '12px 16px', color: t.textSecondary }}>{u.projectCount}</td>
+                    <td style={{ padding: '12px 16px', color: t.textSecondary }}>{u.updateCount}</td>
+                    <td style={{ padding: '12px 16px', color: t.textSecondary, whiteSpace: 'nowrap' }}>{formatDate(u.createdAt)}</td>
+                    <td style={{ padding: '12px 16px', color: t.textSecondary, whiteSpace: 'nowrap' }}>{formatRelative(u.lastUpdateAt)}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div style={{
@@ -4057,11 +4103,11 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
                           <div style={{
                             width: `${completeness}%`,
                             height: '100%',
-                            background: completeness >= 80 ? '#4ade80' : completeness >= 40 ? '#fbbf24' : '#ef4444',
+                            background: completeness >= 80 ? t.success : completeness >= 40 ? t.accent : t.error,
                             borderRadius: '3px'
                           }} />
                         </div>
-                        <span style={{ color: '#78716c', fontSize: '12px' }}>{completeness}%</span>
+                        <span style={{ color: t.textTertiary, fontSize: '12px' }}>{completeness}%</span>
                       </div>
                     </td>
                   </tr>
@@ -4075,16 +4121,16 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
       {/* Error Logs */}
       {activeTab === 'errors' && (
         <div style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: '12px',
+          background: t.surfaceBg,
+          border: `1px solid ${t.surfaceBorder}`,
+          borderRadius: t.radiusMd,
           overflow: 'hidden'
         }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <h2 style={{ fontSize: '16px', color: '#e7e5e4', margin: 0 }}>Error Logs</h2>
+          <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+            <h2 style={{ fontSize: '16px', color: t.text, margin: 0 }}>Error Logs</h2>
           </div>
           {errorLogs.length === 0 ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#57534e' }}>No errors logged yet</div>
+            <div style={{ padding: '40px', textAlign: 'center', color: t.textFaint }}>No errors logged yet</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {errorLogs.map((log, i) => {
@@ -4101,25 +4147,25 @@ const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
                           padding: '2px 8px',
                           borderRadius: '4px',
                           background: 'rgba(239,68,68,0.15)',
-                          color: '#ef4444',
+                          color: t.error,
                           fontWeight: '500'
                         }}>
                           {log.action}
                         </span>
                         {userMatch && (
-                          <span style={{ fontSize: '12px', color: '#78716c' }}>@{userMatch.username}</span>
+                          <span style={{ fontSize: '12px', color: t.textTertiary }}>@{userMatch.username}</span>
                         )}
                         {log.error_code && (
-                          <span style={{ fontSize: '11px', color: '#57534e' }}>code: {log.error_code}</span>
+                          <span style={{ fontSize: '11px', color: t.textFaint }}>code: {log.error_code}</span>
                         )}
                       </div>
-                      <span style={{ fontSize: '11px', color: '#57534e' }}>
+                      <span style={{ fontSize: '11px', color: t.textFaint }}>
                         {new Date(log.created_at).toLocaleString()}
                       </span>
                     </div>
-                    <div style={{ fontSize: '13px', color: '#a8a29e', marginBottom: '4px' }}>{log.error_message}</div>
+                    <div style={{ fontSize: '13px', color: t.textSecondary, marginBottom: '4px' }}>{log.error_message}</div>
                     {log.metadata && (
-                      <details style={{ fontSize: '11px', color: '#57534e' }}>
+                      <details style={{ fontSize: '11px', color: t.textFaint }}>
                         <summary style={{ cursor: 'pointer' }}>metadata</summary>
                         <pre style={{ marginTop: '4px', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', overflow: 'auto', maxHeight: '120px' }}>
                           {JSON.stringify(log.metadata, null, 2)}
