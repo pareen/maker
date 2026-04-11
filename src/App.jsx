@@ -1534,23 +1534,12 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
   const [newLink, setNewLink] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const fundingRef = useRef(null);
-  const valuationRef = useRef(null);
-  const usersRef = useRef(null);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (saving) return;
     setSaving(true);
     try {
-      // Parse currency/number inputs that may not have blurred yet
-      const finalData = {
-        ...formData,
-        fundingRaised: fundingRef.current ? parseCurrencyInput(fundingRef.current.value) : formData.fundingRaised,
-        valuation: valuationRef.current ? parseCurrencyInput(valuationRef.current.value) : formData.valuation,
-        usersReached: usersRef.current ? parseNumberInput(usersRef.current.value) : formData.usersReached,
-      };
-      await onSave(finalData);
+      await onSave(formData);
     } finally {
       setSaving(false);
     }
@@ -1751,63 +1740,6 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
               value={formData.keyMetric || ''}
               onChange={(e) => setFormData({ ...formData, keyMetric: e.target.value })}
             />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Funding Raised (optional)</label>
-            <input
-              ref={fundingRef}
-              className="input"
-              inputMode="decimal"
-              placeholder="e.g. $1.5M, 250K, 500000"
-              defaultValue={formData.fundingRaised ? formatCentsPreview(formData.fundingRaised) : ''}
-              onBlur={(e) => {
-                const cents = parseCurrencyInput(e.target.value);
-                setFormData(prev => ({ ...prev, fundingRaised: cents }));
-                if (cents > 0) e.target.value = formatCentsPreview(cents);
-              }}
-            />
-            {formData.fundingRaised > 0 && (
-              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>Stored as: {formatCentsPreview(formData.fundingRaised)}</div>
-            )}
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Valuation (optional)</label>
-            <input
-              ref={valuationRef}
-              className="input"
-              inputMode="decimal"
-              placeholder="e.g. $10M, 5B, 1000000"
-              defaultValue={formData.valuation ? formatCentsPreview(formData.valuation) : ''}
-              onBlur={(e) => {
-                const cents = parseCurrencyInput(e.target.value);
-                setFormData(prev => ({ ...prev, valuation: cents }));
-                if (cents > 0) e.target.value = formatCentsPreview(cents);
-              }}
-            />
-            {formData.valuation > 0 && (
-              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>Stored as: {formatCentsPreview(formData.valuation)}</div>
-            )}
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Users Reached (optional)</label>
-            <input
-              ref={usersRef}
-              className="input"
-              inputMode="decimal"
-              placeholder="e.g. 50K, 2.1M, 500000"
-              defaultValue={formData.usersReached ? formatNumberPreview(formData.usersReached) : ''}
-              onBlur={(e) => {
-                const count = parseNumberInput(e.target.value);
-                setFormData(prev => ({ ...prev, usersReached: count }));
-                if (count > 0) e.target.value = formatNumberPreview(count);
-              }}
-            />
-            {formData.usersReached > 0 && (
-              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>Stored as: {formatNumberPreview(formData.usersReached)}</div>
-            )}
           </div>
 
           <div style={{ marginBottom: '16px' }}>
@@ -2284,6 +2216,83 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
   const totalRaisedRef = useRef(null);
   const totalValuationRef = useRef(null);
   const totalUsersRef = useRef(null);
+  const [extracting, setExtracting] = useState(false);
+  const [extractedStats, setExtractedStats] = useState(null);
+
+  const lastProcessed = localStorage.getItem('lastStatsProcessed');
+  const canProcess = !lastProcessed || (Date.now() - parseInt(lastProcessed, 10)) > 7 * 24 * 60 * 60 * 1000;
+  const daysUntilProcess = lastProcessed ? Math.max(0, Math.ceil((parseInt(lastProcessed, 10) + 7 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000))) : 0;
+
+  const processStats = async () => {
+    if (!canProcess || extracting) return;
+    setExtracting(true);
+    try {
+      const projectData = user.projects.map(p => ({
+        id: p.id,
+        name: p.name,
+        keyMetric: p.keyMetric,
+        oneLiner: p.oneLiner,
+        description: p.description,
+      }));
+      const res = await fetch('/api/extract-stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projects: projectData }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to process');
+      }
+      const { results } = await res.json();
+      // Merge results with project data for the confirmation table
+      const merged = user.projects.map((p, i) => ({
+        id: p.id,
+        name: p.name,
+        fundingRaised: results[i]?.fundingRaised ?? 0,
+        valuation: results[i]?.valuation ?? 0,
+        usersReached: results[i]?.usersReached ?? 0,
+      }));
+      setExtractedStats(merged);
+    } catch (error) {
+      console.error('Extract stats error:', error);
+      showNotification('Error processing stats: ' + (error?.message || String(error)), 'error');
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  const applyExtractedStats = async () => {
+    if (!extractedStats) return;
+    setSaving(true);
+    try {
+      for (const stat of extractedStats) {
+        if (stat.fundingRaised > 0 || stat.valuation > 0 || stat.usersReached > 0) {
+          await db.updateProject(stat.id, {
+            ...user.projects.find(p => p.id === stat.id),
+            fundingRaised: stat.fundingRaised,
+            valuation: stat.valuation,
+            usersReached: stat.usersReached,
+          });
+        }
+      }
+      // Update local state
+      setUser(prev => ({
+        ...prev,
+        projects: prev.projects.map(p => {
+          const stat = extractedStats.find(s => s.id === p.id);
+          return stat ? { ...p, fundingRaised: stat.fundingRaised, valuation: stat.valuation, usersReached: stat.usersReached } : p;
+        }),
+      }));
+      localStorage.setItem('lastStatsProcessed', String(Date.now()));
+      setExtractedStats(null);
+      showNotification('Stats updated across all projects!');
+    } catch (error) {
+      console.error('Apply stats error:', error);
+      showNotification('Error saving stats: ' + (error?.message || String(error)), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSave = async () => {
     if (saving) return;
@@ -2579,15 +2588,78 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
           >+ Add press link</button>
         </div>
 
+        {/* Process Stats with AI */}
+        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>HEADLINE STATS</h2>
+          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
+            Extract funding, valuation, and user stats from your project descriptions using AI. Runs once per week.
+          </p>
+
+          {extractedStats ? (
+            <div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                      <th style={{ textAlign: 'left', padding: '8px 4px', color: t.textFaint, fontWeight: 500 }}>Project</th>
+                      <th style={{ textAlign: 'right', padding: '8px 4px', color: t.accent, fontWeight: 500 }}>Raised</th>
+                      <th style={{ textAlign: 'right', padding: '8px 4px', color: t.accent, fontWeight: 500 }}>Valuation</th>
+                      <th style={{ textAlign: 'right', padding: '8px 4px', color: t.textFaint, fontWeight: 500 }}>Users</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {extractedStats.map((stat) => (
+                      <tr key={stat.id} style={{ borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                        <td style={{ padding: '8px 4px', color: t.text }}>{stat.name}</td>
+                        <td style={{ textAlign: 'right', padding: '8px 4px', color: stat.fundingRaised > 0 ? t.accent : t.textFaint }}>
+                          {stat.fundingRaised > 0 ? formatCentsPreview(stat.fundingRaised) : '—'}
+                        </td>
+                        <td style={{ textAlign: 'right', padding: '8px 4px', color: stat.valuation > 0 ? t.accent : t.textFaint }}>
+                          {stat.valuation > 0 ? formatCentsPreview(stat.valuation) : '—'}
+                        </td>
+                        <td style={{ textAlign: 'right', padding: '8px 4px', color: stat.usersReached > 0 ? t.text : t.textFaint }}>
+                          {stat.usersReached > 0 ? formatNumberPreview(stat.usersReached) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                <button className="btn btn-primary" onClick={applyExtractedStats} disabled={saving}>
+                  {saving ? 'Saving...' : 'Apply Stats'}
+                </button>
+                <button className="btn btn-secondary" onClick={() => setExtractedStats(null)}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <button
+                className="btn btn-primary"
+                onClick={processStats}
+                disabled={!canProcess || extracting}
+                style={{ opacity: canProcess ? 1 : 0.5 }}
+              >
+                {extracting ? 'Processing...' : 'Process My Stats'}
+              </button>
+              {!canProcess && (
+                <p style={{ fontSize: '12px', color: t.textFaint, marginTop: '8px' }}>
+                  Available again in {daysUntilProcess} day{daysUntilProcess !== 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Headline Stats Overrides */}
         <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>CURATE YOUR HEADLINE STATS</h2>
+          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>OVERRIDE TOTALS</h2>
           <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
-            Leave blank to auto-calculate from your projects. Set a value here to override the sum.
+            Override the auto-calculated totals. Leave blank to use per-project sums.
           </p>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total $ Raised (override)</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total $ Raised</label>
             <input
               ref={totalRaisedRef}
               className="input"
@@ -2608,7 +2680,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total Valuation (override)</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total Valuation</label>
             <input
               ref={totalValuationRef}
               className="input"
@@ -2629,7 +2701,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total Users (override)</label>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total Users</label>
             <input
               ref={totalUsersRef}
               className="input"
