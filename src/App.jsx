@@ -2425,6 +2425,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
 // TWITTER EMBED
 // ============================================
 const TwitterEmbed = ({ username }) => {
+  const sanitized = (username || '').replace(/[^a-zA-Z0-9_]/g, '');
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -2440,8 +2441,8 @@ const TwitterEmbed = ({ username }) => {
     anchor.setAttribute('data-theme', 'dark');
     anchor.setAttribute('data-chrome', 'noheader nofooter noborders transparent');
     anchor.setAttribute('data-tweet-limit', '3');
-    anchor.href = `https://twitter.com/${username}`;
-    anchor.textContent = `Tweets by @${username}`;
+    anchor.href = `https://twitter.com/${sanitized}`;
+    anchor.textContent = `Tweets by @${sanitized}`;
     container.appendChild(anchor);
 
     // Load or re-run the Twitter widget script
