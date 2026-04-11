@@ -3969,7 +3969,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup, onCrackedSquad })
 // ============================================
 // CRACKED SQUAD ADMIN TAB
 // ============================================
-const _CrackedSquadAdminTab = ({ users, applications, onViewProfile, onToggle, onAccept, onReject }) => (
+const CrackedSquadAdminTab = ({ users, applications, onViewProfile, onToggle, onAccept, onReject }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
     <div style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, overflow: 'hidden' }}>
       <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
@@ -4515,6 +4515,40 @@ const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) =>
           </table>
         </div>
       </div>}
+
+      {/* Cracked Squad Tab */}
+      {activeTab === 'crackedSquad' && (
+        <CrackedSquadAdminTab
+          users={sorted}
+          applications={csApplications}
+          onViewProfile={onViewProfile}
+          onToggle={async (u) => {
+            const newVal = !u.crackedSquad;
+            try {
+              await db.adminToggleCrackedSquad(u.id, newVal);
+              setUsers(prev => prev.map(p => p.id === u.id ? { ...p, crackedSquad: newVal } : p));
+              showNotification(`${u.name || u.username} ${newVal ? 'added to' : 'removed from'} Cracked Squad`);
+            } catch { showNotification('Failed to update', 'error'); }
+          }}
+          onAccept={async (app) => {
+            const applicant = users.find(u => u.id === app.user_id);
+            try {
+              await db.adminUpdateApplicationStatus(app.id, 'accepted');
+              if (applicant) await db.adminToggleCrackedSquad(applicant.id, true);
+              setCsApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'accepted' } : a));
+              if (applicant) setUsers(prev => prev.map(u => u.id === applicant.id ? { ...u, crackedSquad: true } : u));
+              showNotification(`${applicant?.name || 'User'} accepted`);
+            } catch { showNotification('Failed', 'error'); }
+          }}
+          onReject={async (app) => {
+            try {
+              await db.adminUpdateApplicationStatus(app.id, 'rejected');
+              setCsApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'rejected' } : a));
+              showNotification('Rejected');
+            } catch { showNotification('Failed', 'error'); }
+          }}
+        />
+      )}
 
       {/* Error Logs */}
       {activeTab === 'errors' && (

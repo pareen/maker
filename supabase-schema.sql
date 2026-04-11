@@ -190,3 +190,38 @@ CREATE INDEX error_logs_user_id_idx ON error_logs(user_id);
 -- ALTER TABLE projects ADD COLUMN IF NOT EXISTS image_url TEXT;
 -- ALTER TABLE projects ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT FALSE;
 -- ALTER TABLE projects ADD COLUMN IF NOT EXISTS key_metric TEXT;
+
+-- Migration: Add cracked_squad field to profiles
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cracked_squad BOOLEAN DEFAULT FALSE;
+
+-- Cracked Squad Applications table
+CREATE TABLE cracked_squad_applications (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  biggest_problem TEXT NOT NULL,
+  peers_opinion TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE cracked_squad_applications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can insert their own applications"
+  ON cracked_squad_applications FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can read own applications"
+  ON cracked_squad_applications FOR SELECT
+  USING (auth.uid() = user_id OR auth.uid() = 'a21214a3-a805-4549-b774-d9d73069c352'::uuid);
+
+CREATE POLICY "Admin can update applications"
+  ON cracked_squad_applications FOR UPDATE
+  USING (auth.uid() = 'a21214a3-a805-4549-b774-d9d73069c352'::uuid);
+
+CREATE INDEX cracked_squad_applications_user_id_idx ON cracked_squad_applications(user_id);
+CREATE INDEX cracked_squad_applications_status_idx ON cracked_squad_applications(status);
+
+CREATE TRIGGER cracked_squad_applications_updated_at
+  BEFORE UPDATE ON cracked_squad_applications
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
