@@ -309,6 +309,7 @@ const App = () => {
         .notification.error { background: #7f1d1d; color: #fca5a5; }
 
         @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 100; animation: fadeIn 0.15s ease; }
@@ -333,13 +334,34 @@ const App = () => {
 
         @media (max-width: 768px) {
           .desktop-grid { grid-template-columns: 1fr !important; }
-          .desktop-header { padding-left: 16px !important; padding-right: 16px !important; }
-          .desktop-header .header-actions { gap: 6px !important; }
-          .desktop-header .header-actions .btn { padding: 8px 12px !important; font-size: 12px !important; }
+          .desktop-header { padding: 12px 16px !important; }
+          .desktop-header .header-actions { display: none !important; }
+          .desktop-header .mobile-menu-toggle { display: flex !important; }
           .desktop-content { padding-left: 16px !important; padding-right: 16px !important; }
-          .hero-title { font-size: 32px !important; }
+          .hero-title { font-size: 36px !important; }
+          .hero-subtitle { font-size: 16px !important; }
           .profile-name { font-size: 32px !important; }
           .share-grid { grid-template-columns: 1fr !important; }
+          .section-padding { padding: 48px 16px !important; }
+          .maker-directory-grid { grid-template-columns: 1fr !important; }
+          .profile-container { padding: 32px 16px !important; }
+          .footer-wrap { padding: 32px 16px 24px !important; }
+          .footer-links { gap: 24px !important; }
+          .sample-profile-card { padding: 24px !important; }
+          .card-padding-mobile { padding: 20px !important; }
+          .memo-article { padding: 48px 16px 40px !important; }
+          .memo-title { font-size: 32px !important; }
+          .hire-filter-grid { grid-template-columns: 1fr !important; }
+          .hide-mobile { display: none !important; }
+          .directory-container { padding: 24px 16px !important; }
+        }
+
+        @media (max-width: 480px) {
+          .hero-title { font-size: 28px !important; }
+          .hero-cta-group { flex-direction: column !important; align-items: stretch !important; }
+          .hero-cta-group .btn { width: 100% !important; }
+          .profile-name { font-size: 28px !important; }
+          .desktop-header { padding: 10px 12px !important; }
         }
       `}</style>
 
@@ -526,7 +548,7 @@ const builderQuotes = [
 ];
 
 const SiteFooter = ({ onMakers, onHire, onMemo, onSignup }) => (
-  <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '48px 40px 32px', marginTop: 'auto' }}>
+  <footer className="footer-wrap" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '48px 40px 32px', marginTop: 'auto' }}>
     <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '32px' }}>
       <div>
         <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '600', marginBottom: '16px' }}>MAKERLY</div>
@@ -534,7 +556,7 @@ const SiteFooter = ({ onMakers, onHire, onMemo, onSignup }) => (
           Resumes are dead. Show what you've made.
         </p>
       </div>
-      <div style={{ display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
+      <div className="footer-links" style={{ display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', fontWeight: '500' }}>EXPLORE</span>
           {onMakers && <a onClick={onMakers} style={{ fontSize: '13px', color: '#a8a29e', cursor: 'pointer', textDecoration: 'none' }}>Makers</a>}
@@ -555,7 +577,42 @@ const SiteFooter = ({ onMakers, onHire, onMemo, onSignup }) => (
   </footer>
 );
 
+const MobileMenuButton = ({ onClick, isOpen }) => (
+  <button
+    className="btn btn-ghost mobile-menu-toggle"
+    onClick={onClick}
+    aria-label={isOpen ? 'Close menu' : 'Open menu'}
+    aria-expanded={isOpen}
+    style={{ display: 'none', padding: '8px', fontSize: '20px', lineHeight: 1 }}
+  >
+    {isOpen ? '✕' : '☰'}
+  </button>
+);
+
+const MobileDrawer = ({ isOpen, onClose, children }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="mobile-drawer" style={{
+      position: 'fixed', inset: 0, zIndex: 99, animation: 'fadeIn 0.15s ease'
+    }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} onClick={onClose} />
+      <nav style={{
+        position: 'absolute', top: 0, right: 0, bottom: 0, width: '280px',
+        background: '#1c1917', borderLeft: '1px solid rgba(255,255,255,0.08)',
+        padding: '24px', display: 'flex', flexDirection: 'column', gap: '4px',
+        animation: 'slideInRight 0.2s ease', overflowY: 'auto'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+          <button className="btn btn-ghost" onClick={onClose} aria-label="Close menu" style={{ padding: '8px', fontSize: '20px', lineHeight: 1 }}>✕</button>
+        </div>
+        {children}
+      </nav>
+    </div>
+  );
+};
+
 const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const sampleRoleBreakdown = roles.map(role => ({
     ...role,
     count: sampleMaker.projects.filter(p => p.role === role.key).length,
@@ -566,6 +623,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
     { label: "Things made", value: sampleMaker.projects.length, color: '#e7e5e4' },
     { label: "Reached users", value: sampleMaker.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 4).length, color: '#fb923c' },
     { label: "Reached paying", value: sampleMaker.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 5).length, color: '#f472b6' },
+    { label: "Funded", value: sampleMaker.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 6).length, color: '#a78bfa' },
     { label: "Acquisitions", value: sampleMaker.projects.filter(p => p.currentStage === 'acquired').length, color: '#22d3ee' },
   ];
 
@@ -580,7 +638,18 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
           <button className="btn btn-ghost" onClick={onLogin}>Log in</button>
           <button className="btn btn-primary" onClick={onSignup}>Sign up</button>
         </div>
+        <MobileMenuButton onClick={() => setMobileMenuOpen(true)} isOpen={mobileMenuOpen} />
       </header>
+
+      <MobileDrawer isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}>
+        <button className="btn btn-ghost" style={{ textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { setMobileMenuOpen(false); onMemo(); }}>Memo</button>
+        <button className="btn btn-ghost" style={{ textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { setMobileMenuOpen(false); onMakers(); }}>Browse Makers</button>
+        <button className="btn btn-ghost" style={{ textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { setMobileMenuOpen(false); onHire(); }}>Hire</button>
+        <button className="btn btn-ghost" style={{ textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { setMobileMenuOpen(false); onLogin(); }}>Log in</button>
+        <div style={{ marginTop: '8px' }}>
+          <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => { setMobileMenuOpen(false); onSignup(); }}>Sign up</button>
+        </div>
+      </MobileDrawer>
 
       {/* Hero */}
       <section className="desktop-content" style={{ padding: '100px 40px 80px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -589,11 +658,11 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
           Resumes are dead.<br />
           <span style={{ color: '#78716c' }}>Show what you've made.</span>
         </h1>
-        <p style={{ fontSize: '18px', color: '#a8a29e', maxWidth: '520px', lineHeight: 1.6, margin: '0 auto 48px' }}>
+        <p className="hero-subtitle" style={{ fontSize: '18px', color: '#a8a29e', maxWidth: '520px', lineHeight: 1.6, margin: '0 auto 48px' }}>
           In the AI era, you are what you build. The smartest people don't send resumes —
           they send their Makerly.
         </p>
-        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <div className="hero-cta-group" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button className="btn btn-primary" style={{ padding: '16px 48px', fontSize: '16px' }} onClick={onSignup}>
             Start your maker profile
           </button>
@@ -604,7 +673,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
       </section>
 
       {/* The Contrast: LinkedIn vs Makerly */}
-      <section style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif" }}>Cool people don't send resumes.</h2>
@@ -663,7 +732,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
       </section>
 
       {/* Everything Counts */}
-      <section style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '28px' }}>
             Everything counts.
@@ -691,7 +760,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
       </section>
 
       {/* Quotes */}
-      <section style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500' }}>THE BUILDER ETHOS</span>
@@ -720,14 +789,14 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
       </section>
 
       {/* Sample Profile */}
-      <section style={{ padding: '80px 40px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500' }}>EXAMPLE PROFILE</span>
           <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginTop: '12px' }}>This is Priya. She's made 6 things.<br /><span style={{ color: '#78716c' }}>Some worked, some didn't. That's the point.</span></h2>
         </div>
 
         {/* Sample Profile Card */}
-        <div style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '40px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+        <div className="sample-profile-card" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '40px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
 
           <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '48px' }}>
             {/* Left: Profile Info */}
@@ -852,7 +921,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
       </section>
 
       {/* Hiring pitch */}
-      <section style={{ padding: '60px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '60px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '500px', margin: '0 auto' }}>
           <p style={{ fontSize: '15px', color: '#78716c', lineHeight: 1.6 }}>
             Hiring? Every person on Makerly has built something. That's the filter.
@@ -1013,6 +1082,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [showGitHubImport, setShowGitHubImport] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [updatesPage, setUpdatesPage] = useState(1);
   const UPDATES_PER_PAGE = 10;
 
@@ -1152,9 +1222,23 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
           {onAdmin && <button className="btn btn-ghost" onClick={onAdmin} style={{ color: '#fbbf24' }}>Admin</button>}
           <button className="btn btn-ghost" onClick={onLogout}>Log out</button>
         </div>
+        <MobileMenuButton onClick={() => setMobileMenuOpen(true)} isOpen={mobileMenuOpen} />
       </header>
 
-      <div style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
+      <MobileDrawer isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}>
+        <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onEditProfile(); }}>Edit Profile</button>
+        <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onViewProfile(); }}>View Profile</button>
+        <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onMakers(); }}>Makers</button>
+        {onAdmin && <button className="btn btn-ghost" style={{ textAlign: 'left', color: '#fbbf24' }} onClick={() => { setMobileMenuOpen(false); onAdmin(); }}>Admin</button>}
+        <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onLogout(); }}>Log out</button>
+        <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => { setMobileMenuOpen(false); onShare(); }}>
+            <span>↗</span> Share
+          </button>
+        </div>
+      </MobileDrawer>
+
+      <div className="desktop-content" style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
         {/* Welcome */}
         <div style={{ marginBottom: '48px' }}>
           <h1 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>
@@ -2051,12 +2135,12 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
 
   return (
     <div style={{ minHeight: '100vh' }}>
-      <header style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <button className="btn btn-ghost" onClick={onBack}>← Back to Dashboard</button>
-        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+      <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <button className="btn btn-ghost" onClick={onBack}>← Back</button>
+        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
       </header>
 
-      <div style={{ padding: '40px', maxWidth: '700px', margin: '0 auto' }}>
+      <div className="desktop-content" style={{ padding: '40px', maxWidth: '700px', margin: '0 auto' }}>
         <h1 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '32px' }}>Edit Profile</h1>
 
         {/* Basic Info */}
@@ -2455,16 +2539,17 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
     { label: "Things made", value: user.projects.length, color: '#e7e5e4' },
     { label: "Reached users", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 4).length, color: '#fb923c' },
     { label: "Reached paying", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 5).length, color: '#f472b6' },
+    { label: "Funded", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 6).length, color: '#a78bfa' },
     { label: "Acquisitions", value: user.projects.filter(p => p.currentStage === 'acquired').length, color: '#22d3ee' },
   ].filter(s => s.value > 0 || s.label === 'Things made');
 
   return (
     <div style={{ minHeight: '100vh' }}>
       {/* Header */}
-      <header style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button className="btn btn-ghost" onClick={onBack}>← Back</button>
-          <span style={{ fontSize: '14px', letterSpacing: '0.1em', color: '#57534e' }}>makerly.me/{user.username}</span>
+          <span className="hide-mobile" style={{ fontSize: '14px', letterSpacing: '0.1em', color: '#57534e' }}>makerly.me/{user.username}</span>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           {!isOwner && user.showEmail && user.contactEmail && (
@@ -2483,7 +2568,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         </div>
       </header>
 
-      <div style={{ padding: '60px 40px', maxWidth: '1100px', margin: '0 auto' }}>
+      <div className="profile-container" style={{ padding: '60px 40px', maxWidth: '1100px', margin: '0 auto' }}>
         {/* Profile Header */}
         <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '60px', marginBottom: '60px' }}>
           <div>
@@ -3205,7 +3290,7 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
   }
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 24px' }}>
+    <div className="directory-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 24px' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
@@ -3340,13 +3425,6 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
           )}
         </div>
       </div>
-
-      {/* Mobile: show updates below on small screens */}
-      <style>{`
-        @media (max-width: 768px) {
-          .maker-directory-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
     </div>
   );
 };
@@ -3393,11 +3471,11 @@ const MemoPage = ({ onBack, onSignup, onMakers }) => {
         </div>
       </header>
 
-      <article style={{ maxWidth: '640px', margin: '0 auto', padding: '80px 24px 60px', width: '100%' }}>
+      <article className="memo-article" style={{ maxWidth: '640px', margin: '0 auto', padding: '80px 24px 60px', width: '100%' }}>
         {/* Title */}
         <div style={{ marginBottom: '60px' }}>
           <div style={{ fontSize: '12px', letterSpacing: '0.2em', color: '#fbbf24', fontWeight: '500', marginBottom: '20px' }}>A MEMO FOR THE AI AGE</div>
-          <h1 style={{ fontSize: '48px', fontFamily: "'Newsreader', Georgia, serif", fontWeight: '500', lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: '0' }}>
+          <h1 className="memo-title" style={{ fontSize: '48px', fontFamily: "'Newsreader', Georgia, serif", fontWeight: '500', lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: '0' }}>
             Makers vs Takers
           </h1>
         </div>
@@ -3470,12 +3548,6 @@ const MemoPage = ({ onBack, onSignup, onMakers }) => {
       </article>
 
       <SiteFooter onMakers={onMakers} onSignup={onSignup} />
-
-      <style>{`
-        @media (max-width: 768px) {
-          .desktop-header { padding: 16px 20px !important; }
-        }
-      `}</style>
     </div>
   );
 };
@@ -3561,7 +3633,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       </section>
 
       {/* The difference */}
-      <section style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", textAlign: 'center', marginBottom: '48px' }}>
             LinkedIn is a list of places people worked.<br />
@@ -3597,7 +3669,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       </section>
 
       {/* The filter */}
-      <section style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '20px' }}>
             Makerly is the filter.
@@ -3606,7 +3678,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
             You don't need algorithms to find great people here. Everyone on Makerly has made something.
             That's the entire bar. And it's higher than any resume screen you've ever run.
           </p>
-          <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+          <div className="desktop-grid hire-filter-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
             {[
               { num: 'Zero', desc: 'job titles or degrees required' },
               { num: 'Every', desc: 'person here has shipped something' },
@@ -3623,7 +3695,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
 
       {/* Real makers */}
       {!loading && makers.length > 0 && (
-        <section style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <section className="section-padding" style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: '48px' }}>
               <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500' }}>REAL MAKERS ON MAKERLY</span>
@@ -3681,7 +3753,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       )}
 
       {/* Email capture */}
-      <section style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '500px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '16px' }}>
             Get notified when new makers join.
@@ -3715,7 +3787,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       </section>
 
       {/* Bottom CTA */}
-      <section style={{ padding: '80px 40px', textAlign: 'center' }}>
+      <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center' }}>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '16px' }}>
             Are you a maker?
@@ -3730,15 +3802,6 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       </section>
 
       <SiteFooter onMakers={onMakers} onSignup={onSignup} />
-
-      <style>{`
-        @media (max-width: 768px) {
-          .desktop-grid { grid-template-columns: 1fr !important; }
-          .desktop-header { padding: 16px 20px !important; }
-          .desktop-content { padding: 60px 20px 60px !important; }
-          .hero-title { font-size: 36px !important; }
-        }
-      `}</style>
     </div>
   );
 };
