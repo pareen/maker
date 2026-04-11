@@ -838,7 +838,7 @@ export async function adminGetAllUsers() {
 
   return (profiles || []).map(p => ({
     ...profileFromDb(p),
-    email: p.email,
+    email: p.contact_email || null,
     createdAt: p.created_at,
     projectCount: projectCounts[p.id] || 0,
     updateCount: updateCounts[p.id] || 0,
@@ -1061,7 +1061,7 @@ function updateProfileLocal(userId, updates) {
   }
 
   // Only merge profile fields — never overwrite projects, id, email, etc.
-  const profileFields = ['name', 'bio', 'firstMake', 'domains', 'todayMaking', 'socials', 'embedFeed', 'philosophy', 'pressLinks', 'totalRaised', 'totalValuation', 'totalUsers']
+  const profileFields = ['name', 'bio', 'firstMake', 'domains', 'todayMaking', 'socials', 'embedFeed', 'showEmail', 'contactEmail', 'philosophy', 'pressLinks', 'totalRaised', 'totalValuation', 'totalUsers']
   for (const field of profileFields) {
     if (field in updates) {
       users[userKey][field] = updates[field]

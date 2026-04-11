@@ -18,6 +18,12 @@ CREATE TABLE profiles (
   embed_feed JSONB DEFAULT '{"type": null, "url": ""}',
   show_email BOOLEAN DEFAULT FALSE,
   contact_email TEXT,
+  cracked_squad BOOLEAN DEFAULT FALSE,
+  philosophy TEXT,
+  press_links JSONB DEFAULT '[]',
+  total_raised BIGINT,
+  total_valuation BIGINT,
+  total_users BIGINT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -40,6 +46,9 @@ CREATE TABLE projects (
   image_url TEXT,
   featured BOOLEAN DEFAULT FALSE,
   key_metric TEXT,
+  funding_raised BIGINT DEFAULT 0,
+  valuation BIGINT DEFAULT 0,
+  users_reached BIGINT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -88,6 +97,8 @@ BEGIN
     NEW.id,
     COALESCE(
       NEW.raw_user_meta_data->>'username',
+      NEW.raw_user_meta_data->>'user_name',
+      NEW.raw_user_meta_data->>'preferred_username',
       split_part(NEW.email, '@', 1),
       'user_' || LEFT(NEW.id::text, 8)
     )
@@ -147,7 +158,7 @@ CREATE POLICY "Users can delete their own updates"
   ON updates FOR DELETE
   USING (auth.uid() = user_id);
 
--- Create index for faster username lookups
+-- Indexes
 CREATE INDEX profiles_username_idx ON profiles(username);
 CREATE INDEX projects_user_id_idx ON projects(user_id);
 CREATE INDEX updates_user_id_idx ON updates(user_id);
@@ -178,33 +189,6 @@ CREATE POLICY "Admin can read error logs"
 
 CREATE INDEX error_logs_created_at_idx ON error_logs(created_at DESC);
 CREATE INDEX error_logs_user_id_idx ON error_logs(user_id);
-
--- Migration: Add contact fields to profiles (run if upgrading existing database)
--- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_email BOOLEAN DEFAULT FALSE;
--- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS contact_email TEXT;
-
--- Migration: Add description field to projects (run if upgrading existing database)
--- ALTER TABLE projects ADD COLUMN IF NOT EXISTS description TEXT;
-
--- Migration: Add financial/metric fields to projects (run if upgrading existing database)
--- ALTER TABLE projects ADD COLUMN IF NOT EXISTS funding_raised BIGINT DEFAULT 0;
--- ALTER TABLE projects ADD COLUMN IF NOT EXISTS valuation BIGINT DEFAULT 0;
--- ALTER TABLE projects ADD COLUMN IF NOT EXISTS users_reached BIGINT DEFAULT 0;
-
--- Migration: Add philosophy, press links, and headline stat overrides to profiles
--- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS philosophy TEXT;
--- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS press_links JSONB DEFAULT '[]';
--- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_raised BIGINT;
--- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_valuation BIGINT;
--- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_users BIGINT;
-
--- Migration: Add image_url, featured, key_metric fields to projects
--- ALTER TABLE projects ADD COLUMN IF NOT EXISTS image_url TEXT;
--- ALTER TABLE projects ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT FALSE;
--- ALTER TABLE projects ADD COLUMN IF NOT EXISTS key_metric TEXT;
-
--- Migration: Add cracked_squad field to profiles
--- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cracked_squad BOOLEAN DEFAULT FALSE;
 
 -- Cracked Squad Applications table
 CREATE TABLE cracked_squad_applications (
