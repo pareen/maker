@@ -256,6 +256,7 @@ const App = () => {
     });
 
     return () => subscription?.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showNotification = (message, type = 'success') => {
@@ -326,6 +327,7 @@ const App = () => {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
   return (
@@ -456,6 +458,7 @@ const App = () => {
           onMakers={() => navigate('makers')}
           onHire={() => navigate('hire')}
           onMemo={() => navigate('memo')}
+          onCrackedSquad={() => navigate('crackedSquad')}
         />
       )}
 
@@ -545,6 +548,7 @@ const App = () => {
           onMakers={() => navigate('makers')}
           onBack={() => navigate(currentUser ? 'dashboard' : 'landing')}
           onSignup={() => navigate('signup')}
+          onCrackedSquad={() => navigate('crackedSquad')}
         />
       )}
 
@@ -553,6 +557,7 @@ const App = () => {
           onBack={() => navigate(currentUser ? 'dashboard' : 'landing')}
           onSignup={() => navigate('signup')}
           onMakers={() => navigate('makers')}
+          onCrackedSquad={() => navigate('crackedSquad')}
         />
       )}
 
@@ -622,7 +627,7 @@ const builderQuotes = [
   { quote: "If you're not embarrassed by the first version of your product, you've launched too late.", author: "Reid Hoffman", role: "Co-founder, LinkedIn" },
 ];
 
-const SiteFooter = ({ onMakers, onHire, onMemo, onSignup }) => (
+const SiteFooter = ({ onMakers, onHire, onMemo, onSignup, onCrackedSquad }) => (
   <footer className="footer-wrap" style={{ borderTop: `1px solid ${t.surfaceBorder}`, padding: '48px 40px 32px', marginTop: 'auto' }}>
     <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '32px' }}>
       <div>
@@ -637,6 +642,7 @@ const SiteFooter = ({ onMakers, onHire, onMemo, onSignup }) => (
           {onMakers && <a onClick={onMakers} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Makers</a>}
           {onHire && <a onClick={onHire} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Hire</a>}
           {onMemo && <a onClick={onMemo} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Memo</a>}
+          {onCrackedSquad && <a onClick={onCrackedSquad} style={{ fontSize: '13px', color: t.error, cursor: 'pointer', textDecoration: 'none' }}>Cracked Squad</a>}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>CONNECT</span>
@@ -695,7 +701,7 @@ const MobileDrawer = ({ isOpen, onClose, children }) => {
   );
 };
 
-const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
+const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo, onCrackedSquad }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const sampleRoleBreakdown = roles.map(role => ({
     ...role,
@@ -1016,7 +1022,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
         </div>
       </section>
 
-      <SiteFooter onMakers={onMakers} onHire={onHire} onMemo={onMemo} onSignup={onSignup} />
+      <SiteFooter onMakers={onMakers} onHire={onHire} onMemo={onMemo} onSignup={onSignup} onCrackedSquad={onCrackedSquad} />
     </div>
   );
 };
@@ -1190,6 +1196,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
       }
     };
     checkOAuthReturn();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const postUpdate = async () => {
@@ -2461,6 +2468,7 @@ const TwitterEmbed = ({ username }) => {
     }
 
     return () => { container.innerHTML = ''; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
 
   return <div ref={containerRef} style={{ maxHeight: '500px', overflow: 'auto' }} />;
@@ -2616,6 +2624,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
     if (isOwner && (!user.updates || user.updates.length === 0)) {
       db.getUpdatesByUserId(user.id).then(setUpdates).catch(console.error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id, isOwner]);
 
   // Update page title
@@ -3577,7 +3586,7 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
 // ============================================
 // MEMO PAGE
 // ============================================
-const MemoPage = ({ onBack, onSignup, onMakers }) => {
+const MemoPage = ({ onBack, onSignup, onMakers, onCrackedSquad }) => {
   useEffect(() => {
     document.title = 'Makers vs Takers — Makerly';
     return () => { document.title = 'Makerly — Show what you\'ve made'; };
@@ -3692,7 +3701,7 @@ const MemoPage = ({ onBack, onSignup, onMakers }) => {
         </div>
       </article>
 
-      <SiteFooter onMakers={onMakers} onSignup={onSignup} />
+      <SiteFooter onMakers={onMakers} onSignup={onSignup} onCrackedSquad={onCrackedSquad} />
     </div>
   );
 };
@@ -3700,7 +3709,7 @@ const MemoPage = ({ onBack, onSignup, onMakers }) => {
 // ============================================
 // HIRE PAGE
 // ============================================
-const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
+const HirePage = ({ onViewProfile, onMakers, onBack, onSignup, onCrackedSquad }) => {
   const [makers, setMakers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
@@ -3952,10 +3961,75 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
         </div>
       </section>
 
-      <SiteFooter onMakers={onMakers} onSignup={onSignup} />
+      <SiteFooter onMakers={onMakers} onSignup={onSignup} onCrackedSquad={onCrackedSquad} />
     </div>
   );
 };
+
+// ============================================
+// CRACKED SQUAD ADMIN TAB
+// ============================================
+const _CrackedSquadAdminTab = ({ users, applications, onViewProfile, onToggle, onAccept, onReject }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, overflow: 'hidden' }}>
+      <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <h2 style={{ fontSize: '16px', color: t.text, margin: 0 }}>Toggle Members</h2>
+        <p style={{ fontSize: '12px', color: t.textFaint, marginTop: '4px' }}>Manually add or remove users</p>
+      </div>
+      <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+        {users.map(u => (
+          <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span onClick={() => onViewProfile(u.username)} style={{ color: t.text, cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>{u.name || u.username}</span>
+              <span style={{ fontSize: '11px', color: t.textFaint }}>@{u.username}</span>
+            </div>
+            <button onClick={() => onToggle(u)} style={{ padding: '4px 12px', borderRadius: '12px', border: `1px solid ${u.crackedSquad ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'}`, background: u.crackedSquad ? 'rgba(239,68,68,0.1)' : 'transparent', color: u.crackedSquad ? t.error : t.textFaint, cursor: 'pointer', fontSize: '11px', fontWeight: '500' }}>{u.crackedSquad ? 'MEMBER' : 'Add'}</button>
+          </div>
+        ))}
+      </div>
+    </div>
+    <div style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, overflow: 'hidden' }}>
+      <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <h2 style={{ fontSize: '16px', color: t.text, margin: 0 }}>Applications ({applications.length})</h2>
+      </div>
+      {applications.length === 0 ? (
+        <div style={{ padding: '40px', textAlign: 'center', color: t.textFaint }}>No applications yet</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {applications.map((app, i) => {
+            const applicant = users.find(u => u.id === app.user_id);
+            const sc = { pending: { bg: 'rgba(251,191,36,0.1)', color: t.accent, border: 'rgba(251,191,36,0.2)' }, accepted: { bg: 'rgba(74,222,128,0.1)', color: t.success, border: 'rgba(74,222,128,0.2)' }, rejected: { bg: 'rgba(239,68,68,0.1)', color: t.error, border: 'rgba(239,68,68,0.2)' } }[app.status] || { bg: 'rgba(251,191,36,0.1)', color: t.accent, border: 'rgba(251,191,36,0.2)' };
+            return (
+              <div key={app.id} style={{ padding: '20px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {applicant ? <span onClick={() => onViewProfile(applicant.username)} style={{ color: t.text, cursor: 'pointer', fontWeight: '500', fontSize: '14px' }}>{applicant.name || applicant.username}</span> : <span style={{ color: t.textTertiary, fontSize: '14px' }}>Unknown user</span>}
+                    <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '8px', fontWeight: '600', letterSpacing: '0.05em', background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>{app.status.toUpperCase()}</span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: t.textFaint }}>{new Date(app.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+                <div style={{ marginBottom: '10px' }}>
+                  <div style={{ fontSize: '11px', color: t.textFaint, marginBottom: '4px', fontWeight: '500' }}>Biggest problem in their life:</div>
+                  <div style={{ fontSize: '13px', color: t.textSecondary, lineHeight: 1.5, padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>{app.biggest_problem}</div>
+                </div>
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '11px', color: t.textFaint, marginBottom: '4px', fontWeight: '500' }}>What they think of their peers:</div>
+                  <div style={{ fontSize: '13px', color: t.textSecondary, lineHeight: 1.5, padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>{app.peers_opinion}</div>
+                </div>
+                {app.status === 'pending' && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn" onClick={() => onAccept(app)} style={{ padding: '6px 16px', background: 'rgba(74,222,128,0.1)', color: t.success, border: '1px solid rgba(74,222,128,0.2)', borderRadius: '8px', fontSize: '12px', fontWeight: '500', cursor: 'pointer' }}>Accept</button>
+                    <button className="btn" onClick={() => onReject(app)} style={{ padding: '6px 16px', background: 'rgba(239,68,68,0.1)', color: t.error, border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', fontSize: '12px', fontWeight: '500', cursor: 'pointer' }}>Reject</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  </div>
+);
 
 // ============================================
 // CRACKED SQUAD PAGE
@@ -4240,6 +4314,7 @@ const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) =>
       }
     };
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const sorted = [...users].sort((a, b) => {

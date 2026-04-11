@@ -78,7 +78,7 @@ export default async function middleware(request) {
     return new Response(html, {
       headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300' }
     })
-  } catch (err) {
+  } catch (_err) {
     return
   }
 }

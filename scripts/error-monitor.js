@@ -49,7 +49,6 @@ async function fetchNewErrors() {
 
 async function getUsernames(userIds) {
   if (userIds.length === 0) return {}
-  const ids = userIds.map(id => `"${id}"`).join(',')
   const url = `${SUPABASE_URL}/rest/v1/profiles?id=in.(${userIds.join(',')})&select=id,username`
   const res = await fetch(url, {
     headers: {
