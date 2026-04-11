@@ -2939,7 +2939,36 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
   const [showAllUpdates, setShowAllUpdates] = useState(false);
   const [updates, setUpdates] = useState(user.updates || []);
   const [projectViewMode, setProjectViewMode] = useState('list'); // 'list' | 'timeline'
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [contactMsg, setContactMsg] = useState({ name: '', email: '', message: '' });
+  const [contactSending, setContactSending] = useState(false);
+  const [contactSent, setContactSent] = useState(false);
   const PROFILE_UPDATES_LIMIT = 5;
+
+  const handleContactSubmit = async () => {
+    if (!contactMsg.message.trim()) return;
+    setContactSending(true);
+    try {
+      const res = await fetch('/api/contact-maker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toEmail: user.contactEmail,
+          toUsername: user.username,
+          senderName: contactMsg.name,
+          senderEmail: contactMsg.email,
+          message: contactMsg.message,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to send');
+      setContactSent(true);
+      setContactMsg({ name: '', email: '', message: '' });
+    } catch {
+      alert('Failed to send message. Please try again.');
+    } finally {
+      setContactSending(false);
+    }
+  };
 
   // Load updates for the logged-in user (they're not on the user object)
   useEffect(() => {
@@ -2984,9 +3013,9 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           {!isOwner && user.showEmail && user.contactEmail && (
-            <a href={`mailto:${user.contactEmail}`} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-              Get in touch
-            </a>
+            <button className="btn btn-primary" onClick={() => { setShowContactForm(f => !f); setContactSent(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {showContactForm ? 'Close' : 'Contact'}
+            </button>
           )}
           {isOwner && (
             <>
@@ -2998,6 +3027,60 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
           )}
         </div>
       </header>
+
+      {/* Contact Form */}
+      {showContactForm && (
+        <div style={{ borderBottom: `1px solid ${t.surfaceBorder}`, padding: '24px 40px', background: t.surfaceRaised }}>
+          <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+            {contactSent ? (
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <div style={{ fontSize: '18px', marginBottom: '8px' }}>Message sent</div>
+                <p style={{ fontSize: '13px', color: t.textSecondary }}>{user.name || user.username} will receive your message via email.</p>
+              </div>
+            ) : (
+              <>
+                <h3 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '16px' }}>Send a message to {user.name || user.username}</h3>
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                  <input
+                    className="input"
+                    placeholder="Your name"
+                    value={contactMsg.name}
+                    onChange={e => setContactMsg(m => ({ ...m, name: e.target.value }))}
+                    style={{ flex: 1 }}
+                  />
+                  <input
+                    className="input"
+                    type="email"
+                    placeholder="Your email (for reply)"
+                    value={contactMsg.email}
+                    onChange={e => setContactMsg(m => ({ ...m, email: e.target.value }))}
+                    style={{ flex: 1 }}
+                  />
+                </div>
+                <textarea
+                  className="input"
+                  placeholder="Your message..."
+                  value={contactMsg.message}
+                  onChange={e => setContactMsg(m => ({ ...m, message: e.target.value }))}
+                  rows={4}
+                  maxLength={2000}
+                  style={{ width: '100%', resize: 'vertical', marginBottom: '12px' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: t.textFaint }}>{contactMsg.message.length}/2000</span>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleContactSubmit}
+                    disabled={contactSending || !contactMsg.message.trim()}
+                  >
+                    {contactSending ? 'Sending...' : 'Send message'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="profile-container" style={{ padding: '60px 40px', maxWidth: '1100px', margin: '0 auto' }}>
         {/* Profile Header */}
