@@ -23,7 +23,7 @@ const safeImageUrl = (url) => {
 // ============================================
 
 // Design tokens — single source of truth for visual system
-const t = {
+const t = Object.freeze({
   // Colors: Tailwind Stone scale + semantic accents
   bg: '#0c0a09',           // stone-950
   surface: '#1c1917',      // stone-900
@@ -66,7 +66,7 @@ const t = {
   accentBgSubtle: 'rgba(251,191,36,0.05)',
   successBorder: 'rgba(74,222,128,0.2)',
   successBgSubtle: 'rgba(74,222,128,0.1)',
-};
+});
 
 // Define stages and roles FIRST (used by multiple components)
 const stages = [
@@ -1880,7 +1880,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
       setReviewIndex(0);
       setReviewData({ ...projects[0] });
       setStep('review');
-    } catch (_error) {
+    } catch {
       showNotification('Failed to import projects', 'error');
     } finally {
       setLoading(false);
@@ -1901,7 +1901,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
       await db.updateProject(importedProjects[reviewIndex].id, reviewData);
       importedProjects[reviewIndex] = { ...importedProjects[reviewIndex], ...reviewData };
       moveToNext();
-    } catch (_error) {
+    } catch {
       showNotification('Failed to save changes', 'error');
     } finally {
       setReviewSaving(false);
