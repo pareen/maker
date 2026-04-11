@@ -2,6 +2,22 @@
 
 All notable changes to Makerly will be documented in this file.
 
+## [0.1.3.0] - 2026-04-12
+
+### Added
+- Cracked Squad program: elite landing page at `/cracked-squad` with self-selecting copy, application form, and member showcase with rich profile cards
+- Cracked Squad admin management: search, multi-select, and bulk add/remove directly in the Users tab with inline CRACKED badge
+- Cracked Squad application review tab in admin panel with accept/reject workflow
+- Cracked Squad badge on individual profiles and in maker directory with filter toggle
+- Email notification when someone applies to Cracked Squad (via Resend API)
+- Recruiter page with project listings and maker profiles
+- Private contact form replacing public email display (via `/api/contact-maker`)
+- Comprehensive site footer with links to all sections, consistent across all pages
+
+### Changed
+- Admin panel Users tab now has search bar, checkboxes, and bulk squad management
+- Cracked Squad tab renamed to Applications (member management moved to Users tab)
+
 ## [0.1.2.0] - 2026-04-11
 
 ### Added
