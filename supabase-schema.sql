@@ -44,6 +44,7 @@ CREATE TABLE projects (
   outcome TEXT,
   description TEXT,
   image_url TEXT,
+  github_repo_id BIGINT,
   featured BOOLEAN DEFAULT FALSE,
   key_metric TEXT,
   funding_raised BIGINT DEFAULT 0,
@@ -161,6 +162,7 @@ CREATE POLICY "Users can delete their own updates"
 -- Indexes
 CREATE INDEX profiles_username_idx ON profiles(username);
 CREATE INDEX projects_user_id_idx ON projects(user_id);
+CREATE UNIQUE INDEX projects_github_repo_id_idx ON projects(user_id, github_repo_id) WHERE github_repo_id IS NOT NULL;
 CREATE INDEX updates_user_id_idx ON updates(user_id);
 CREATE INDEX updates_created_at_idx ON updates(created_at DESC);
 

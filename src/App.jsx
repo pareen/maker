@@ -629,36 +629,44 @@ const builderQuotes = [
   { quote: "If you're not embarrassed by the first version of your product, you've launched too late.", author: "Reid Hoffman", role: "Co-founder, LinkedIn" },
 ];
 
-const SiteFooter = ({ onMakers, onHire, onMemo, onSignup, onCrackedSquad }) => (
-  <footer className="footer-wrap" style={{ borderTop: `1px solid ${t.surfaceBorder}`, padding: '48px 40px 32px', marginTop: 'auto' }}>
-    <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '32px' }}>
-      <div>
-        <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600', marginBottom: '16px' }}>MAKERLY</div>
-        <p style={{ fontSize: '13px', color: t.textTertiary, maxWidth: '260px', lineHeight: 1.5 }}>
-          Resumes are dead. Show what you've made.
-        </p>
-      </div>
-      <div className="footer-links" style={{ display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>EXPLORE</span>
-          {onMakers && <a onClick={onMakers} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Makers</a>}
-          {onHire && <a onClick={onHire} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Hire</a>}
-          {onMemo && <a onClick={onMemo} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Memo</a>}
-          {onCrackedSquad && <a onClick={onCrackedSquad} style={{ fontSize: '13px', color: t.error, cursor: 'pointer', textDecoration: 'none' }}>Cracked Squad</a>}
+const SiteFooter = () => {
+  const linkStyle = { fontSize: '13px', color: t.textSecondary, textDecoration: 'none' };
+  return (
+    <footer className="footer-wrap" style={{ borderTop: `1px solid ${t.surfaceBorder}`, padding: '48px 40px 32px', marginTop: 'auto' }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '32px' }}>
+        <div>
+          <a href="/" style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600', marginBottom: '16px', display: 'block', textDecoration: 'none' }}>MAKERLY</a>
+          <p style={{ fontSize: '13px', color: t.textTertiary, maxWidth: '260px', lineHeight: 1.5 }}>
+            Resumes are dead. Show what you've made.
+          </p>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>CONNECT</span>
-          <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: t.textSecondary, textDecoration: 'none' }}>Twitter</a>
-          {onSignup && <a onClick={onSignup} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Create profile</a>}
+        <div className="footer-links" style={{ display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>EXPLORE</span>
+            <a href="/makers" style={linkStyle}>Browse Makers</a>
+            <a href="/hire" style={linkStyle}>Hire Makers</a>
+            <a href="/memo" style={linkStyle}>Memo</a>
+            <a href="/cracked-squad" style={{ ...linkStyle, color: t.error }}>Cracked Squad</a>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>ACCOUNT</span>
+            <a href="/signup" style={linkStyle}>Create Profile</a>
+            <a href="/login" style={linkStyle}>Log In</a>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>CONNECT</span>
+            <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={linkStyle}>Twitter</a>
+            <a href="https://github.com/pareen/maker" target="_blank" rel="noopener noreferrer" style={linkStyle}>GitHub</a>
+          </div>
         </div>
       </div>
-    </div>
-    <div style={{ maxWidth: '900px', margin: '24px auto 0', paddingTop: '24px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-      <span style={{ fontSize: '12px', color: t.textFaint }}>Made by <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: t.accent, textDecoration: 'none' }}>Pareen</a></span>
-      <span style={{ fontSize: '12px', color: t.textDim }}>&copy; {new Date().getFullYear()} Makerly</span>
-    </div>
-  </footer>
-);
+      <div style={{ maxWidth: '900px', margin: '24px auto 0', paddingTop: '24px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+        <span style={{ fontSize: '12px', color: t.textFaint }}>Made by <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: t.accent, textDecoration: 'none' }}>Pareen</a></span>
+        <span style={{ fontSize: '12px', color: t.textDim }}>&copy; {new Date().getFullYear()} Makerly</span>
+      </div>
+    </footer>
+  );
+};
 
 const MobileMenuButton = ({ onClick, isOpen }) => (
   <button
@@ -703,7 +711,7 @@ const MobileDrawer = ({ isOpen, onClose, children }) => {
   );
 };
 
-const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo, onCrackedSquad }) => {
+const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo, onCrackedSquad: _onCrackedSquad }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const sampleRoleBreakdown = roles.map(role => ({
     ...role,
@@ -1024,7 +1032,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo, onCrackedSqu
         </div>
       </section>
 
-      <SiteFooter onMakers={onMakers} onHire={onHire} onMemo={onMemo} onSignup={onSignup} onCrackedSquad={onCrackedSquad} />
+      <SiteFooter />
     </div>
   );
 };
@@ -1063,8 +1071,9 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
-      <div style={{ width: '100%', maxWidth: '400px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
+        <div style={{ width: '100%', maxWidth: '400px' }}>
         <button className="btn btn-ghost" onClick={onBack} style={{ marginBottom: '32px' }}>← Back</button>
 
         <h1 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '8px' }}>
@@ -1161,6 +1170,8 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
           </button>
         </p>
       </div>
+      </div>
+      <SiteFooter />
     </div>
   );
 };
@@ -1301,7 +1312,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   };
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}`, flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600' }}>MAKER.PROFILE</div>
@@ -1446,6 +1457,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
           existingProjects={user.projects}
         />
       )}
+      <SiteFooter />
     </div>
   );
 };
@@ -1858,7 +1870,8 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
   const selectAll = () => {
     const importable = repos.map((repo, i) => {
       const alreadyImported = existingProjects.some(p =>
-        p.name === repo.name || p.links?.some(l => repo.links?.includes(l))
+        (repo.githubRepoId && p.githubRepoId === repo.githubRepoId) ||
+        p.links?.some(l => repo.links?.includes(l))
       );
       return alreadyImported ? null : i;
     }).filter(i => i !== null);
@@ -2028,7 +2041,8 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', maxHeight: '400px', overflow: 'auto' }}>
               {repos.map((repo, index) => {
                 const alreadyImported = existingProjects.some(p =>
-                  p.links?.some(l => repo.links?.includes(l)) || p.links?.includes(repo.githubUrl)
+                  (repo.githubRepoId && p.githubRepoId === repo.githubRepoId) ||
+                  p.links?.some(l => repo.links?.includes(l))
                 );
                 return (
                   <div
@@ -2331,7 +2345,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification, isAdmin }) => {
   };
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <button className="btn btn-ghost" onClick={onBack}>← Back</button>
         <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
@@ -2722,6 +2736,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification, isAdmin }) => {
 
         <button className="btn btn-primary" onClick={handleSave} style={{ width: '100%' }}>Save Changes</button>
       </div>
+      <SiteFooter />
     </div>
   );
 };
@@ -3565,20 +3580,27 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
     <div style={{
       minHeight: '100vh',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '40px 24px'
+      flexDirection: 'column',
     }}>
-      <div style={{ maxWidth: '500px', width: '100%' }}>
-        {steps[step]()}
-        <button
-          className="btn btn-ghost"
-          onClick={handleFinish}
-          style={{ display: 'block', margin: '40px auto 0', fontSize: '12px', color: t.textFaint }}
-        >
-          Skip setup — go to dashboard
-        </button>
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 24px'
+      }}>
+        <div style={{ maxWidth: '500px', width: '100%' }}>
+          {steps[step]()}
+          <button
+            className="btn btn-ghost"
+            onClick={handleFinish}
+            style={{ display: 'block', margin: '40px auto 0', fontSize: '12px', color: t.textFaint }}
+          >
+            Skip setup — go to dashboard
+          </button>
+        </div>
       </div>
+      <SiteFooter />
     </div>
   );
 };
@@ -3733,7 +3755,8 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
   }
 
   return (
-    <div className="directory-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 24px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="directory-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 24px', flex: 1 }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
@@ -3896,6 +3919,8 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
           )}
         </div>
       </div>
+      </div>
+      <SiteFooter />
     </div>
   );
 };
@@ -3903,7 +3928,7 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
 // ============================================
 // MEMO PAGE
 // ============================================
-const MemoPage = ({ onBack, onSignup, onMakers, onCrackedSquad }) => {
+const MemoPage = ({ onBack, onSignup, onMakers, onCrackedSquad: _onCrackedSquad }) => {
   useEffect(() => {
     document.title = 'Makers vs Takers — Makerly';
     return () => { document.title = 'Makerly — Show what you\'ve made'; };
@@ -4018,7 +4043,7 @@ const MemoPage = ({ onBack, onSignup, onMakers, onCrackedSquad }) => {
         </div>
       </article>
 
-      <SiteFooter onMakers={onMakers} onSignup={onSignup} onCrackedSquad={onCrackedSquad} />
+      <SiteFooter />
     </div>
   );
 };
@@ -4026,7 +4051,7 @@ const MemoPage = ({ onBack, onSignup, onMakers, onCrackedSquad }) => {
 // ============================================
 // HIRE PAGE
 // ============================================
-const HirePage = ({ onViewProfile, onMakers, onBack, onSignup, onCrackedSquad }) => {
+const HirePage = ({ onViewProfile, onMakers, onBack, onSignup, onCrackedSquad: _onCrackedSquad }) => {
   const [makers, setMakers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
@@ -4278,7 +4303,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup, onCrackedSquad })
         </div>
       </section>
 
-      <SiteFooter onMakers={onMakers} onSignup={onSignup} onCrackedSquad={onCrackedSquad} />
+      <SiteFooter />
     </div>
   );
 };
@@ -4592,7 +4617,7 @@ const CrackedSquadPage = ({ currentUser, onBack, onSignup, onLogin, onViewProfil
         </div>
       </section>
 
-      <SiteFooter onCrackedSquad={() => {}} />
+      <SiteFooter />
     </div>
   );
 };

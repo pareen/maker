@@ -217,22 +217,24 @@ export async function migrateLocalStorageData(supabaseUser) {
       await supabase.from('profiles').update(profileFields).eq('id', supabaseUser.id)
     }
 
-    // Migrate projects (skip any that already exist by matching GitHub URL or name)
+    // Migrate projects (skip any that already exist by matching GitHub repo ID, URL, or name)
     if (legacyUser.projects?.length > 0) {
       const { data: existingProjects } = await supabase
         .from('projects')
-        .select('name, links')
+        .select('name, links, github_repo_id')
         .eq('user_id', supabaseUser.id)
 
+      const existingRepoIds = new Set((existingProjects || []).map(p => p.github_repo_id).filter(Boolean))
       const existingLinks = new Set((existingProjects || []).flatMap(p => p.links || []))
       const existingNames = new Set((existingProjects || []).map(p => p.name))
 
       for (const project of legacyUser.projects) {
-        // Skip if any link already exists, or if same name already imported
+        // Skip if GitHub repo ID matches, any link already exists, or same name
+        if (project.githubRepoId && existingRepoIds.has(project.githubRepoId)) continue
         const hasOverlap = project.links?.some(l => existingLinks.has(l))
         if (hasOverlap || existingNames.has(project.name)) continue
 
-        await supabase.from('projects').insert({
+        const row = {
           user_id: supabaseUser.id,
           name: project.name,
           one_liner: project.oneLiner || null,
@@ -244,7 +246,9 @@ export async function migrateLocalStorageData(supabaseUser) {
           domains: project.domains || [],
           links: project.links || [],
           outcome: project.outcome || null
-        })
+        }
+        if (project.githubRepoId) row.github_repo_id = project.githubRepoId
+        await supabase.from('projects').insert(row)
       }
     }
 
@@ -498,24 +502,41 @@ export async function createProject(userId, project) {
   }
 
   try {
-    // Deduplicate: if this project has a GitHub URL, check if user already has it
-    const githubUrl = project.githubUrl || project.links?.find(l => l.match(/^https?:\/\/github\.com\//i))
-    if (githubUrl) {
+    // Deduplicate: check by GitHub repo ID first (survives renames), fall back to URL match
+    if (project.githubRepoId) {
       const { data: existing } = await supabase
         .from('projects')
         .select('id')
         .eq('user_id', userId)
-        .contains('links', [githubUrl])
+        .eq('github_repo_id', project.githubRepoId)
         .limit(1)
 
       if (existing?.length > 0) {
-        // Already imported — return the existing project instead of creating a duplicate
         const { data: full } = await supabase
           .from('projects')
           .select('*')
           .eq('id', existing[0].id)
           .single()
         return projectFromDb(full)
+      }
+    } else {
+      const githubUrl = project.githubUrl || project.links?.find(l => l.match(/^https?:\/\/github\.com\//i))
+      if (githubUrl) {
+        const { data: existing } = await supabase
+          .from('projects')
+          .select('id')
+          .eq('user_id', userId)
+          .contains('links', [githubUrl])
+          .limit(1)
+
+        if (existing?.length > 0) {
+          const { data: full } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('id', existing[0].id)
+            .single()
+          return projectFromDb(full)
+        }
       }
     }
 
@@ -536,6 +557,8 @@ export async function createProject(userId, project) {
       featured: project.featured || false,
       key_metric: project.keyMetric || null,
     }
+
+    if (project.githubRepoId) row.github_repo_id = project.githubRepoId;
 
     // Only include financial fields when set, so saves work before migration is run
     if (project.fundingRaised) row.funding_raised = project.fundingRaised;
@@ -711,7 +734,8 @@ function projectFromDb(dbProject) {
     keyMetric: dbProject.key_metric || '',
     fundingRaised: dbProject.funding_raised ?? 0,
     valuation: dbProject.valuation ?? 0,
-    usersReached: dbProject.users_reached ?? 0
+    usersReached: dbProject.users_reached ?? 0,
+    githubRepoId: dbProject.github_repo_id || null
   }
 }
 
@@ -1085,13 +1109,20 @@ function createProjectLocal(userId, project) {
     throw new Error('User not found in local storage. Please log out and log back in.')
   }
 
-  // Dedup: check for overlapping GitHub URLs in existing projects
-  const githubUrl = project.githubUrl || project.links?.find(l => l.match(/^https?:\/\/github\.com\//i))
-  if (githubUrl) {
+  // Dedup: check by GitHub repo ID first, then fall back to URL match
+  if (project.githubRepoId) {
     const existing = (users[userKey].projects || []).find(p =>
-      p.links?.includes(githubUrl)
+      p.githubRepoId === project.githubRepoId
     )
     if (existing) return existing
+  } else {
+    const githubUrl = project.githubUrl || project.links?.find(l => l.match(/^https?:\/\/github\.com\//i))
+    if (githubUrl) {
+      const existing = (users[userKey].projects || []).find(p =>
+        p.links?.includes(githubUrl)
+      )
+      if (existing) return existing
+    }
   }
 
   const newProject = { ...project, id: Date.now().toString() }
