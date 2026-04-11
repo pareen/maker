@@ -530,6 +530,7 @@ const App = () => {
           setUser={setCurrentUser}
           onBack={() => setCurrentView('dashboard')}
           showNotification={showNotification}
+          isAdmin={db.isAdmin(currentUser.id)}
         />
       )}
 
@@ -2209,7 +2210,7 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
 // ============================================
 // EDIT PROFILE
 // ============================================
-const EditProfile = ({ user, setUser, onBack, showNotification }) => {
+const EditProfile = ({ user, setUser, onBack, showNotification, isAdmin }) => {
   const [formData, setFormData] = useState({ ...user });
   const [newDomain, setNewDomain] = useState('');
   const [saving, setSaving] = useState(false);
@@ -2220,7 +2221,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
   const [extractedStats, setExtractedStats] = useState(null);
 
   const lastProcessed = localStorage.getItem('lastStatsProcessed');
-  const canProcess = !lastProcessed || (Date.now() - parseInt(lastProcessed, 10)) > 7 * 24 * 60 * 60 * 1000;
+  const canProcess = isAdmin || !lastProcessed || (Date.now() - parseInt(lastProcessed, 10)) > 7 * 24 * 60 * 60 * 1000;
   const daysUntilProcess = lastProcessed ? Math.max(0, Math.ceil((parseInt(lastProcessed, 10) + 7 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000))) : 0;
 
   const processStats = async () => {
