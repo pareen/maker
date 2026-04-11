@@ -201,7 +201,7 @@ export function mapRepoToProject(repo) {
     oneLiner: repo.description || `A ${repo.language || 'code'} project`,
     role: 'solo',
     currentStage: inferStage(repo),
-    startDate: repo.created_at ? repo.created_at.split('T')[0] : '',
+    startDate: repo.created_at ? repo.created_at.slice(0, 7) : '',
     ongoing: !repo.archived,
     domains,
     links,
