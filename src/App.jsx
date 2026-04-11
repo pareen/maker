@@ -644,9 +644,18 @@ const MobileMenuButton = ({ onClick, isOpen }) => (
 );
 
 const MobileDrawer = ({ isOpen, onClose, children }) => {
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKey);
+    return () => { document.body.style.overflow = prev; document.removeEventListener('keydown', handleKey); };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
   return (
-    <div className="mobile-drawer" style={{
+    <div className="mobile-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu" style={{
       position: 'fixed', inset: 0, zIndex: 99, animation: 'fadeIn 0.15s ease'
     }}>
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} onClick={onClose} />
@@ -1456,6 +1465,7 @@ const ProjectCard = ({ project, onEdit, onDelete }) => {
           <button
             className="btn btn-ghost"
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            onKeyDown={(e) => { e.stopPropagation(); }}
             aria-label={`Delete project ${project.name}`}
             style={{ padding: '4px 8px', color: t.error }}
           >
