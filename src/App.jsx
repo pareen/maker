@@ -340,7 +340,6 @@ const App = () => {
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
         .sr-only-focusable:focus { position: fixed; left: 16px; top: 16px; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; z-index: 1001; }
         input, textarea, button, select { font-family: inherit; }
-        input:focus, textarea:focus, select:focus { outline: none; }
         input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
         button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
         a { color: inherit; text-decoration: none; }
