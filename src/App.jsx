@@ -4946,33 +4946,71 @@ const CrackedSquadPage = ({ currentUser, onBack, onSignup, onLogin, onViewProfil
       </section>
 
       {/* Members */}
-      {!loadingMembers && members.length > 0 && (
+      {!loadingMembers && (
         <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <h2 style={{ fontSize: '28px', fontFamily: t.fontHeading, marginBottom: '12px', textAlign: 'center' }}>Current Members</h2>
-            <p style={{ fontSize: '14px', color: t.textFaint, textAlign: 'center', marginBottom: '40px' }}>{members.length} builder{members.length !== 1 ? 's' : ''}</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' }}>
-              {members.map(m => (
-                <div
-                  key={m.id}
-                  onClick={() => onViewProfile(m.username)}
-                  style={{
-                    background: t.surfaceBg,
-                    border: `1px solid ${t.surfaceBorder}`,
-                    borderRadius: t.radiusMd,
-                    padding: '20px',
-                    cursor: 'pointer',
-                    transition: 'border-color 0.15s'
-                  }}
-                  onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'}
-                  onMouseOut={e => e.currentTarget.style.borderColor = t.surfaceBorder}
-                >
-                  <div style={{ fontSize: '16px', fontFamily: t.fontHeading, marginBottom: '4px' }}>{m.name || m.username}</div>
-                  <div style={{ fontSize: '11px', color: t.textFaint }}>makerly.me/{m.username}</div>
-                  {m.bio && <p style={{ fontSize: '12px', color: t.textTertiary, marginTop: '8px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{m.bio}</p>}
-                </div>
-              ))}
-            </div>
+          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '28px', fontFamily: t.fontHeading, marginBottom: '12px', textAlign: 'center' }}>The Squad</h2>
+            <p style={{ fontSize: '14px', color: t.textFaint, textAlign: 'center', marginBottom: '40px' }}>
+              {members.length > 0 ? `${members.length} builder${members.length !== 1 ? 's' : ''} who made the cut` : 'Applications open. First cohort forming now.'}
+            </p>
+            {members.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                {members.map(m => (
+                  <div
+                    key={m.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View ${m.name || m.username}'s profile`}
+                    onClick={() => onViewProfile(m.username)}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewProfile(m.username); } }}
+                    style={{
+                      background: t.surfaceBg,
+                      border: `1px solid ${t.surfaceBorder}`,
+                      borderRadius: t.radiusMd,
+                      padding: '20px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                    onMouseOut={e => { e.currentTarget.style.borderColor = t.surfaceBorder; e.currentTarget.style.background = t.surfaceBg; }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '16px', fontWeight: '500', color: t.text }}>{m.name || m.username}</span>
+                          {m.todayMaking && (
+                            <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.success, flexShrink: 0 }} />
+                          )}
+                        </div>
+                        <div style={{ fontSize: '12px', color: t.textFaint, marginTop: '2px' }}>makerly.me/{m.username}</div>
+                      </div>
+                      {m.projectCount > 0 && (
+                        <span style={{ fontSize: '13px', color: t.accent, fontWeight: '500', whiteSpace: 'nowrap' }}>
+                          {m.projectCount} made
+                        </span>
+                      )}
+                    </div>
+                    {m.bio && (
+                      <p style={{ color: t.textSecondary, fontSize: '13px', marginTop: '8px', lineHeight: '1.5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {m.bio}
+                      </p>
+                    )}
+                    {m.todayMaking && (
+                      <div style={{ marginTop: '10px', padding: '6px 10px', background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.15)', borderRadius: '6px', fontSize: '12px', color: t.textSecondary }}>
+                        <span style={{ color: t.success, fontWeight: '500' }}>Building now:</span> {m.todayMaking}
+                      </div>
+                    )}
+                    {m.domains?.length > 0 && (
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
+                        {m.domains.slice(0, 4).map(d => (
+                          <span key={d} style={{ fontSize: '11px', color: t.textFaint, background: t.surfaceBgHover, padding: '2px 8px', borderRadius: t.radiusSm }}>{d}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       )}
