@@ -272,7 +272,7 @@ const App = () => {
   }, [currentUser]);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0c0a09', color: '#e7e5e4', fontFamily: "'IBM Plex Mono', monospace" }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0c0a09', color: '#e7e5e4', fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1.6 }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
