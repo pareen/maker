@@ -278,6 +278,8 @@ const App = () => {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         input, textarea, button, select { font-family: inherit; }
         input:focus, textarea:focus, select:focus { outline: none; }
+        input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
+        button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
         a { color: inherit; text-decoration: none; }
 
         .btn { padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500; transition: all 0.15s; font-size: 14px; user-select: none; }
