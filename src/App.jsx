@@ -327,6 +327,10 @@ const App = () => {
         .ongoing-pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+        }
+
         @media (max-width: 768px) {
           .desktop-grid { grid-template-columns: 1fr !important; }
           .desktop-header { padding-left: 16px !important; padding-right: 16px !important; }
