@@ -2,6 +2,27 @@
 
 All notable changes to Makerly will be documented in this file.
 
+## [0.1.2.0] - 2026-04-11
+
+### Added
+- Headline stats on maker profile: total raised, total valuation, users reached, things made in a 2x2 grid with adaptive layout
+- Philosophy quote section on profile (italic, between bio and first make)
+- Press / social proof strip ("AS SEEN IN") with clickable source links
+- Per-project financial fields: funding raised, valuation, users reached with human-friendly input (type "$1.5M" or "50K")
+- Profile-level headline stat overrides (curate totals independent of per-project sums)
+- Press links management in Edit Profile (JSONB with url/source per entry)
+- Formatting helpers extracted to `src/lib/format.js` with 26 unit tests
+- Database migrations for 3 new project columns and 5 new profile columns
+
+### Removed
+- Role breakdown chart (solo vs cofounded) from profile sidebar
+
+### Fixed
+- Nullish coalescing for profile stat overrides (explicit 0 no longer treated as null)
+- K/M boundary rounding ($999,500 now displays as $1M, not $1000K)
+- Locale-pinned number formatting for consistent display across environments
+- Philosophy input capped at 200 characters
+
 ## [0.1.1.0] - 2026-04-11
 
 ### Added
