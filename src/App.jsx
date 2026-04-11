@@ -1526,9 +1526,6 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
     imageUrl: '',
     featured: false,
     keyMetric: '',
-    fundingRaised: 0,
-    valuation: 0,
-    usersReached: 0
   });
 
   const [newDomain, setNewDomain] = useState('');
