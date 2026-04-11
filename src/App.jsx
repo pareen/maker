@@ -12,6 +12,12 @@ const ensureUrl = (url) => {
   return url;
 };
 
+const safeImageUrl = (url) => {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  return '';
+};
+
 // ============================================
 // MAKER PORTFOLIO - Full Functional App
 // ============================================
@@ -1254,7 +1260,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
     const existingIds = new Set(user.projects.map(p => p.id));
     for (const project of projects) {
       try {
-        const { _github: _, ...projectData } = project;
+        const { _github: _meta, ...projectData } = project;
         const result = await db.createProject(user.id, projectData);
         // createProject returns existing project if deduped — only count truly new ones
         if (!existingIds.has(result.id)) {
@@ -1736,7 +1742,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
             />
             {formData.imageUrl && (
               <div style={{ marginTop: '8px', borderRadius: t.radiusSm, overflow: 'hidden', maxHeight: '120px' }}>
-                <img src={formData.imageUrl} alt="Preview" style={{ width: '100%', height: '120px', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                <img src={safeImageUrl(formData.imageUrl)} alt="Preview" style={{ width: '100%', height: '120px', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
               </div>
             )}
           </div>
@@ -2833,7 +2839,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                   <div key={project.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
                     {project.imageUrl && (
                       <div style={{ width: '100%', height: '180px', overflow: 'hidden' }}>
-                        <img src={project.imageUrl} alt={project.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={safeImageUrl(project.imageUrl)} alt={project.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                     )}
                     <div style={{ padding: '24px' }}>
@@ -2927,7 +2933,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                     {/* Cover image */}
                     {project.imageUrl && (
                       <div style={{ marginBottom: '12px', borderRadius: t.radiusSm, overflow: 'hidden', maxHeight: '160px' }}>
-                        <img src={project.imageUrl} alt={project.name} style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
+                        <img src={safeImageUrl(project.imageUrl)} alt={project.name} style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
                       </div>
                     )}
 
@@ -4204,7 +4210,7 @@ const CrackedSquadPage = ({ currentUser, onBack, onSignup, onLogin, onViewProfil
 // ============================================
 // ADMIN PANEL
 // ============================================
-const AdminPanel = ({ user, onBack, showNotification, onViewProfile }) => {
+const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) => {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
   const [errorLogs, setErrorLogs] = useState([]);
