@@ -665,7 +665,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
       {/* Everything Counts */}
       <section style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '28px' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '28px' }}>
             Everything counts.
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
@@ -695,7 +695,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500' }}>THE BUILDER ETHOS</span>
-            <h2 style={{ fontSize: '28px', fontFamily: "'Newsreader', Georgia, serif", marginTop: '12px' }}>The world runs on people who make things.</h2>
+            <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginTop: '12px' }}>The world runs on people who make things.</h2>
           </div>
 
           <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -739,7 +739,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
                 <span style={{ color: '#a8a29e', fontSize: '13px' }}>{sampleMaker.todayMaking}</span>
               </div>
 
-              <h3 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>{sampleMaker.name}</h3>
+              <h3 style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>{sampleMaker.name}</h3>
               <p style={{ color: '#78716c', fontSize: '13px', marginBottom: '16px' }}>makerly.me/{sampleMaker.username}</p>
               <p style={{ fontSize: '16px', color: '#a8a29e', marginBottom: '24px', lineHeight: 1.5 }}>{sampleMaker.bio}</p>
 
@@ -1335,7 +1335,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
     oneLiner: '',
     role: 'solo',
     currentStage: 'idea',
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: new Date().toISOString().slice(0, 7),
     endDate: '',
     ongoing: true,
     domains: [],
@@ -1456,19 +1456,19 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start Date</label>
+              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start</label>
               <input
                 className="input"
-                type="date"
+                type="month"
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End Date</label>
+              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End</label>
               <input
                 className="input"
-                type="date"
+                type="month"
                 value={formData.endDate || ''}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value, ongoing: false })}
                 disabled={formData.ongoing}
@@ -1889,19 +1889,19 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start Date</label>
+                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start</label>
                 <input
                   className="input"
-                  type="date"
+                  type="month"
                   value={reviewData.startDate || ''}
                   onChange={(e) => { setReviewData({ ...reviewData, startDate: e.target.value }); setDateError(null); }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End Date</label>
+                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End</label>
                 <input
                   className="input"
-                  type="date"
+                  type="month"
                   value={reviewData.endDate || ''}
                   onChange={(e) => { setReviewData({ ...reviewData, endDate: e.target.value, ongoing: false }); setDateError(null); }}
                   disabled={reviewData.ongoing}
@@ -3259,7 +3259,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       {/* The difference */}
       <section style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", textAlign: 'center', marginBottom: '48px' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", textAlign: 'center', marginBottom: '48px' }}>
             LinkedIn is a list of places people worked.<br />
             <span style={{ color: '#78716c' }}>Makerly is a list of things people made.</span>
           </h2>
@@ -3295,7 +3295,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       {/* The filter */}
       <section style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '20px' }}>
             Makerly is the filter.
           </h2>
           <p style={{ fontSize: '17px', color: '#a8a29e', lineHeight: 1.6, marginBottom: '40px' }}>
@@ -3379,7 +3379,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       {/* Email capture */}
       <section style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '500px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '28px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '16px' }}>
             Get notified when new makers join.
           </h2>
           <p style={{ fontSize: '14px', color: '#78716c', marginBottom: '32px' }}>
