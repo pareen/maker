@@ -272,15 +272,17 @@ const App = () => {
   }, [currentUser]);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0c0a09', color: '#e7e5e4', fontFamily: "'IBM Plex Mono', monospace" }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0c0a09', color: '#e7e5e4', fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1.6 }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         input, textarea, button, select { font-family: inherit; }
         input:focus, textarea:focus, select:focus { outline: none; }
+        input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
+        button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
         a { color: inherit; text-decoration: none; }
 
-        .btn { padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500; transition: all 0.15s; font-size: 14px; user-select: none; }
+        .btn { padding: 14px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500; transition: background-color 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s; font-size: 14px; user-select: none; }
         .btn:active { transform: scale(0.97); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
         .btn:disabled:hover { box-shadow: none; }
@@ -312,18 +314,22 @@ const App = () => {
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 100; animation: fadeIn 0.15s ease; }
         .modal { background: #1c1917; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 32px; max-width: 480px; width: 90%; animation: slideIn 0.2s ease; }
 
-        .social-btn { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 0.15s; width: 100%; }
+        .social-btn { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: background-color 0.15s, border-color 0.15s, transform 0.15s; width: 100%; }
         .social-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
         .social-btn:active { transform: scale(0.98); background: rgba(255,255,255,0.05); }
 
-        .stage-dot { width: 10px; height: 10px; border-radius: 50%; transition: all 0.2s; }
+        .stage-dot { width: 10px; height: 10px; border-radius: 50%; transition: width 0.2s, height 0.2s; }
         .stage-dot.active { width: 14px; height: 14px; }
 
-        .project-card { transition: all 0.15s; cursor: pointer; }
+        .project-card { transition: background-color 0.15s, border-color 0.15s; cursor: pointer; }
         .project-card:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
 
         .ongoing-pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+        }
 
         @media (max-width: 768px) {
           .desktop-grid { grid-template-columns: 1fr !important; }
@@ -338,7 +344,7 @@ const App = () => {
       `}</style>
 
       {notification && (
-        <div className={`notification ${notification.type}`}>
+        <div className={`notification ${notification.type}`} role="alert" aria-live="polite">
           {notification.message}
         </div>
       )}
@@ -659,7 +665,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
       {/* Everything Counts */}
       <section style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '28px' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '28px' }}>
             Everything counts.
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
@@ -689,7 +695,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: '#fbbf24', fontWeight: '500' }}>THE BUILDER ETHOS</span>
-            <h2 style={{ fontSize: '28px', fontFamily: "'Newsreader', Georgia, serif", marginTop: '12px' }}>The world runs on people who make things.</h2>
+            <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginTop: '12px' }}>The world runs on people who make things.</h2>
           </div>
 
           <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -733,7 +739,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo }) => {
                 <span style={{ color: '#a8a29e', fontSize: '13px' }}>{sampleMaker.todayMaking}</span>
               </div>
 
-              <h3 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>{sampleMaker.name}</h3>
+              <h3 style={{ fontSize: '24px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '8px' }}>{sampleMaker.name}</h3>
               <p style={{ color: '#78716c', fontSize: '13px', marginBottom: '16px' }}>makerly.me/{sampleMaker.username}</p>
               <p style={{ fontSize: '16px', color: '#a8a29e', marginBottom: '24px', lineHeight: 1.5 }}>{sampleMaker.bio}</p>
 
@@ -1329,13 +1335,16 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
     oneLiner: '',
     role: 'solo',
     currentStage: 'idea',
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: new Date().toISOString().slice(0, 7),
     endDate: '',
     ongoing: true,
     domains: [],
     links: [],
     outcome: '',
-    description: ''
+    description: '',
+    imageUrl: '',
+    featured: false,
+    keyMetric: ''
   });
 
   const [newDomain, setNewDomain] = useState('');
@@ -1450,19 +1459,19 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start Date</label>
+              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start</label>
               <input
                 className="input"
-                type="date"
+                type="month"
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End Date</label>
+              <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End</label>
               <input
                 className="input"
-                type="date"
+                type="month"
                 value={formData.endDate || ''}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value, ongoing: false })}
                 disabled={formData.ongoing}
@@ -1530,7 +1539,7 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
             </div>
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Outcome (optional)</label>
             <input
               className="input"
@@ -1538,6 +1547,44 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
               value={formData.outcome}
               onChange={(e) => setFormData({ ...formData, outcome: e.target.value })}
             />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Key Metric (optional)</label>
+            <input
+              className="input"
+              placeholder="e.g. 50k MAU, $2k MRR, #1 on HN"
+              value={formData.keyMetric || ''}
+              onChange={(e) => setFormData({ ...formData, keyMetric: e.target.value })}
+            />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Cover Image URL (optional)</label>
+            <input
+              className="input"
+              placeholder="https://example.com/screenshot.png"
+              value={formData.imageUrl || ''}
+              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+            />
+            {formData.imageUrl && (
+              <div style={{ marginTop: '8px', borderRadius: '8px', overflow: 'hidden', maxHeight: '120px' }}>
+                <img src={formData.imageUrl} alt="Preview" style={{ width: '100%', height: '120px', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={formData.featured || false}
+                onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
+                style={{ width: '16px', height: '16px' }}
+              />
+              <span style={{ fontSize: '14px', color: '#a8a29e' }}>Feature this project</span>
+              <span style={{ fontSize: '11px', color: '#57534e' }}>(shows as a hero card on your profile)</span>
+            </label>
           </div>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'space-between' }}>
@@ -1883,19 +1930,19 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start Date</label>
+                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>Start</label>
                 <input
                   className="input"
-                  type="date"
+                  type="month"
                   value={reviewData.startDate || ''}
                   onChange={(e) => { setReviewData({ ...reviewData, startDate: e.target.value }); setDateError(null); }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End Date</label>
+                <label style={{ display: 'block', fontSize: '12px', color: '#78716c', marginBottom: '8px' }}>End</label>
                 <input
                   className="input"
-                  type="date"
+                  type="month"
                   value={reviewData.endDate || ''}
                   onChange={(e) => { setReviewData({ ...reviewData, endDate: e.target.value, ongoing: false }); setDateError(null); }}
                   disabled={reviewData.ongoing}
@@ -2241,11 +2288,148 @@ const TwitterEmbed = ({ username }) => {
 };
 
 // ============================================
+// COLLAPSIBLE DESCRIPTION
+// ============================================
+const CollapsibleDescription = ({ text, maxLines = 3 }) => {
+  const [expanded, setExpanded] = useState(false);
+  if (!text) return null;
+
+  const lines = text.split('\n');
+  const needsCollapse = lines.length > maxLines || text.length > 200;
+
+  if (!needsCollapse) {
+    return <p style={{ color: '#a8a29e', fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{text}</p>;
+  }
+
+  return (
+    <div>
+      <p style={{
+        color: '#a8a29e', fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap',
+        ...(expanded ? {} : { display: '-webkit-box', WebkitLineClamp: maxLines, WebkitBoxOrient: 'vertical', overflow: 'hidden' })
+      }}>
+        {text}
+      </p>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        style={{ background: 'none', border: 'none', color: '#78716c', fontSize: '12px', cursor: 'pointer', padding: '4px 0', marginTop: '4px' }}
+      >
+        {expanded ? '← Show less' : 'Read more →'}
+      </button>
+    </div>
+  );
+};
+
+// ============================================
+// LINK LABEL HELPER
+// ============================================
+function getLinkLabel(url) {
+  let hostname;
+  try { hostname = new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
+  const labels = {
+    'github.com': 'GitHub',
+    'twitter.com': 'Twitter',
+    'x.com': 'Twitter',
+    'youtube.com': 'YouTube',
+    'youtu.be': 'YouTube',
+    'yourstory.com': 'Press',
+    'thebetterindia.com': 'Press',
+    'techcrunch.com': 'Press',
+    'producthunt.com': 'Product Hunt',
+    'play.google.com': 'Play Store',
+    'apps.apple.com': 'App Store',
+    'instagram.com': 'Instagram',
+    't.me': 'Telegram',
+    'discord.gg': 'Discord',
+    'linkedin.com': 'LinkedIn',
+    'medium.com': 'Blog',
+    'substack.com': 'Substack',
+    'vercel.app': 'Demo',
+    'netlify.app': 'Demo',
+    'herokuapp.com': 'Demo',
+  };
+  for (const [domain, label] of Object.entries(labels)) {
+    if (hostname.includes(domain)) return label;
+  }
+  return hostname;
+}
+
+// ============================================
+// TIMELINE VIEW
+// ============================================
+const TimelineView = ({ projects }) => {
+  const projectsWithDates = projects.filter(p => p.startDate);
+  if (projectsWithDates.length === 0) return <div style={{ color: '#57534e', padding: '24px', textAlign: 'center' }}>No date information available for timeline view.</div>;
+
+  const sorted = [...projectsWithDates].sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+  const minYear = parseInt(sorted[0].startDate?.slice(0, 4) || new Date().getFullYear());
+  const maxYear = new Date().getFullYear();
+  const totalYears = maxYear - minYear + 1;
+
+  return (
+    <div style={{ overflowX: 'auto', padding: '16px 0' }}>
+      {/* Year markers */}
+      <div style={{ display: 'flex', position: 'relative', minWidth: `${totalYears * 120}px`, marginBottom: '8px' }}>
+        {Array.from({ length: totalYears }, (_, i) => (
+          <div key={i} style={{ flex: 1, textAlign: 'left', fontSize: '11px', color: '#57534e', borderLeft: '1px solid rgba(255,255,255,0.06)', paddingLeft: '8px' }}>
+            {minYear + i}
+          </div>
+        ))}
+      </div>
+
+      {/* Project bars */}
+      <div style={{ position: 'relative', minWidth: `${totalYears * 120}px` }}>
+        {sorted.map((project) => {
+          const startMonth = ((parseInt(project.startDate?.slice(0, 4) || minYear) - minYear) * 12) + (parseInt(project.startDate?.slice(5, 7) || 1) - 1);
+          const endMonth = project.ongoing
+            ? (maxYear - minYear + 1) * 12
+            : project.endDate
+              ? ((parseInt(project.endDate.slice(0, 4)) - minYear) * 12) + parseInt(project.endDate.slice(5, 7))
+              : startMonth + 6;
+          const totalMonths = totalYears * 12;
+          const leftPct = (startMonth / totalMonths) * 100;
+          const widthPct = Math.max(((endMonth - startMonth) / totalMonths) * 100, 2);
+
+          const stage = stages.find(s => s.key === project.currentStage);
+
+          return (
+            <div key={project.id} style={{ position: 'relative', height: '36px', marginBottom: '4px' }}>
+              <div
+                title={`${project.name} — ${project.oneLiner}`}
+                style={{
+                  position: 'absolute',
+                  left: `${leftPct}%`,
+                  width: `${widthPct}%`,
+                  height: '28px',
+                  background: `${stage?.color || '#57534e'}20`,
+                  border: `1px solid ${stage?.color || '#57534e'}40`,
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0 10px',
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  cursor: 'default',
+                  top: '4px'
+                }}
+              >
+                {project.ongoing && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', marginRight: '6px', flexShrink: 0 }} />}
+                <span style={{ fontSize: '12px', fontWeight: '500', color: stage?.color || '#a8a29e', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ============================================
 // PROFILE VIEW (Public)
 // ============================================
 const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
   const [showAllUpdates, setShowAllUpdates] = useState(false);
   const [updates, setUpdates] = useState(user.updates || []);
+  const [projectViewMode, setProjectViewMode] = useState('list'); // 'list' | 'timeline'
   const PROFILE_UPDATES_LIMIT = 5;
 
   // Load updates for the logged-in user (they're not on the user object)
@@ -2447,67 +2631,193 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
           </div>
         )}
 
+        {/* Featured Projects */}
+        {user.projects.filter(p => p.featured).length > 0 && (
+          <div style={{ marginBottom: '48px' }}>
+            <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>FEATURED</div>
+            <div style={{ display: 'grid', gridTemplateColumns: user.projects.filter(p => p.featured).length === 1 ? '1fr' : '1fr 1fr', gap: '16px' }}>
+              {user.projects.filter(p => p.featured).map(project => {
+                const stageIndex = stages.findIndex(s => s.key === project.currentStage);
+                const stage = stages[stageIndex];
+                const role = roles.find(r => r.key === project.role);
+                return (
+                  <div key={project.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    {project.imageUrl && (
+                      <div style={{ width: '100%', height: '180px', overflow: 'hidden' }}>
+                        <img src={project.imageUrl} alt={project.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    )}
+                    <div style={{ padding: '24px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                        <h3 style={{ fontSize: '20px', fontWeight: '600', fontFamily: "'Newsreader', Georgia, serif" }}>{project.name}</h3>
+                        {project.ongoing && <span className="ongoing-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4ade80' }} />}
+                      </div>
+                      <p style={{ color: '#a8a29e', fontSize: '15px', marginBottom: '12px' }}>{project.oneLiner}</p>
+
+                      {/* Key metric callout */}
+                      {project.keyMetric && (
+                        <div style={{ padding: '10px 14px', background: 'rgba(74, 222, 128, 0.08)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '8px', marginBottom: '12px' }}>
+                          <span style={{ fontSize: '16px', fontWeight: '600', color: '#4ade80' }}>{project.keyMetric}</span>
+                        </div>
+                      )}
+
+                      {/* Outcome */}
+                      {project.outcome && (
+                        <div style={{ padding: '8px 12px', background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.2)', borderRadius: '8px', marginBottom: '12px' }}>
+                          <span style={{ fontSize: '11px', letterSpacing: '0.05em', color: '#fbbf24', fontWeight: '500' }}>OUTCOME: </span>
+                          <span style={{ color: '#fbbf24', fontSize: '14px' }}>{project.outcome}</span>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                        <span className="tag" style={{ background: `${role?.color}20`, color: role?.color }}>{role?.label}</span>
+                        <span className="tag" style={{ background: `${stage?.color}20`, color: stage?.color }}>{stage?.label}</span>
+                        {project.startDate && (
+                          <span className="tag" style={{ background: 'rgba(255,255,255,0.05)', color: '#78716c' }}>
+                            {project.startDate.slice(0, 4)}{project.endDate ? `–${project.endDate.slice(0, 4)}` : project.ongoing ? '–now' : ''}
+                          </span>
+                        )}
+                      </div>
+
+                      {project.links?.length > 0 && (
+                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                          {project.links.map(link => (
+                            <a key={link} href={link} target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              ↗ {getLinkLabel(link)}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Projects */}
         <div>
-          <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e', marginBottom: '16px' }}>
-            PROJECTS ({user.projects.length})
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: '#57534e' }}>
+              PROJECTS ({user.projects.length})
+            </div>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button
+                onClick={() => setProjectViewMode('list')}
+                style={{ background: projectViewMode === 'list' ? 'rgba(255,255,255,0.08)' : 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', color: projectViewMode === 'list' ? '#e7e5e4' : '#57534e', cursor: 'pointer' }}
+              >
+                List
+              </button>
+              <button
+                onClick={() => setProjectViewMode('timeline')}
+                style={{ background: projectViewMode === 'timeline' ? 'rgba(255,255,255,0.08)' : 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', color: projectViewMode === 'timeline' ? '#e7e5e4' : '#57534e', cursor: 'pointer' }}
+              >
+                Timeline
+              </button>
+            </div>
           </div>
 
           {user.projects.length === 0 ? (
             <div className="card" style={{ padding: '48px', textAlign: 'center', color: '#57534e' }}>
               No projects yet
             </div>
+          ) : projectViewMode === 'timeline' ? (
+            <div className="card" style={{ padding: '20px 24px' }}>
+              <TimelineView projects={user.projects} />
+            </div>
           ) : (
             <div className="card" style={{ overflow: 'hidden' }}>
-              {user.projects.map((project, idx) => {
+              {user.projects.filter(p => !p.featured).map((project, idx, arr) => {
                 const stageIndex = stages.findIndex(s => s.key === project.currentStage);
                 const stage = stages[stageIndex];
                 const role = roles.find(r => r.key === project.role);
 
                 return (
-                  <div key={project.id} style={{ padding: '20px 24px', borderBottom: idx < user.projects.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                      <div>
+                  <div key={project.id} style={{ padding: '20px 24px', borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                    {/* Cover image */}
+                    {project.imageUrl && (
+                      <div style={{ marginBottom: '12px', borderRadius: '8px', overflow: 'hidden', maxHeight: '160px' }}>
+                        <img src={project.imageUrl} alt={project.name} style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                      <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
                           <h3 style={{ fontSize: '16px', fontWeight: '500' }}>{project.name}</h3>
                           {project.ongoing && <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80' }} />}
                           <span className="tag" style={{ background: `${role?.color}20`, color: role?.color }}>{role?.label}</span>
+                          {project.startDate && (
+                            <span style={{ fontSize: '12px', color: '#57534e' }}>
+                              {project.startDate.slice(0, 4)}{project.endDate ? `–${project.endDate.slice(0, 4)}` : project.ongoing ? '–now' : ''}
+                            </span>
+                          )}
                         </div>
                         <p style={{ color: '#78716c', fontSize: '14px' }}>{project.oneLiner}</p>
                       </div>
                       <span className="tag" style={{ background: `${stage?.color}20`, color: stage?.color }}>{stage?.label}</span>
                     </div>
 
-                    {project.description && (
-                      <p style={{ color: '#a8a29e', fontSize: '14px', lineHeight: 1.6, marginBottom: '12px', whiteSpace: 'pre-wrap' }}>{project.description}</p>
-                    )}
-
-                    {/* Stage dots */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    {/* Stage dots — larger, with current stage label */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '10px' }}>
                       {stages.map((s, i) => (
                         <React.Fragment key={s.key}>
-                          <div style={{
-                            width: i === stageIndex ? '12px' : '8px',
-                            height: i === stageIndex ? '12px' : '8px',
-                            borderRadius: '50%',
-                            background: i <= stageIndex ? s.color : 'rgba(255,255,255,0.08)',
-                            boxShadow: i === stageIndex ? `0 0 8px ${s.color}50` : 'none'
-                          }} />
-                          {i < stages.length - 1 && <div style={{ width: '6px', height: '2px', background: i < stageIndex ? stages[i + 1].color : 'rgba(255,255,255,0.06)' }} />}
+                          <div
+                            title={s.label}
+                            style={{
+                              width: i === stageIndex ? '14px' : '10px',
+                              height: i === stageIndex ? '14px' : '10px',
+                              borderRadius: '50%',
+                              background: i <= stageIndex ? s.color : 'rgba(255,255,255,0.08)',
+                              boxShadow: i === stageIndex ? `0 0 10px ${s.color}50` : 'none',
+                              transition: 'all 0.2s'
+                            }}
+                          />
+                          {i < stages.length - 1 && <div style={{ width: '8px', height: '2px', background: i < stageIndex ? stages[i + 1].color : 'rgba(255,255,255,0.06)' }} />}
                         </React.Fragment>
                       ))}
                     </div>
 
-                    {/* Project links */}
+                    {/* Key metric callout */}
+                    {project.keyMetric && (
+                      <div style={{ display: 'inline-block', padding: '6px 12px', background: 'rgba(74, 222, 128, 0.08)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '6px', marginBottom: '10px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#4ade80' }}>{project.keyMetric}</span>
+                      </div>
+                    )}
+
+                    {/* Outcome */}
+                    {project.outcome && (
+                      <div style={{ display: 'inline-block', padding: '6px 12px', background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.2)', borderRadius: '6px', marginBottom: '10px', marginLeft: project.keyMetric ? '8px' : 0 }}>
+                        <span style={{ fontSize: '11px', letterSpacing: '0.05em', color: '#fbbf24', fontWeight: '500' }}>OUTCOME </span>
+                        <span style={{ color: '#fbbf24', fontSize: '13px' }}>{project.outcome}</span>
+                      </div>
+                    )}
+
+                    {/* Per-project domains */}
+                    {project.domains?.length > 0 && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                        {project.domains.map(d => (
+                          <span key={d} className="tag" style={{ background: 'rgba(255,255,255,0.04)', color: '#78716c', fontSize: '11px', padding: '2px 8px' }}>{d}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Collapsible description */}
+                    {project.description && (
+                      <div style={{ marginBottom: '10px' }}>
+                        <CollapsibleDescription text={project.description} />
+                      </div>
+                    )}
+
+                    {/* Project links with labels */}
                     {project.links?.length > 0 && (
-                      <div style={{ marginTop: '12px', display: 'flex', gap: '16px' }}>
-                        {project.links.map(link => {
-                          let hostname;
-                          try { hostname = new URL(link).hostname; } catch { hostname = link; }
-                          return (
-                            <a key={link} href={link} target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', fontSize: '13px' }}>↗ {hostname}</a>
-                          );
-                        })}
+                      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                        {project.links.map(link => (
+                          <a key={link} href={link} target="_blank" rel="noopener noreferrer" style={{ color: '#fbbf24', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            ↗ {getLinkLabel(link)}
+                          </a>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -3253,7 +3563,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       {/* The difference */}
       <section style={{ padding: '80px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", textAlign: 'center', marginBottom: '48px' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", textAlign: 'center', marginBottom: '48px' }}>
             LinkedIn is a list of places people worked.<br />
             <span style={{ color: '#78716c' }}>Makerly is a list of things people made.</span>
           </h2>
@@ -3289,7 +3599,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       {/* The filter */}
       <section style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '20px' }}>
             Makerly is the filter.
           </h2>
           <p style={{ fontSize: '17px', color: '#a8a29e', lineHeight: 1.6, marginBottom: '40px' }}>
@@ -3373,7 +3683,7 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
       {/* Email capture */}
       <section style={{ padding: '80px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: '500px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '28px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '32px', fontFamily: "'Newsreader', Georgia, serif", marginBottom: '16px' }}>
             Get notified when new makers join.
           </h2>
           <p style={{ fontSize: '14px', color: '#78716c', marginBottom: '32px' }}>

@@ -515,13 +515,16 @@ export async function createProject(userId, project) {
       one_liner: project.oneLiner || null,
       role: project.role || 'solo',
       current_stage: project.currentStage || 'idea',
-      start_date: project.startDate || null,
-      end_date: project.endDate || null,
+      start_date: project.startDate ? `${project.startDate}-01` : null,
+      end_date: project.endDate ? `${project.endDate}-01` : null,
       ongoing: project.ongoing ?? true,
       domains: project.domains || [],
       links: project.links || [],
       outcome: project.outcome || null,
-      description: project.description || null
+      description: project.description || null,
+      image_url: project.imageUrl || null,
+      featured: project.featured || false,
+      key_metric: project.keyMetric || null
     }
 
     const { data, error } = await supabase
@@ -549,13 +552,16 @@ export async function updateProject(projectId, updates) {
       one_liner: updates.oneLiner || null,
       role: updates.role || 'solo',
       current_stage: updates.currentStage || 'idea',
-      start_date: updates.startDate || null,
-      end_date: updates.endDate || null,
+      start_date: updates.startDate ? `${updates.startDate}-01` : null,
+      end_date: updates.endDate ? `${updates.endDate}-01` : null,
       ongoing: updates.ongoing ?? true,
       domains: updates.domains || [],
       links: updates.links || [],
       outcome: updates.outcome || null,
-      description: updates.description || null
+      description: updates.description || null,
+      image_url: updates.imageUrl || null,
+      featured: updates.featured || false,
+      key_metric: updates.keyMetric || null
     }
 
     const { data, error } = await supabase
@@ -673,13 +679,16 @@ function projectFromDb(dbProject) {
     oneLiner: dbProject.one_liner,
     role: dbProject.role,
     currentStage: dbProject.current_stage,
-    startDate: dbProject.start_date,
-    endDate: dbProject.end_date,
+    startDate: dbProject.start_date ? dbProject.start_date.slice(0, 7) : null,
+    endDate: dbProject.end_date ? dbProject.end_date.slice(0, 7) : null,
     ongoing: dbProject.ongoing,
     domains: dbProject.domains || [],
     links: dbProject.links || [],
     outcome: dbProject.outcome,
-    description: dbProject.description || ''
+    description: dbProject.description || '',
+    imageUrl: dbProject.image_url || '',
+    featured: dbProject.featured || false,
+    keyMetric: dbProject.key_metric || ''
   }
 }
 
