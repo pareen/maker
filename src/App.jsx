@@ -344,7 +344,7 @@ const App = () => {
       `}</style>
 
       {notification && (
-        <div className={`notification ${notification.type}`}>
+        <div className={`notification ${notification.type}`} role="alert" aria-live="polite">
           {notification.message}
         </div>
       )}
