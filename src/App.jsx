@@ -3473,11 +3473,11 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
             </div>
           )}
 
-          <div role="list" aria-label="Makers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+          <div aria-label="Makers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
             {filtered.map(maker => (
               <div
                 key={maker.id}
-                role="listitem"
+                role="button"
                 onClick={() => onViewProfile(maker.username)}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewProfile(maker.username); } }}
                 tabIndex={0}
@@ -3850,11 +3850,11 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup }) => {
               </h2>
             </div>
 
-            <div className="desktop-grid" role="list" aria-label="Featured makers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+            <div className="desktop-grid" aria-label="Featured makers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
               {makers.map(maker => (
                 <div
                   key={maker.id}
-                  role="listitem"
+                  role="button"
                   onClick={() => onViewProfile(maker.username)}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewProfile(maker.username); } }}
                   tabIndex={0}
