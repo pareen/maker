@@ -186,6 +186,18 @@ CREATE INDEX error_logs_user_id_idx ON error_logs(user_id);
 -- Migration: Add description field to projects (run if upgrading existing database)
 -- ALTER TABLE projects ADD COLUMN IF NOT EXISTS description TEXT;
 
+-- Migration: Add financial/metric fields to projects (run if upgrading existing database)
+-- ALTER TABLE projects ADD COLUMN IF NOT EXISTS funding_raised BIGINT DEFAULT 0;
+-- ALTER TABLE projects ADD COLUMN IF NOT EXISTS valuation BIGINT DEFAULT 0;
+-- ALTER TABLE projects ADD COLUMN IF NOT EXISTS users_reached BIGINT DEFAULT 0;
+
+-- Migration: Add philosophy, press links, and headline stat overrides to profiles
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS philosophy TEXT;
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS press_links JSONB DEFAULT '[]';
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_raised BIGINT;
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_valuation BIGINT;
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_users BIGINT;
+
 -- Migration: Add image_url, featured, key_metric fields to projects
 -- ALTER TABLE projects ADD COLUMN IF NOT EXISTS image_url TEXT;
 -- ALTER TABLE projects ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT FALSE;

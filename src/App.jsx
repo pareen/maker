@@ -3,6 +3,7 @@ import * as db from './lib/database';
 const { setAuthMode } = db;
 import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection, handleGitHubOAuthRedirect } from './lib/github';
 import { isSupabaseConfigured } from './lib/supabase';
+import { formatCurrency, formatNumber, parseCurrencyInput, parseNumberInput, formatCentsPreview, formatNumberPreview } from './lib/format';
 
 const ensureUrl = (url) => {
   if (!url) return url;
@@ -1523,7 +1524,10 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
     description: '',
     imageUrl: '',
     featured: false,
-    keyMetric: ''
+    keyMetric: '',
+    fundingRaised: 0,
+    valuation: 0,
+    usersReached: 0
   });
 
   const [newDomain, setNewDomain] = useState('');
@@ -1736,6 +1740,60 @@ const ProjectModal = ({ project, onSave, onDelete, onClose }) => {
               value={formData.keyMetric || ''}
               onChange={(e) => setFormData({ ...formData, keyMetric: e.target.value })}
             />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Funding Raised (optional)</label>
+            <input
+              className="input"
+              inputMode="decimal"
+              placeholder="e.g. $1.5M, 250K, 500000"
+              defaultValue={formData.fundingRaised ? formatCentsPreview(formData.fundingRaised) : ''}
+              onBlur={(e) => {
+                const cents = parseCurrencyInput(e.target.value);
+                setFormData(prev => ({ ...prev, fundingRaised: cents }));
+                if (cents > 0) e.target.value = formatCentsPreview(cents);
+              }}
+            />
+            {formData.fundingRaised > 0 && (
+              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>Stored as: {formatCentsPreview(formData.fundingRaised)}</div>
+            )}
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Valuation (optional)</label>
+            <input
+              className="input"
+              inputMode="decimal"
+              placeholder="e.g. $10M, 5B, 1000000"
+              defaultValue={formData.valuation ? formatCentsPreview(formData.valuation) : ''}
+              onBlur={(e) => {
+                const cents = parseCurrencyInput(e.target.value);
+                setFormData(prev => ({ ...prev, valuation: cents }));
+                if (cents > 0) e.target.value = formatCentsPreview(cents);
+              }}
+            />
+            {formData.valuation > 0 && (
+              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>Stored as: {formatCentsPreview(formData.valuation)}</div>
+            )}
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>Users Reached (optional)</label>
+            <input
+              className="input"
+              inputMode="decimal"
+              placeholder="e.g. 50K, 2.1M, 500000"
+              defaultValue={formData.usersReached ? formatNumberPreview(formData.usersReached) : ''}
+              onBlur={(e) => {
+                const count = parseNumberInput(e.target.value);
+                setFormData(prev => ({ ...prev, usersReached: count }));
+                if (count > 0) e.target.value = formatNumberPreview(count);
+              }}
+            />
+            {formData.usersReached > 0 && (
+              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>Stored as: {formatNumberPreview(formData.usersReached)}</div>
+            )}
           </div>
 
           <div style={{ marginBottom: '16px' }}>
@@ -2264,7 +2322,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
             <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>makerly.me/{formData.username}</div>
           </div>
 
-          <div>
+          <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Bio</label>
             <textarea
               className="input"
@@ -2274,6 +2332,18 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
               rows={3}
               style={{ resize: 'vertical' }}
             />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Philosophy</label>
+            <input
+              className="input"
+              placeholder="Your maker philosophy in one line"
+              maxLength={200}
+              value={formData.philosophy || ''}
+              onChange={(e) => setFormData({ ...formData, philosophy: e.target.value })}
+            />
+            <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>Shows as an italic quote on your profile.</div>
           </div>
         </div>
 
@@ -2425,6 +2495,125 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
               />
             </div>
           )}
+        </div>
+
+        {/* Press Links */}
+        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>PRESS & SOCIAL PROOF</h2>
+          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
+            Add links to press mentions, interviews, or notable features.
+          </p>
+
+          {(formData.pressLinks || []).map((link, i) => (
+            <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+              <input
+                className="input"
+                placeholder="URL"
+                value={link.url || ''}
+                onChange={(e) => {
+                  const updated = [...(formData.pressLinks || [])];
+                  updated[i] = { ...updated[i], url: e.target.value };
+                  if (!updated[i].source && e.target.value) {
+                    updated[i].source = getLinkLabel(e.target.value);
+                  }
+                  setFormData({ ...formData, pressLinks: updated });
+                }}
+                style={{ flex: 2 }}
+              />
+              <input
+                className="input"
+                placeholder="Source (e.g. TechCrunch)"
+                value={link.source || ''}
+                onChange={(e) => {
+                  const updated = [...(formData.pressLinks || [])];
+                  updated[i] = { ...updated[i], source: e.target.value };
+                  setFormData({ ...formData, pressLinks: updated });
+                }}
+                style={{ flex: 1 }}
+              />
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  const updated = (formData.pressLinks || []).filter((_, j) => j !== i);
+                  setFormData({ ...formData, pressLinks: updated });
+                }}
+                style={{ color: t.error, padding: '8px' }}
+              >×</button>
+            </div>
+          ))}
+
+          <button
+            className="btn btn-secondary"
+            onClick={() => setFormData({ ...formData, pressLinks: [...(formData.pressLinks || []), { url: '', title: '', source: '' }] })}
+          >+ Add press link</button>
+        </div>
+
+        {/* Headline Stats Overrides */}
+        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>CURATE YOUR HEADLINE STATS</h2>
+          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
+            Leave blank to auto-calculate from your projects. Set a value here to override the sum.
+          </p>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total $ Raised (override)</label>
+            <input
+              className="input"
+              inputMode="decimal"
+              placeholder="e.g. $5M"
+              defaultValue={formData.totalRaised ? formatCentsPreview(formData.totalRaised) : ''}
+              onBlur={(e) => {
+                const val = e.target.value.trim();
+                if (!val) {
+                  setFormData(prev => ({ ...prev, totalRaised: null }));
+                } else {
+                  const cents = parseCurrencyInput(val);
+                  setFormData(prev => ({ ...prev, totalRaised: cents || null }));
+                  if (cents > 0) e.target.value = formatCentsPreview(cents);
+                }
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total Valuation (override)</label>
+            <input
+              className="input"
+              inputMode="decimal"
+              placeholder="e.g. $50M"
+              defaultValue={formData.totalValuation ? formatCentsPreview(formData.totalValuation) : ''}
+              onBlur={(e) => {
+                const val = e.target.value.trim();
+                if (!val) {
+                  setFormData(prev => ({ ...prev, totalValuation: null }));
+                } else {
+                  const cents = parseCurrencyInput(val);
+                  setFormData(prev => ({ ...prev, totalValuation: cents || null }));
+                  if (cents > 0) e.target.value = formatCentsPreview(cents);
+                }
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total Users (override)</label>
+            <input
+              className="input"
+              inputMode="decimal"
+              placeholder="e.g. 500K"
+              defaultValue={formData.totalUsers ? formatNumberPreview(formData.totalUsers) : ''}
+              onBlur={(e) => {
+                const val = e.target.value.trim();
+                if (!val) {
+                  setFormData(prev => ({ ...prev, totalUsers: null }));
+                } else {
+                  const count = parseNumberInput(val);
+                  setFormData(prev => ({ ...prev, totalUsers: count || null }));
+                  if (count > 0) e.target.value = formatNumberPreview(count);
+                }
+              }}
+            />
+          </div>
         </div>
 
         <button className="btn btn-primary" onClick={handleSave} style={{ width: '100%' }}>Save Changes</button>
@@ -2633,17 +2822,22 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
     return () => { document.title = 'Maker Portfolio — The portfolio for people who make things'; };
   }, [user.name, user.username]);
 
-  const roleBreakdown = roles.map(role => ({
-    ...role,
-    count: user.projects.filter(p => p.role === role.key).length,
-    percentage: user.projects.length > 0 ? Math.round((user.projects.filter(p => p.role === role.key).length / user.projects.length) * 100) : 0
-  })).filter(r => r.count > 0);
+  // Hero stats: profile-level overrides take precedence, fall back to per-project sums
+  const totalRaised = user.totalRaised ?? user.projects.reduce((sum, p) => sum + (p.fundingRaised || 0), 0);
+  const totalValuation = user.totalValuation ?? user.projects.reduce((sum, p) => sum + (p.valuation || 0), 0);
+  const totalUsers = user.totalUsers ?? user.projects.reduce((sum, p) => sum + (p.usersReached || 0), 0);
+  const heroStats = [
+    totalRaised > 0 && { label: 'raised', value: formatCurrency(totalRaised), raw: totalRaised, color: t.accent },
+    totalValuation > 0 && { label: 'valuation', value: formatCurrency(totalValuation), raw: totalValuation, color: t.accent },
+    totalUsers > 0 && { label: 'users', value: formatNumber(totalUsers), raw: totalUsers, color: t.text },
+    user.projects.length > 0 && { label: 'things made', value: user.projects.length, raw: user.projects.length, color: t.text },
+  ].filter(Boolean);
 
   const stats = [
     { label: "Things made", value: user.projects.length, color: t.text },
     { label: "Reached users", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 4).length, color: t.orange },
     { label: "Reached paying", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 5).length, color: t.pink },
-    { label: "Funded", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 6).length, color: t.purple },
+    { label: "Funded", value: user.projects.filter(p => p.currentStage === 'funded').length, color: t.purple },
     { label: "Acquisitions", value: user.projects.filter(p => p.currentStage === 'acquired').length, color: t.cyan },
   ].filter(s => s.value > 0 || s.label === 'Things made');
 
@@ -2703,6 +2897,13 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
             </h1>
             {user.bio && <p style={{ fontSize: '18px', color: t.textSecondary, marginBottom: '32px', lineHeight: 1.5 }}>{user.bio}</p>}
 
+            {/* Philosophy */}
+            {user.philosophy && (
+              <p style={{ fontSize: '16px', fontFamily: t.fontHeading, fontStyle: 'italic', color: t.textSecondary, marginBottom: '32px', lineHeight: 1.5 }}>
+                "{user.philosophy}"
+              </p>
+            )}
+
             {/* First Make */}
             {user.firstMake?.description && (
               <div style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(251,191,36,0.02) 100%)', border: `1px solid ${t.accentBorder}`, borderRadius: t.radiusMd, padding: '20px 24px', marginBottom: '24px' }}>
@@ -2750,10 +2951,42 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                 )}
               </div>
             )}
+
+            {/* Press / Social Proof */}
+            {user.pressLinks?.length > 0 && (
+              <div style={{ marginTop: '24px' }}>
+                <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '12px' }}>AS SEEN IN</div>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                  {user.pressLinks.map((link, i) => (
+                    <a key={i} href={ensureUrl(link.url)} target="_blank" rel="noopener noreferrer" style={{ color: t.textSecondary, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span aria-hidden="true">↗</span> {link.source || link.title || getLinkLabel(link.url)}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Stats */}
           <div>
+            {/* Hero Stats */}
+            {heroStats.length > 0 && (
+              <div className="card" style={{ padding: '24px', marginBottom: '16px' }} aria-label="Maker statistics">
+                <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '16px' }}>HEADLINE STATS</div>
+                <div style={{ display: 'grid', gridTemplateColumns: heroStats.length === 1 ? '1fr' : '1fr 1fr', gap: '16px' }}>
+                  {heroStats.map(stat => (
+                    <div key={stat.label}>
+                      <div style={{ fontSize: '28px', fontWeight: '700', fontFamily: t.fontHeading, color: stat.color }} aria-label={`${stat.value} ${stat.label}`}>
+                        {stat.value}
+                      </div>
+                      <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, marginTop: '4px' }}>{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Outcomes */}
             <div className="card" style={{ padding: '20px 24px', marginBottom: '16px' }}>
               <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '16px' }}>OUTCOMES</div>
               {stats.map(stat => (
@@ -2763,26 +2996,6 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
                 </div>
               ))}
             </div>
-
-            {roleBreakdown.length > 0 && (
-              <div className="card" style={{ padding: '20px 24px' }}>
-                <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '16px' }}>ROLE BREAKDOWN</div>
-                <div style={{ display: 'flex', height: '6px', borderRadius: '3px', overflow: 'hidden', marginBottom: '12px' }}>
-                  {roleBreakdown.map(r => (
-                    <div key={r.key} style={{ width: `${r.percentage}%`, background: r.color }} />
-                  ))}
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                  {roleBreakdown.map(r => (
-                    <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: r.color }} />
-                      <span style={{ color: t.textSecondary }}>{r.label}</span>
-                      <span style={{ color: t.textFaint }}>{r.count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

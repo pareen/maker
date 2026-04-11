@@ -25,3 +25,4 @@ Key routing rules:
 - lint: eslint .
 - build: vite build
 - test: vitest run
+- deadcode: knip

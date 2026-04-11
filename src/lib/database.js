@@ -5,7 +5,6 @@ import { supabase, isSupabaseConfigured } from './supabase'
 // so CRUD functions must route based on auth mode, not just isSupabaseConfigured().
 let _authMode = null // 'supabase' | 'local' | null
 export function setAuthMode(mode) { _authMode = mode }
-export function getAuthMode() { return _authMode }
 
 // Check if Supabase should be used for CRUD operations (configured AND user has a Supabase session)
 function shouldUseSupabase() {
@@ -16,7 +15,7 @@ function shouldUseSupabase() {
 // ERROR LOGGING
 // ============================================
 
-export async function logError(action, error, metadata = {}) {
+async function logError(action, error, metadata = {}) {
   // Log to console always
   console.error(`[${action}]`, error, metadata)
 
@@ -421,7 +420,12 @@ function profileFromDb(dbProfile) {
     embedFeed: dbProfile.embed_feed || { type: null, url: '' },
     showEmail: dbProfile.show_email || false,
     contactEmail: dbProfile.contact_email || '',
-    crackedSquad: dbProfile.cracked_squad || false
+    crackedSquad: dbProfile.cracked_squad || false,
+    philosophy: dbProfile.philosophy || '',
+    pressLinks: dbProfile.press_links || [],
+    totalRaised: dbProfile.total_raised ?? null,
+    totalValuation: dbProfile.total_valuation ?? null,
+    totalUsers: dbProfile.total_users ?? null
   }
 }
 
@@ -445,6 +449,11 @@ export async function updateProfile(userId, updates) {
   if (updates.embedFeed !== undefined) row.embed_feed = updates.embedFeed
   if (updates.showEmail !== undefined) row.show_email = updates.showEmail
   if (updates.contactEmail !== undefined) row.contact_email = updates.contactEmail
+  if (updates.philosophy !== undefined) row.philosophy = updates.philosophy
+  if (updates.pressLinks !== undefined) row.press_links = updates.pressLinks
+  if (updates.totalRaised !== undefined) row.total_raised = updates.totalRaised
+  if (updates.totalValuation !== undefined) row.total_valuation = updates.totalValuation
+  if (updates.totalUsers !== undefined) row.total_users = updates.totalUsers
 
   if (Object.keys(row).length === 0) return // nothing to update
 
@@ -525,7 +534,10 @@ export async function createProject(userId, project) {
       description: project.description || null,
       image_url: project.imageUrl || null,
       featured: project.featured || false,
-      key_metric: project.keyMetric || null
+      key_metric: project.keyMetric || null,
+      funding_raised: project.fundingRaised ?? 0,
+      valuation: project.valuation ?? 0,
+      users_reached: project.usersReached ?? 0
     }
 
     const { data, error } = await supabase
@@ -562,7 +574,10 @@ export async function updateProject(projectId, updates) {
       description: updates.description || null,
       image_url: updates.imageUrl || null,
       featured: updates.featured || false,
-      key_metric: updates.keyMetric || null
+      key_metric: updates.keyMetric || null,
+      funding_raised: updates.fundingRaised ?? 0,
+      valuation: updates.valuation ?? 0,
+      users_reached: updates.usersReached ?? 0
     }
 
     const { data, error } = await supabase
@@ -689,7 +704,10 @@ function projectFromDb(dbProject) {
     description: dbProject.description || '',
     imageUrl: dbProject.image_url || '',
     featured: dbProject.featured || false,
-    keyMetric: dbProject.key_metric || ''
+    keyMetric: dbProject.key_metric || '',
+    fundingRaised: dbProject.funding_raised ?? 0,
+    valuation: dbProject.valuation ?? 0,
+    usersReached: dbProject.users_reached ?? 0
   }
 }
 
@@ -1039,7 +1057,7 @@ function updateProfileLocal(userId, updates) {
   }
 
   // Only merge profile fields — never overwrite projects, id, email, etc.
-  const profileFields = ['name', 'bio', 'firstMake', 'domains', 'todayMaking', 'socials', 'embedFeed']
+  const profileFields = ['name', 'bio', 'firstMake', 'domains', 'todayMaking', 'socials', 'embedFeed', 'philosophy', 'pressLinks', 'totalRaised', 'totalValuation', 'totalUsers']
   for (const field of profileFields) {
     if (field in updates) {
       users[userKey][field] = updates[field]
