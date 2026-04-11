@@ -2837,7 +2837,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
     { label: "Things made", value: user.projects.length, color: t.text },
     { label: "Reached users", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 4).length, color: t.orange },
     { label: "Reached paying", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 5).length, color: t.pink },
-    { label: "Funded", value: user.projects.filter(p => stages.findIndex(s => s.key === p.currentStage) >= 6).length, color: t.purple },
+    { label: "Funded", value: user.projects.filter(p => p.currentStage === 'funded').length, color: t.purple },
     { label: "Acquisitions", value: user.projects.filter(p => p.currentStage === 'acquired').length, color: t.cyan },
   ].filter(s => s.value > 0 || s.label === 'Things made');
 
@@ -2987,7 +2987,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
             )}
 
             {/* Outcomes */}
-            <div className="card" style={{ padding: '20px 24px' }}>
+            <div className="card" style={{ padding: '20px 24px', marginBottom: '16px' }}>
               <div style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '16px' }}>OUTCOMES</div>
               {stats.map(stat => (
                 <div key={stat.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
