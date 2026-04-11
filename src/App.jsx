@@ -108,7 +108,7 @@ function getInitialRoute() {
 const App = () => {
   const initialRoute = useRef(getInitialRoute());
   const [currentUser, setCurrentUser] = useState(null);
-  const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, dashboard, profile, editProfile, publicProfile
+  const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, dashboard, profile, publicProfile
   const [authLoading, setAuthLoading] = useState(true);
   const [viewingProfile, setViewingProfile] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -499,13 +499,13 @@ const App = () => {
         <Dashboard
           user={currentUser}
           setUser={setCurrentUser}
-          onEditProfile={() => setCurrentView('editProfile')}
           onViewProfile={() => setCurrentView('profile')}
           onLogout={handleLogout}
           onShare={() => setShowShareModal(true)}
           onAdmin={db.isAdmin(currentUser.id) ? () => navigate('admin') : null}
           onMakers={() => navigate('makers')}
           showNotification={showNotification}
+          isAdmin={db.isAdmin(currentUser.id)}
         />
       )}
 
@@ -523,20 +523,11 @@ const App = () => {
           user={currentUser}
           isOwner={true}
           onBack={() => setCurrentView('dashboard')}
-          onEdit={() => setCurrentView('editProfile')}
+          onEdit={() => setCurrentView('dashboard')}
           onShare={() => setShowShareModal(true)}
         />
       )}
 
-      {currentView === 'editProfile' && currentUser && (
-        <EditProfile
-          user={currentUser}
-          setUser={setCurrentUser}
-          onBack={() => setCurrentView('dashboard')}
-          showNotification={showNotification}
-          isAdmin={db.isAdmin(currentUser.id)}
-        />
-      )}
 
       {currentView === 'makers' && (
         <MakerDirectory
@@ -1198,7 +1189,7 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
 // ============================================
 // DASHBOARD
 // ============================================
-const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onShare, onAdmin, onMakers, showNotification }) => {
+const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, onMakers, showNotification, isAdmin }) => {
   const [updateText, setUpdateText] = useState('');
   const [updates, setUpdates] = useState([]);
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -1207,6 +1198,25 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [updatesPage, setUpdatesPage] = useState(1);
   const UPDATES_PER_PAGE = 10;
+
+  // Profile editing state (merged from EditProfile)
+  const [formData, setFormData] = useState({ ...user });
+  const [newDomain, setNewDomain] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const totalRaisedRef = useRef(null);
+  const totalValuationRef = useRef(null);
+  const totalUsersRef = useRef(null);
+  const [extracting, setExtracting] = useState(false);
+  const [extractedStats, setExtractedStats] = useState(null);
+
+  const lastProcessed = localStorage.getItem('lastStatsProcessed');
+  const canProcess = isAdmin || !lastProcessed || (Date.now() - parseInt(lastProcessed, 10)) > 7 * 24 * 60 * 60 * 1000;
+  const daysUntilProcess = lastProcessed ? Math.max(0, Math.ceil((parseInt(lastProcessed, 10) + 7 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000))) : 0;
+
+  // Keep formData in sync when user prop changes (e.g. after project save)
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, ...user }));
+  }, [user]);
 
   // Load updates on mount
   useEffect(() => {
@@ -1330,17 +1340,122 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
     }).catch(err => console.error('Failed to refresh projects:', err));
   };
 
+  // Profile save handler
+  const handleSaveProfile = async () => {
+    if (savingProfile) return;
+    setSavingProfile(true);
+    try {
+      const finalData = { ...formData };
+      if (totalRaisedRef.current) {
+        const val = totalRaisedRef.current.value.trim();
+        finalData.totalRaised = val ? (parseCurrencyInput(val) || null) : null;
+      }
+      if (totalValuationRef.current) {
+        const val = totalValuationRef.current.value.trim();
+        finalData.totalValuation = val ? (parseCurrencyInput(val) || null) : null;
+      }
+      if (totalUsersRef.current) {
+        const val = totalUsersRef.current.value.trim();
+        finalData.totalUsers = val ? (parseNumberInput(val) || null) : null;
+      }
+      await db.updateProfile(user.id, finalData);
+      setUser({ ...user, ...finalData });
+      showNotification('Profile saved!');
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      showNotification('Error saving profile: ' + (error?.message || String(error)), 'error');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const processStats = async () => {
+    if (!canProcess || extracting) return;
+    setExtracting(true);
+    try {
+      const projectData = user.projects.map(p => ({
+        id: p.id,
+        name: p.name,
+        keyMetric: p.keyMetric,
+        oneLiner: p.oneLiner,
+        description: p.description,
+      }));
+      const res = await fetch('/api/extract-stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projects: projectData }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to process');
+      }
+      const { results } = await res.json();
+      const merged = user.projects.map((p, i) => ({
+        id: p.id,
+        name: p.name,
+        fundingRaised: results[i]?.fundingRaised ?? 0,
+        valuation: results[i]?.valuation ?? 0,
+        usersReached: results[i]?.usersReached ?? 0,
+      }));
+      setExtractedStats(merged);
+    } catch (error) {
+      console.error('Extract stats error:', error);
+      showNotification('Error processing stats: ' + (error?.message || String(error)), 'error');
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  const applyExtractedStats = async () => {
+    if (!extractedStats) return;
+    setSavingProfile(true);
+    try {
+      for (const stat of extractedStats) {
+        if (stat.fundingRaised > 0 || stat.valuation > 0 || stat.usersReached > 0) {
+          await db.updateProject(stat.id, {
+            ...user.projects.find(p => p.id === stat.id),
+            fundingRaised: stat.fundingRaised,
+            valuation: stat.valuation,
+            usersReached: stat.usersReached,
+          });
+        }
+      }
+      setUser(prev => ({
+        ...prev,
+        projects: prev.projects.map(p => {
+          const stat = extractedStats.find(s => s.id === p.id);
+          return stat ? { ...p, fundingRaised: stat.fundingRaised, valuation: stat.valuation, usersReached: stat.usersReached } : p;
+        }),
+      }));
+      localStorage.setItem('lastStatsProcessed', String(Date.now()));
+      setExtractedStats(null);
+      showNotification('Stats updated across all projects!');
+    } catch (error) {
+      console.error('Apply stats error:', error);
+      showNotification('Error saving stats: ' + (error?.message || String(error)), 'error');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const addDomain = () => {
+    const trimmed = newDomain.trim().toLowerCase();
+    if (trimmed && !formData.domains.some(d => d.toLowerCase() === trimmed)) {
+      setFormData({ ...formData, domains: [...formData.domains, trimmed] });
+      setNewDomain('');
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}`, flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600' }}>MAKER.PROFILE</div>
         <nav className="header-actions" aria-label="Dashboard navigation" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button className="btn btn-secondary" onClick={onEditProfile}>Edit Profile</button>
           <button className="btn btn-primary" onClick={onShare} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span aria-hidden="true">↗</span> Share
           </button>
-          <button className="btn btn-secondary" onClick={onViewProfile}>View</button>
+          <button className="btn btn-secondary" onClick={onViewProfile}>Preview</button>
           <button className="btn btn-ghost" onClick={onMakers}>Makers</button>
           {onAdmin && <button className="btn btn-ghost" onClick={onAdmin} style={{ color: t.accent }}>Admin</button>}
           <button className="btn btn-ghost" onClick={onLogout}>Log out</button>
@@ -1349,8 +1464,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
       </header>
 
       <MobileDrawer isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}>
-        <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onEditProfile(); }}>Edit Profile</button>
-        <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onViewProfile(); }}>View Profile</button>
+        <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onViewProfile(); }}>Preview Profile</button>
         <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onMakers(); }}>Makers</button>
         {onAdmin && <button className="btn btn-ghost" style={{ textAlign: 'left', color: t.accent }} onClick={() => { setMobileMenuOpen(false); onAdmin(); }}>Admin</button>}
         <button className="btn btn-ghost" style={{ textAlign: 'left' }} onClick={() => { setMobileMenuOpen(false); onLogout(); }}>Log out</button>
@@ -1452,6 +1566,395 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
               ))}
             </div>
           )}
+        </div>
+
+        {/* ── PROFILE SETTINGS ── */}
+        <div style={{ marginTop: '48px', borderTop: `1px solid ${t.surfaceBorder}`, paddingTop: '48px' }}>
+          <h2 style={{ fontSize: '12px', letterSpacing: '0.1em', color: t.textFaint, marginBottom: '24px' }}>PROFILE SETTINGS</h2>
+
+          {/* Basic Info */}
+          <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>BASIC INFO</h2>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Name</label>
+              <input
+                className="input"
+                placeholder="Your name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Username</label>
+              <input className="input" value={formData.username} disabled style={{ opacity: 0.6 }} />
+              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>makerly.me/{formData.username}</div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Bio</label>
+              <textarea
+                className="input"
+                placeholder="I make things that..."
+                value={formData.bio}
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                rows={3}
+                style={{ resize: 'vertical' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Philosophy</label>
+              <input
+                className="input"
+                placeholder="Your maker philosophy in one line"
+                maxLength={200}
+                value={formData.philosophy || ''}
+                onChange={(e) => setFormData({ ...formData, philosophy: e.target.value })}
+              />
+              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>Shows as an italic quote on your profile.</div>
+            </div>
+          </div>
+
+          {/* First Make */}
+          <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>FIRST MAKE</h2>
+            <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
+              What do you remember as your first make? A Lego set? A school project? A treehouse?
+            </p>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>What was it?</label>
+              <textarea
+                className="input"
+                placeholder="A marble run out of cardboard tubes and tape. Spent three weeks on it."
+                value={formData.firstMake?.description || ''}
+                onChange={(e) => setFormData({ ...formData, firstMake: { ...formData.firstMake, description: e.target.value } })}
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>How old were you?</label>
+              <input
+                className="input"
+                placeholder="8"
+                value={formData.firstMake?.age || ''}
+                onChange={(e) => setFormData({ ...formData, firstMake: { ...formData.firstMake, age: e.target.value } })}
+                style={{ width: '100px' }}
+              />
+            </div>
+          </div>
+
+          {/* Domains */}
+          <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>DOMAINS</h2>
+            <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
+              What kinds of things do you make? Apps, hardware, communities, art, music...
+            </p>
+
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              <input
+                className="input"
+                placeholder="e.g. apps, hardware, developer tools"
+                value={newDomain}
+                onChange={(e) => setNewDomain(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addDomain())}
+              />
+              <button className="btn btn-secondary" onClick={addDomain}>Add</button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {formData.domains.map(d => (
+                <button type="button" key={d} className="tag" aria-label={`Remove ${d}`} style={{ background: t.accentBg, color: t.accent, cursor: 'pointer', border: 'none' }}
+                  onClick={() => setFormData({ ...formData, domains: formData.domains.filter(x => x !== d) })}>
+                  {d} ×
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Social Links */}
+          <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>SOCIAL & PROOF OF WORK</h2>
+
+            {[
+              { key: 'twitter', label: 'Twitter/X', placeholder: 'https://twitter.com/yourhandle' },
+              { key: 'github', label: 'GitHub', placeholder: 'https://github.com/yourusername' },
+              { key: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/in/yourprofile' },
+              { key: 'substack', label: 'Substack', placeholder: 'https://yourname.substack.com' },
+              { key: 'website', label: 'Personal Website', placeholder: 'https://yoursite.com' },
+            ].map(({ key, label, placeholder }) => (
+              <div key={key} style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>{label}</label>
+                <input
+                  className="input"
+                  placeholder={placeholder}
+                  value={formData.socials?.[key] || ''}
+                  onChange={(e) => setFormData({ ...formData, socials: { ...formData.socials, [key]: e.target.value } })}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Contact */}
+          <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>CONTACT</h2>
+            <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
+              Let people message you directly from your profile. Your email stays private — visitors just see a contact button.
+            </p>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.showEmail || false}
+                  onChange={(e) => setFormData({ ...formData, showEmail: e.target.checked })}
+                  style={{ width: '16px', height: '16px' }}
+                />
+                <span style={{ fontSize: '14px', color: t.textSecondary }}>Enable contact form on my profile</span>
+              </label>
+            </div>
+
+            {formData.showEmail && (
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Where should messages be sent?</label>
+                <input
+                  className="input"
+                  type="email"
+                  placeholder="you@email.com"
+                  value={formData.contactEmail || ''}
+                  onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                />
+                <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>Messages from visitors will be emailed here. This address is never shown publicly.</div>
+              </div>
+            )}
+          </div>
+
+          {/* Embed Feed */}
+          <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>EMBED FEED</h2>
+            <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
+              Show your latest tweets or Substack posts on your profile.
+            </p>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Feed Type</label>
+              <select
+                className="input"
+                value={formData.embedFeed?.type || ''}
+                onChange={(e) => setFormData({ ...formData, embedFeed: { ...formData.embedFeed, type: e.target.value || null } })}
+              >
+                <option value="">None</option>
+                <option value="twitter">Twitter/X Timeline</option>
+                <option value="substack">Substack</option>
+              </select>
+            </div>
+
+            {formData.embedFeed?.type && (
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>
+                  {formData.embedFeed.type === 'twitter' ? 'Twitter Username' : 'Substack URL'}
+                </label>
+                <input
+                  className="input"
+                  placeholder={formData.embedFeed.type === 'twitter' ? '@yourhandle' : 'https://yourname.substack.com'}
+                  value={formData.embedFeed?.url || ''}
+                  onChange={(e) => setFormData({ ...formData, embedFeed: { ...formData.embedFeed, url: e.target.value } })}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Press Links */}
+          <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>PRESS & SOCIAL PROOF</h2>
+            <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
+              Add links to press mentions, interviews, or notable features.
+            </p>
+
+            {(formData.pressLinks || []).map((link, i) => (
+              <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                <input
+                  className="input"
+                  placeholder="URL"
+                  value={link.url || ''}
+                  onChange={(e) => {
+                    const updated = [...(formData.pressLinks || [])];
+                    updated[i] = { ...updated[i], url: e.target.value };
+                    if (!updated[i].source && e.target.value) {
+                      updated[i].source = getLinkLabel(e.target.value);
+                    }
+                    setFormData({ ...formData, pressLinks: updated });
+                  }}
+                  style={{ flex: 2 }}
+                />
+                <input
+                  className="input"
+                  placeholder="Source (e.g. TechCrunch)"
+                  value={link.source || ''}
+                  onChange={(e) => {
+                    const updated = [...(formData.pressLinks || [])];
+                    updated[i] = { ...updated[i], source: e.target.value };
+                    setFormData({ ...formData, pressLinks: updated });
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    const updated = (formData.pressLinks || []).filter((_, j) => j !== i);
+                    setFormData({ ...formData, pressLinks: updated });
+                  }}
+                  style={{ color: t.error, padding: '8px' }}
+                >×</button>
+              </div>
+            ))}
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => setFormData({ ...formData, pressLinks: [...(formData.pressLinks || []), { url: '', title: '', source: '' }] })}
+            >+ Add press link</button>
+          </div>
+
+          {/* Process Stats with AI */}
+          <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>HEADLINE STATS</h2>
+            <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
+              Extract funding, valuation, and user stats from your project descriptions using AI. Runs once per week.
+            </p>
+
+            {extractedStats ? (
+              <div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                        <th style={{ textAlign: 'left', padding: '8px 4px', color: t.textFaint, fontWeight: 500 }}>Project</th>
+                        <th style={{ textAlign: 'right', padding: '8px 4px', color: t.accent, fontWeight: 500 }}>Raised</th>
+                        <th style={{ textAlign: 'right', padding: '8px 4px', color: t.accent, fontWeight: 500 }}>Valuation</th>
+                        <th style={{ textAlign: 'right', padding: '8px 4px', color: t.textFaint, fontWeight: 500 }}>Users</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {extractedStats.map((stat) => (
+                        <tr key={stat.id} style={{ borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                          <td style={{ padding: '8px 4px', color: t.text }}>{stat.name}</td>
+                          <td style={{ textAlign: 'right', padding: '8px 4px', color: stat.fundingRaised > 0 ? t.accent : t.textFaint }}>
+                            {stat.fundingRaised > 0 ? formatCentsPreview(stat.fundingRaised) : '—'}
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '8px 4px', color: stat.valuation > 0 ? t.accent : t.textFaint }}>
+                            {stat.valuation > 0 ? formatCentsPreview(stat.valuation) : '—'}
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '8px 4px', color: stat.usersReached > 0 ? t.text : t.textFaint }}>
+                            {stat.usersReached > 0 ? formatNumberPreview(stat.usersReached) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                  <button className="btn btn-primary" onClick={applyExtractedStats} disabled={savingProfile}>
+                    {savingProfile ? 'Saving...' : 'Apply Stats'}
+                  </button>
+                  <button className="btn btn-secondary" onClick={() => setExtractedStats(null)}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <button
+                  className="btn btn-primary"
+                  onClick={processStats}
+                  disabled={!canProcess || extracting}
+                  style={{ opacity: canProcess ? 1 : 0.5 }}
+                >
+                  {extracting ? 'Processing...' : 'Process My Stats'}
+                </button>
+                {!canProcess && (
+                  <p style={{ fontSize: '12px', color: t.textFaint, marginTop: '8px' }}>
+                    Available again in {daysUntilProcess} day{daysUntilProcess !== 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Headline Stats Overrides */}
+          <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>OVERRIDE TOTALS</h2>
+            <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
+              Override the auto-calculated totals. Leave blank to use per-project sums.
+            </p>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total $ Raised</label>
+              <input
+                ref={totalRaisedRef}
+                className="input"
+                inputMode="decimal"
+                placeholder="e.g. $5M"
+                defaultValue={formData.totalRaised ? formatCentsPreview(formData.totalRaised) : ''}
+                onBlur={(e) => {
+                  const val = e.target.value.trim();
+                  if (!val) {
+                    setFormData(prev => ({ ...prev, totalRaised: null }));
+                  } else {
+                    const cents = parseCurrencyInput(val);
+                    setFormData(prev => ({ ...prev, totalRaised: cents || null }));
+                    if (cents > 0) e.target.value = formatCentsPreview(cents);
+                  }
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total Valuation</label>
+              <input
+                ref={totalValuationRef}
+                className="input"
+                inputMode="decimal"
+                placeholder="e.g. $50M"
+                defaultValue={formData.totalValuation ? formatCentsPreview(formData.totalValuation) : ''}
+                onBlur={(e) => {
+                  const val = e.target.value.trim();
+                  if (!val) {
+                    setFormData(prev => ({ ...prev, totalValuation: null }));
+                  } else {
+                    const cents = parseCurrencyInput(val);
+                    setFormData(prev => ({ ...prev, totalValuation: cents || null }));
+                    if (cents > 0) e.target.value = formatCentsPreview(cents);
+                  }
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total Users</label>
+              <input
+                ref={totalUsersRef}
+                className="input"
+                inputMode="decimal"
+                placeholder="e.g. 500K"
+                defaultValue={formData.totalUsers ? formatNumberPreview(formData.totalUsers) : ''}
+                onBlur={(e) => {
+                  const val = e.target.value.trim();
+                  if (!val) {
+                    setFormData(prev => ({ ...prev, totalUsers: null }));
+                  } else {
+                    const count = parseNumberInput(val);
+                    setFormData(prev => ({ ...prev, totalUsers: count || null }));
+                    if (count > 0) e.target.value = formatNumberPreview(count);
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <button className="btn btn-primary" onClick={handleSaveProfile} disabled={savingProfile} style={{ width: '100%' }}>
+            {savingProfile ? 'Saving...' : 'Save Profile'}
+          </button>
         </div>
       </div>
 
@@ -2233,529 +2736,6 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
           </>
         )}
       </div>
-    </div>
-  );
-};
-
-// ============================================
-// EDIT PROFILE
-// ============================================
-const EditProfile = ({ user, setUser, onBack, showNotification, isAdmin }) => {
-  const [formData, setFormData] = useState({ ...user });
-  const [newDomain, setNewDomain] = useState('');
-  const [saving, setSaving] = useState(false);
-  const totalRaisedRef = useRef(null);
-  const totalValuationRef = useRef(null);
-  const totalUsersRef = useRef(null);
-  const [extracting, setExtracting] = useState(false);
-  const [extractedStats, setExtractedStats] = useState(null);
-
-  const lastProcessed = localStorage.getItem('lastStatsProcessed');
-  const canProcess = isAdmin || !lastProcessed || (Date.now() - parseInt(lastProcessed, 10)) > 7 * 24 * 60 * 60 * 1000;
-  const daysUntilProcess = lastProcessed ? Math.max(0, Math.ceil((parseInt(lastProcessed, 10) + 7 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000))) : 0;
-
-  const processStats = async () => {
-    if (!canProcess || extracting) return;
-    setExtracting(true);
-    try {
-      const projectData = user.projects.map(p => ({
-        id: p.id,
-        name: p.name,
-        keyMetric: p.keyMetric,
-        oneLiner: p.oneLiner,
-        description: p.description,
-      }));
-      const res = await fetch('/api/extract-stats', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projects: projectData }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to process');
-      }
-      const { results } = await res.json();
-      // Merge results with project data for the confirmation table
-      const merged = user.projects.map((p, i) => ({
-        id: p.id,
-        name: p.name,
-        fundingRaised: results[i]?.fundingRaised ?? 0,
-        valuation: results[i]?.valuation ?? 0,
-        usersReached: results[i]?.usersReached ?? 0,
-      }));
-      setExtractedStats(merged);
-    } catch (error) {
-      console.error('Extract stats error:', error);
-      showNotification('Error processing stats: ' + (error?.message || String(error)), 'error');
-    } finally {
-      setExtracting(false);
-    }
-  };
-
-  const applyExtractedStats = async () => {
-    if (!extractedStats) return;
-    setSaving(true);
-    try {
-      for (const stat of extractedStats) {
-        if (stat.fundingRaised > 0 || stat.valuation > 0 || stat.usersReached > 0) {
-          await db.updateProject(stat.id, {
-            ...user.projects.find(p => p.id === stat.id),
-            fundingRaised: stat.fundingRaised,
-            valuation: stat.valuation,
-            usersReached: stat.usersReached,
-          });
-        }
-      }
-      // Update local state
-      setUser(prev => ({
-        ...prev,
-        projects: prev.projects.map(p => {
-          const stat = extractedStats.find(s => s.id === p.id);
-          return stat ? { ...p, fundingRaised: stat.fundingRaised, valuation: stat.valuation, usersReached: stat.usersReached } : p;
-        }),
-      }));
-      localStorage.setItem('lastStatsProcessed', String(Date.now()));
-      setExtractedStats(null);
-      showNotification('Stats updated across all projects!');
-    } catch (error) {
-      console.error('Apply stats error:', error);
-      showNotification('Error saving stats: ' + (error?.message || String(error)), 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (saving) return;
-    setSaving(true);
-    try {
-      // Parse headline stat overrides that may not have blurred yet
-      const finalData = { ...formData };
-      if (totalRaisedRef.current) {
-        const val = totalRaisedRef.current.value.trim();
-        finalData.totalRaised = val ? (parseCurrencyInput(val) || null) : null;
-      }
-      if (totalValuationRef.current) {
-        const val = totalValuationRef.current.value.trim();
-        finalData.totalValuation = val ? (parseCurrencyInput(val) || null) : null;
-      }
-      if (totalUsersRef.current) {
-        const val = totalUsersRef.current.value.trim();
-        finalData.totalUsers = val ? (parseNumberInput(val) || null) : null;
-      }
-      await db.updateProfile(user.id, finalData);
-      setUser({ ...user, ...finalData });
-      showNotification('Profile saved!');
-      onBack();
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      showNotification('Error saving profile: ' + (error?.message || String(error)), 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const addDomain = () => {
-    const trimmed = newDomain.trim().toLowerCase();
-    if (trimmed && !formData.domains.some(d => d.toLowerCase() === trimmed)) {
-      setFormData({ ...formData, domains: [...formData.domains, trimmed] });
-      setNewDomain('');
-    }
-  };
-
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
-        <button className="btn btn-ghost" onClick={onBack}>← Back</button>
-        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
-      </header>
-
-      <div className="desktop-content" style={{ padding: '40px', maxWidth: '700px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '32px' }}>Edit Profile</h1>
-
-        {/* Basic Info */}
-        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>BASIC INFO</h2>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Name</label>
-            <input
-              className="input"
-              placeholder="Your name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Username</label>
-            <input className="input" value={formData.username} disabled style={{ opacity: 0.6 }} />
-            <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>makerly.me/{formData.username}</div>
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Bio</label>
-            <textarea
-              className="input"
-              placeholder="I make things that..."
-              value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              rows={3}
-              style={{ resize: 'vertical' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Philosophy</label>
-            <input
-              className="input"
-              placeholder="Your maker philosophy in one line"
-              maxLength={200}
-              value={formData.philosophy || ''}
-              onChange={(e) => setFormData({ ...formData, philosophy: e.target.value })}
-            />
-            <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>Shows as an italic quote on your profile.</div>
-          </div>
-        </div>
-
-        {/* First Make */}
-        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>FIRST MAKE</h2>
-          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
-            What do you remember as your first make? A Lego set? A school project? A treehouse?
-          </p>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>What was it?</label>
-            <textarea
-              className="input"
-              placeholder="A marble run out of cardboard tubes and tape. Spent three weeks on it."
-              value={formData.firstMake?.description || ''}
-              onChange={(e) => setFormData({ ...formData, firstMake: { ...formData.firstMake, description: e.target.value } })}
-              rows={2}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>How old were you?</label>
-            <input
-              className="input"
-              placeholder="8"
-              value={formData.firstMake?.age || ''}
-              onChange={(e) => setFormData({ ...formData, firstMake: { ...formData.firstMake, age: e.target.value } })}
-              style={{ width: '100px' }}
-            />
-          </div>
-        </div>
-
-        {/* Domains */}
-        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>DOMAINS</h2>
-          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
-            What kinds of things do you make? Apps, hardware, communities, art, music...
-          </p>
-
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-            <input
-              className="input"
-              placeholder="e.g. apps, hardware, developer tools"
-              value={newDomain}
-              onChange={(e) => setNewDomain(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addDomain())}
-            />
-            <button className="btn btn-secondary" onClick={addDomain}>Add</button>
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {formData.domains.map(d => (
-              <button type="button" key={d} className="tag" aria-label={`Remove ${d}`} style={{ background: t.accentBg, color: t.accent, cursor: 'pointer', border: 'none' }}
-                onClick={() => setFormData({ ...formData, domains: formData.domains.filter(x => x !== d) })}>
-                {d} ×
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Social Links */}
-        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>SOCIAL & PROOF OF WORK</h2>
-
-          {[
-            { key: 'twitter', label: 'Twitter/X', placeholder: 'https://twitter.com/yourhandle' },
-            { key: 'github', label: 'GitHub', placeholder: 'https://github.com/yourusername' },
-            { key: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/in/yourprofile' },
-            { key: 'substack', label: 'Substack', placeholder: 'https://yourname.substack.com' },
-            { key: 'website', label: 'Personal Website', placeholder: 'https://yoursite.com' },
-          ].map(({ key, label, placeholder }) => (
-            <div key={key} style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>{label}</label>
-              <input
-                className="input"
-                placeholder={placeholder}
-                value={formData.socials?.[key] || ''}
-                onChange={(e) => setFormData({ ...formData, socials: { ...formData.socials, [key]: e.target.value } })}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Contact */}
-        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>CONTACT</h2>
-          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
-            Let people message you directly from your profile. Your email stays private — visitors just see a contact button.
-          </p>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={formData.showEmail || false}
-                onChange={(e) => setFormData({ ...formData, showEmail: e.target.checked })}
-                style={{ width: '16px', height: '16px' }}
-              />
-              <span style={{ fontSize: '14px', color: t.textSecondary }}>Enable contact form on my profile</span>
-            </label>
-          </div>
-
-          {formData.showEmail && (
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Where should messages be sent?</label>
-              <input
-                className="input"
-                type="email"
-                placeholder="you@email.com"
-                value={formData.contactEmail || ''}
-                onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-              />
-              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>Messages from visitors will be emailed here. This address is never shown publicly.</div>
-            </div>
-          )}
-        </div>
-
-        {/* Embed Feed */}
-        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>EMBED FEED</h2>
-          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
-            Show your latest tweets or Substack posts on your profile.
-          </p>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Feed Type</label>
-            <select
-              className="input"
-              value={formData.embedFeed?.type || ''}
-              onChange={(e) => setFormData({ ...formData, embedFeed: { ...formData.embedFeed, type: e.target.value || null } })}
-            >
-              <option value="">None</option>
-              <option value="twitter">Twitter/X Timeline</option>
-              <option value="substack">Substack</option>
-            </select>
-          </div>
-
-          {formData.embedFeed?.type && (
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>
-                {formData.embedFeed.type === 'twitter' ? 'Twitter Username' : 'Substack URL'}
-              </label>
-              <input
-                className="input"
-                placeholder={formData.embedFeed.type === 'twitter' ? '@yourhandle' : 'https://yourname.substack.com'}
-                value={formData.embedFeed?.url || ''}
-                onChange={(e) => setFormData({ ...formData, embedFeed: { ...formData.embedFeed, url: e.target.value } })}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Press Links */}
-        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>PRESS & SOCIAL PROOF</h2>
-          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
-            Add links to press mentions, interviews, or notable features.
-          </p>
-
-          {(formData.pressLinks || []).map((link, i) => (
-            <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
-              <input
-                className="input"
-                placeholder="URL"
-                value={link.url || ''}
-                onChange={(e) => {
-                  const updated = [...(formData.pressLinks || [])];
-                  updated[i] = { ...updated[i], url: e.target.value };
-                  if (!updated[i].source && e.target.value) {
-                    updated[i].source = getLinkLabel(e.target.value);
-                  }
-                  setFormData({ ...formData, pressLinks: updated });
-                }}
-                style={{ flex: 2 }}
-              />
-              <input
-                className="input"
-                placeholder="Source (e.g. TechCrunch)"
-                value={link.source || ''}
-                onChange={(e) => {
-                  const updated = [...(formData.pressLinks || [])];
-                  updated[i] = { ...updated[i], source: e.target.value };
-                  setFormData({ ...formData, pressLinks: updated });
-                }}
-                style={{ flex: 1 }}
-              />
-              <button
-                className="btn btn-ghost"
-                onClick={() => {
-                  const updated = (formData.pressLinks || []).filter((_, j) => j !== i);
-                  setFormData({ ...formData, pressLinks: updated });
-                }}
-                style={{ color: t.error, padding: '8px' }}
-              >×</button>
-            </div>
-          ))}
-
-          <button
-            className="btn btn-secondary"
-            onClick={() => setFormData({ ...formData, pressLinks: [...(formData.pressLinks || []), { url: '', title: '', source: '' }] })}
-          >+ Add press link</button>
-        </div>
-
-        {/* Process Stats with AI */}
-        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>HEADLINE STATS</h2>
-          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
-            Extract funding, valuation, and user stats from your project descriptions using AI. Runs once per week.
-          </p>
-
-          {extractedStats ? (
-            <div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                  <thead>
-                    <tr style={{ borderBottom: `1px solid ${t.surfaceBorder}` }}>
-                      <th style={{ textAlign: 'left', padding: '8px 4px', color: t.textFaint, fontWeight: 500 }}>Project</th>
-                      <th style={{ textAlign: 'right', padding: '8px 4px', color: t.accent, fontWeight: 500 }}>Raised</th>
-                      <th style={{ textAlign: 'right', padding: '8px 4px', color: t.accent, fontWeight: 500 }}>Valuation</th>
-                      <th style={{ textAlign: 'right', padding: '8px 4px', color: t.textFaint, fontWeight: 500 }}>Users</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {extractedStats.map((stat) => (
-                      <tr key={stat.id} style={{ borderBottom: `1px solid ${t.surfaceBorder}` }}>
-                        <td style={{ padding: '8px 4px', color: t.text }}>{stat.name}</td>
-                        <td style={{ textAlign: 'right', padding: '8px 4px', color: stat.fundingRaised > 0 ? t.accent : t.textFaint }}>
-                          {stat.fundingRaised > 0 ? formatCentsPreview(stat.fundingRaised) : '—'}
-                        </td>
-                        <td style={{ textAlign: 'right', padding: '8px 4px', color: stat.valuation > 0 ? t.accent : t.textFaint }}>
-                          {stat.valuation > 0 ? formatCentsPreview(stat.valuation) : '—'}
-                        </td>
-                        <td style={{ textAlign: 'right', padding: '8px 4px', color: stat.usersReached > 0 ? t.text : t.textFaint }}>
-                          {stat.usersReached > 0 ? formatNumberPreview(stat.usersReached) : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                <button className="btn btn-primary" onClick={applyExtractedStats} disabled={saving}>
-                  {saving ? 'Saving...' : 'Apply Stats'}
-                </button>
-                <button className="btn btn-secondary" onClick={() => setExtractedStats(null)}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <button
-                className="btn btn-primary"
-                onClick={processStats}
-                disabled={!canProcess || extracting}
-                style={{ opacity: canProcess ? 1 : 0.5 }}
-              >
-                {extracting ? 'Processing...' : 'Process My Stats'}
-              </button>
-              {!canProcess && (
-                <p style={{ fontSize: '12px', color: t.textFaint, marginTop: '8px' }}>
-                  Available again in {daysUntilProcess} day{daysUntilProcess !== 1 ? 's' : ''}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Headline Stats Overrides */}
-        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>OVERRIDE TOTALS</h2>
-          <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
-            Override the auto-calculated totals. Leave blank to use per-project sums.
-          </p>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total $ Raised</label>
-            <input
-              ref={totalRaisedRef}
-              className="input"
-              inputMode="decimal"
-              placeholder="e.g. $5M"
-              defaultValue={formData.totalRaised ? formatCentsPreview(formData.totalRaised) : ''}
-              onBlur={(e) => {
-                const val = e.target.value.trim();
-                if (!val) {
-                  setFormData(prev => ({ ...prev, totalRaised: null }));
-                } else {
-                  const cents = parseCurrencyInput(val);
-                  setFormData(prev => ({ ...prev, totalRaised: cents || null }));
-                  if (cents > 0) e.target.value = formatCentsPreview(cents);
-                }
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total Valuation</label>
-            <input
-              ref={totalValuationRef}
-              className="input"
-              inputMode="decimal"
-              placeholder="e.g. $50M"
-              defaultValue={formData.totalValuation ? formatCentsPreview(formData.totalValuation) : ''}
-              onBlur={(e) => {
-                const val = e.target.value.trim();
-                if (!val) {
-                  setFormData(prev => ({ ...prev, totalValuation: null }));
-                } else {
-                  const cents = parseCurrencyInput(val);
-                  setFormData(prev => ({ ...prev, totalValuation: cents || null }));
-                  if (cents > 0) e.target.value = formatCentsPreview(cents);
-                }
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Total Users</label>
-            <input
-              ref={totalUsersRef}
-              className="input"
-              inputMode="decimal"
-              placeholder="e.g. 500K"
-              defaultValue={formData.totalUsers ? formatNumberPreview(formData.totalUsers) : ''}
-              onBlur={(e) => {
-                const val = e.target.value.trim();
-                if (!val) {
-                  setFormData(prev => ({ ...prev, totalUsers: null }));
-                } else {
-                  const count = parseNumberInput(val);
-                  setFormData(prev => ({ ...prev, totalUsers: count || null }));
-                  if (count > 0) e.target.value = formatNumberPreview(count);
-                }
-              }}
-            />
-          </div>
-        </div>
-
-        <button className="btn btn-primary" onClick={handleSave} style={{ width: '100%' }}>Save Changes</button>
-      </div>
-      <SiteFooter />
     </div>
   );
 };
