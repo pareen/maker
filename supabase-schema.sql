@@ -44,6 +44,7 @@ CREATE TABLE projects (
   outcome TEXT,
   description TEXT,
   image_url TEXT,
+  github_repo_id BIGINT,
   featured BOOLEAN DEFAULT FALSE,
   key_metric TEXT,
   funding_raised BIGINT DEFAULT 0,
@@ -161,6 +162,7 @@ CREATE POLICY "Users can delete their own updates"
 -- Indexes
 CREATE INDEX profiles_username_idx ON profiles(username);
 CREATE INDEX projects_user_id_idx ON projects(user_id);
+CREATE UNIQUE INDEX projects_github_repo_id_idx ON projects(user_id, github_repo_id) WHERE github_repo_id IS NOT NULL;
 CREATE INDEX updates_user_id_idx ON updates(user_id);
 CREATE INDEX updates_created_at_idx ON updates(created_at DESC);
 
@@ -220,4 +222,130 @@ CREATE INDEX cracked_squad_applications_status_idx ON cracked_squad_applications
 
 CREATE TRIGGER cracked_squad_applications_updated_at
   BEFORE UPDATE ON cracked_squad_applications
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ============================================
+-- RECRUITER PROFILES & JOB POSTINGS
+-- ============================================
+
+-- Recruiter profiles (any user can opt-in as a recruiter)
+CREATE TABLE recruiter_profiles (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL UNIQUE,
+  company_name TEXT NOT NULL,
+  company_url TEXT,
+  role_title TEXT,
+  bio TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE recruiter_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public recruiter profiles are viewable by everyone"
+  ON recruiter_profiles FOR SELECT USING (true);
+
+CREATE POLICY "Users can insert their own recruiter profile"
+  ON recruiter_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own recruiter profile"
+  ON recruiter_profiles FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own recruiter profile"
+  ON recruiter_profiles FOR DELETE USING (auth.uid() = user_id);
+
+CREATE INDEX recruiter_profiles_user_id_idx ON recruiter_profiles(user_id);
+
+CREATE TRIGGER recruiter_profiles_updated_at
+  BEFORE UPDATE ON recruiter_profiles
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- Job postings
+CREATE TABLE job_postings (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  recruiter_id UUID REFERENCES recruiter_profiles(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  project_name TEXT,
+  project_description TEXT,
+  role_needed TEXT,
+  domains TEXT[] DEFAULT '{}',
+  location TEXT,
+  remote BOOLEAN DEFAULT TRUE,
+  compensation TEXT,
+  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'open', 'closed')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE job_postings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Open jobs are viewable by everyone, owners see all"
+  ON job_postings FOR SELECT
+  USING (status = 'open' OR recruiter_id IN (SELECT id FROM recruiter_profiles WHERE user_id = auth.uid()));
+
+CREATE POLICY "Recruiters can insert their own postings"
+  ON job_postings FOR INSERT
+  WITH CHECK (recruiter_id IN (SELECT id FROM recruiter_profiles WHERE user_id = auth.uid()));
+
+CREATE POLICY "Recruiters can update their own postings"
+  ON job_postings FOR UPDATE
+  USING (recruiter_id IN (SELECT id FROM recruiter_profiles WHERE user_id = auth.uid()));
+
+CREATE POLICY "Recruiters can delete their own postings"
+  ON job_postings FOR DELETE
+  USING (recruiter_id IN (SELECT id FROM recruiter_profiles WHERE user_id = auth.uid()));
+
+CREATE INDEX job_postings_recruiter_id_idx ON job_postings(recruiter_id);
+CREATE INDEX job_postings_status_idx ON job_postings(status);
+CREATE INDEX job_postings_created_at_idx ON job_postings(created_at DESC);
+
+CREATE TRIGGER job_postings_updated_at
+  BEFORE UPDATE ON job_postings
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- Job applications
+CREATE TABLE job_applications (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  job_id UUID REFERENCES job_postings(id) ON DELETE CASCADE NOT NULL,
+  applicant_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'accepted', 'rejected')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(job_id, applicant_id)
+);
+
+ALTER TABLE job_applications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Applicants see own, recruiters see their job applications"
+  ON job_applications FOR SELECT
+  USING (
+    auth.uid() = applicant_id
+    OR job_id IN (
+      SELECT jp.id FROM job_postings jp
+      JOIN recruiter_profiles rp ON jp.recruiter_id = rp.id
+      WHERE rp.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can insert their own applications"
+  ON job_applications FOR INSERT
+  WITH CHECK (auth.uid() = applicant_id);
+
+CREATE POLICY "Recruiters can update application status"
+  ON job_applications FOR UPDATE
+  USING (
+    job_id IN (
+      SELECT jp.id FROM job_postings jp
+      JOIN recruiter_profiles rp ON jp.recruiter_id = rp.id
+      WHERE rp.user_id = auth.uid()
+    )
+  );
+
+CREATE INDEX job_applications_job_id_idx ON job_applications(job_id);
+CREATE INDEX job_applications_applicant_id_idx ON job_applications(applicant_id);
+
+CREATE TRIGGER job_applications_updated_at
+  BEFORE UPDATE ON job_applications
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();

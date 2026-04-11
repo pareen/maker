@@ -217,22 +217,24 @@ export async function migrateLocalStorageData(supabaseUser) {
       await supabase.from('profiles').update(profileFields).eq('id', supabaseUser.id)
     }
 
-    // Migrate projects (skip any that already exist by matching GitHub URL or name)
+    // Migrate projects (skip any that already exist by matching GitHub repo ID, URL, or name)
     if (legacyUser.projects?.length > 0) {
       const { data: existingProjects } = await supabase
         .from('projects')
-        .select('name, links')
+        .select('name, links, github_repo_id')
         .eq('user_id', supabaseUser.id)
 
+      const existingRepoIds = new Set((existingProjects || []).map(p => p.github_repo_id).filter(Boolean))
       const existingLinks = new Set((existingProjects || []).flatMap(p => p.links || []))
       const existingNames = new Set((existingProjects || []).map(p => p.name))
 
       for (const project of legacyUser.projects) {
-        // Skip if any link already exists, or if same name already imported
+        // Skip if GitHub repo ID matches, any link already exists, or same name
+        if (project.githubRepoId && existingRepoIds.has(project.githubRepoId)) continue
         const hasOverlap = project.links?.some(l => existingLinks.has(l))
         if (hasOverlap || existingNames.has(project.name)) continue
 
-        await supabase.from('projects').insert({
+        const row = {
           user_id: supabaseUser.id,
           name: project.name,
           one_liner: project.oneLiner || null,
@@ -244,7 +246,9 @@ export async function migrateLocalStorageData(supabaseUser) {
           domains: project.domains || [],
           links: project.links || [],
           outcome: project.outcome || null
-        })
+        }
+        if (project.githubRepoId) row.github_repo_id = project.githubRepoId
+        await supabase.from('projects').insert(row)
       }
     }
 
@@ -498,24 +502,41 @@ export async function createProject(userId, project) {
   }
 
   try {
-    // Deduplicate: if this project has a GitHub URL, check if user already has it
-    const githubUrl = project.githubUrl || project.links?.find(l => l.match(/^https?:\/\/github\.com\//i))
-    if (githubUrl) {
+    // Deduplicate: check by GitHub repo ID first (survives renames), fall back to URL match
+    if (project.githubRepoId) {
       const { data: existing } = await supabase
         .from('projects')
         .select('id')
         .eq('user_id', userId)
-        .contains('links', [githubUrl])
+        .eq('github_repo_id', project.githubRepoId)
         .limit(1)
 
       if (existing?.length > 0) {
-        // Already imported — return the existing project instead of creating a duplicate
         const { data: full } = await supabase
           .from('projects')
           .select('*')
           .eq('id', existing[0].id)
           .single()
         return projectFromDb(full)
+      }
+    } else {
+      const githubUrl = project.githubUrl || project.links?.find(l => l.match(/^https?:\/\/github\.com\//i))
+      if (githubUrl) {
+        const { data: existing } = await supabase
+          .from('projects')
+          .select('id')
+          .eq('user_id', userId)
+          .contains('links', [githubUrl])
+          .limit(1)
+
+        if (existing?.length > 0) {
+          const { data: full } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('id', existing[0].id)
+            .single()
+          return projectFromDb(full)
+        }
       }
     }
 
@@ -536,6 +557,8 @@ export async function createProject(userId, project) {
       featured: project.featured || false,
       key_metric: project.keyMetric || null,
     }
+
+    if (project.githubRepoId) row.github_repo_id = project.githubRepoId;
 
     // Only include financial fields when set, so saves work before migration is run
     if (project.fundingRaised) row.funding_raised = project.fundingRaised;
@@ -711,7 +734,8 @@ function projectFromDb(dbProject) {
     keyMetric: dbProject.key_metric || '',
     fundingRaised: dbProject.funding_raised ?? 0,
     valuation: dbProject.valuation ?? 0,
-    usersReached: dbProject.users_reached ?? 0
+    usersReached: dbProject.users_reached ?? 0,
+    githubRepoId: dbProject.github_repo_id || null
   }
 }
 
@@ -789,6 +813,362 @@ export async function getRecentUpdates(limit = 20) {
     username: profileMap[u.user_id]?.username || 'unknown',
     name: profileMap[u.user_id]?.name || profileMap[u.user_id]?.username || 'Unknown'
   }))
+}
+
+// ============================================
+// RECRUITER & JOB POSTING FUNCTIONS
+// ============================================
+
+function recruiterProfileFromDb(r) {
+  return {
+    id: r.id,
+    userId: r.user_id,
+    companyName: r.company_name,
+    companyUrl: r.company_url,
+    roleTitle: r.role_title,
+    bio: r.bio,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at
+  }
+}
+
+function jobPostingFromDb(j) {
+  return {
+    id: j.id,
+    recruiterId: j.recruiter_id,
+    title: j.title,
+    description: j.description,
+    projectName: j.project_name,
+    projectDescription: j.project_description,
+    roleNeeded: j.role_needed,
+    domains: j.domains || [],
+    location: j.location,
+    remote: j.remote,
+    compensation: j.compensation,
+    status: j.status,
+    createdAt: j.created_at,
+    updatedAt: j.updated_at
+  }
+}
+
+function applicationFromDb(a) {
+  return {
+    id: a.id,
+    jobId: a.job_id,
+    applicantId: a.applicant_id,
+    message: a.message,
+    status: a.status,
+    createdAt: a.created_at,
+    updatedAt: a.updated_at
+  }
+}
+
+export async function getRecruiterProfile(userId) {
+  if (!isSupabaseConfigured()) return null
+
+  const { data, error } = await supabase
+    .from('recruiter_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+
+  if (error && error.code === 'PGRST116') return null // not found
+  if (error) throw error
+  return recruiterProfileFromDb(data)
+}
+
+export async function createRecruiterProfile(userId, profile) {
+  if (!isSupabaseConfigured()) return null
+
+  const { data, error } = await supabase
+    .from('recruiter_profiles')
+    .insert({
+      user_id: userId,
+      company_name: profile.companyName,
+      company_url: profile.companyUrl || null,
+      role_title: profile.roleTitle || null,
+      bio: profile.bio || null
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return recruiterProfileFromDb(data)
+}
+
+export async function updateRecruiterProfile(userId, updates) {
+  if (!isSupabaseConfigured()) return null
+
+  const dbUpdates = {}
+  if (updates.companyName !== undefined) dbUpdates.company_name = updates.companyName
+  if (updates.companyUrl !== undefined) dbUpdates.company_url = updates.companyUrl
+  if (updates.roleTitle !== undefined) dbUpdates.role_title = updates.roleTitle
+  if (updates.bio !== undefined) dbUpdates.bio = updates.bio
+
+  const { data, error } = await supabase
+    .from('recruiter_profiles')
+    .update(dbUpdates)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return recruiterProfileFromDb(data)
+}
+
+export async function getPublicJobPostings() {
+  if (!isSupabaseConfigured()) return []
+
+  const { data: jobs, error } = await supabase
+    .from('job_postings')
+    .select('*')
+    .eq('status', 'open')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  // Get recruiter info for each posting
+  const recruiterIds = [...new Set((jobs || []).map(j => j.recruiter_id))]
+  if (recruiterIds.length === 0) return []
+
+  const { data: recruiters } = await supabase
+    .from('recruiter_profiles')
+    .select('id, user_id, company_name, company_url, role_title')
+    .in('id', recruiterIds)
+
+  // Also get profile names for each recruiter
+  const userIds = (recruiters || []).map(r => r.user_id)
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, name, username')
+    .in('id', userIds)
+
+  const profileMap = {}
+  for (const p of (profiles || [])) profileMap[p.id] = p
+
+  const recruiterMap = {}
+  for (const r of (recruiters || [])) {
+    recruiterMap[r.id] = {
+      ...r,
+      recruiterName: profileMap[r.user_id]?.name || profileMap[r.user_id]?.username || 'Unknown',
+      recruiterUsername: profileMap[r.user_id]?.username || 'unknown'
+    }
+  }
+
+  return (jobs || []).map(j => ({
+    ...jobPostingFromDb(j),
+    companyName: recruiterMap[j.recruiter_id]?.company_name || '',
+    companyUrl: recruiterMap[j.recruiter_id]?.company_url || '',
+    recruiterName: recruiterMap[j.recruiter_id]?.recruiterName || 'Unknown',
+    recruiterUsername: recruiterMap[j.recruiter_id]?.recruiterUsername || 'unknown'
+  }))
+}
+
+export async function getJobPostingsByRecruiter(recruiterId) {
+  if (!isSupabaseConfigured()) return []
+
+  const { data, error } = await supabase
+    .from('job_postings')
+    .select('*')
+    .eq('recruiter_id', recruiterId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data || []).map(jobPostingFromDb)
+}
+
+export async function createJobPosting(recruiterId, posting) {
+  if (!isSupabaseConfigured()) return null
+
+  const { data, error } = await supabase
+    .from('job_postings')
+    .insert({
+      recruiter_id: recruiterId,
+      title: posting.title,
+      description: posting.description,
+      project_name: posting.projectName || null,
+      project_description: posting.projectDescription || null,
+      role_needed: posting.roleNeeded || null,
+      domains: posting.domains || [],
+      location: posting.location || null,
+      remote: posting.remote !== undefined ? posting.remote : true,
+      compensation: posting.compensation || null,
+      status: posting.status || 'draft'
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return jobPostingFromDb(data)
+}
+
+export async function updateJobPosting(jobId, updates) {
+  if (!isSupabaseConfigured()) return null
+
+  const dbUpdates = {}
+  if (updates.title !== undefined) dbUpdates.title = updates.title
+  if (updates.description !== undefined) dbUpdates.description = updates.description
+  if (updates.projectName !== undefined) dbUpdates.project_name = updates.projectName
+  if (updates.projectDescription !== undefined) dbUpdates.project_description = updates.projectDescription
+  if (updates.roleNeeded !== undefined) dbUpdates.role_needed = updates.roleNeeded
+  if (updates.domains !== undefined) dbUpdates.domains = updates.domains
+  if (updates.location !== undefined) dbUpdates.location = updates.location
+  if (updates.remote !== undefined) dbUpdates.remote = updates.remote
+  if (updates.compensation !== undefined) dbUpdates.compensation = updates.compensation
+  if (updates.status !== undefined) dbUpdates.status = updates.status
+
+  const { data, error } = await supabase
+    .from('job_postings')
+    .update(dbUpdates)
+    .eq('id', jobId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return jobPostingFromDb(data)
+}
+
+export async function deleteJobPosting(jobId) {
+  if (!isSupabaseConfigured()) return
+
+  const { error } = await supabase
+    .from('job_postings')
+    .delete()
+    .eq('id', jobId)
+
+  if (error) throw error
+}
+
+export async function applyToJob(jobId, applicantId, message) {
+  if (!isSupabaseConfigured()) return null
+
+  const { data, error } = await supabase
+    .from('job_applications')
+    .insert({
+      job_id: jobId,
+      applicant_id: applicantId,
+      message
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return applicationFromDb(data)
+}
+
+export async function getApplicationsForJob(jobId) {
+  if (!isSupabaseConfigured()) return []
+
+  const { data, error } = await supabase
+    .from('job_applications')
+    .select('*')
+    .eq('job_id', jobId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  // Get applicant info
+  const applicantIds = (data || []).map(a => a.applicant_id)
+  if (applicantIds.length === 0) return []
+
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, username, name, bio, domains')
+    .in('id', applicantIds)
+
+  const profileMap = {}
+  for (const p of (profiles || [])) profileMap[p.id] = p
+
+  // Get project counts
+  const { data: projects } = await supabase
+    .from('projects')
+    .select('id, user_id')
+    .in('user_id', applicantIds)
+
+  const projectCounts = {}
+  for (const p of (projects || [])) {
+    projectCounts[p.user_id] = (projectCounts[p.user_id] || 0) + 1
+  }
+
+  return (data || []).map(a => ({
+    ...applicationFromDb(a),
+    applicantName: profileMap[a.applicant_id]?.name || profileMap[a.applicant_id]?.username || 'Unknown',
+    applicantUsername: profileMap[a.applicant_id]?.username || 'unknown',
+    applicantBio: profileMap[a.applicant_id]?.bio || '',
+    applicantDomains: profileMap[a.applicant_id]?.domains || [],
+    applicantProjectCount: projectCounts[a.applicant_id] || 0
+  }))
+}
+
+export async function getMyApplications(userId) {
+  if (!isSupabaseConfigured()) return []
+
+  const { data, error } = await supabase
+    .from('job_applications')
+    .select('*')
+    .eq('applicant_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  if (!data?.length) return []
+
+  // Get job info
+  const jobIds = data.map(a => a.job_id)
+  const { data: jobs } = await supabase
+    .from('job_postings')
+    .select('id, title, recruiter_id')
+    .in('id', jobIds)
+
+  const recruiterIds = [...new Set((jobs || []).map(j => j.recruiter_id))]
+  const { data: recruiters } = await supabase
+    .from('recruiter_profiles')
+    .select('id, company_name')
+    .in('id', recruiterIds)
+
+  const recruiterMap = {}
+  for (const r of (recruiters || [])) recruiterMap[r.id] = r
+
+  const jobMap = {}
+  for (const j of (jobs || [])) {
+    jobMap[j.id] = {
+      title: j.title,
+      companyName: recruiterMap[j.recruiter_id]?.company_name || ''
+    }
+  }
+
+  return data.map(a => ({
+    ...applicationFromDb(a),
+    jobTitle: jobMap[a.job_id]?.title || 'Unknown',
+    companyName: jobMap[a.job_id]?.companyName || ''
+  }))
+}
+
+export async function updateApplicationStatus(applicationId, status) {
+  if (!isSupabaseConfigured()) return null
+
+  const { data, error } = await supabase
+    .from('job_applications')
+    .update({ status })
+    .eq('id', applicationId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return applicationFromDb(data)
+}
+
+export async function hasApplied(jobId, userId) {
+  if (!isSupabaseConfigured()) return false
+
+  const { data, error } = await supabase
+    .from('job_applications')
+    .select('id')
+    .eq('job_id', jobId)
+    .eq('applicant_id', userId)
+    .limit(1)
+
+  if (error) return false
+  return (data || []).length > 0
 }
 
 // ============================================
@@ -1085,13 +1465,20 @@ function createProjectLocal(userId, project) {
     throw new Error('User not found in local storage. Please log out and log back in.')
   }
 
-  // Dedup: check for overlapping GitHub URLs in existing projects
-  const githubUrl = project.githubUrl || project.links?.find(l => l.match(/^https?:\/\/github\.com\//i))
-  if (githubUrl) {
+  // Dedup: check by GitHub repo ID first, then fall back to URL match
+  if (project.githubRepoId) {
     const existing = (users[userKey].projects || []).find(p =>
-      p.links?.includes(githubUrl)
+      p.githubRepoId === project.githubRepoId
     )
     if (existing) return existing
+  } else {
+    const githubUrl = project.githubUrl || project.links?.find(l => l.match(/^https?:\/\/github\.com\//i))
+    if (githubUrl) {
+      const existing = (users[userKey].projects || []).find(p =>
+        p.links?.includes(githubUrl)
+      )
+      if (existing) return existing
+    }
   }
 
   const newProject = { ...project, id: Date.now().toString() }

@@ -98,6 +98,7 @@ function getInitialRoute() {
   if (path === 'admin') return { view: 'admin' };
   if (path === 'makers') return { view: 'makers' };
   if (path === 'hire') return { view: 'hire' };
+  if (path === 'recruiters') return { view: 'recruiters' };
   if (path === 'memo') return { view: 'memo' };
   if (path === 'cracked-squad') return { view: 'crackedSquad' };
   if (path && path !== '' && !path.includes('/')) return { view: 'publicProfile', username: path };
@@ -130,6 +131,7 @@ const App = () => {
     else if (view === 'admin') path = '/admin';
     else if (view === 'makers') path = '/makers';
     else if (view === 'hire') path = '/hire';
+    else if (view === 'recruiters') path = '/recruiters';
     else if (view === 'memo') path = '/memo';
     else if (view === 'crackedSquad') path = '/cracked-squad';
     else if (view === 'login') path = '/login';
@@ -165,6 +167,8 @@ const App = () => {
       setCurrentView('makers');
     } else if (route.view === 'hire') {
       setCurrentView('hire');
+    } else if (route.view === 'recruiters') {
+      setCurrentView('recruiters');
     } else if (route.view === 'memo') {
       setCurrentView('memo');
     } else if (route.view === 'crackedSquad') {
@@ -546,11 +550,25 @@ const App = () => {
 
       {currentView === 'hire' && (
         <HirePage
+          currentUser={currentUser}
           onViewProfile={(username) => viewPublicProfile(username)}
           onMakers={() => navigate('makers')}
           onBack={() => navigate(currentUser ? 'dashboard' : 'landing')}
           onSignup={() => navigate('signup')}
-          onCrackedSquad={() => navigate('crackedSquad')}
+          onRecruiters={() => navigate('recruiters')}
+          showNotification={showNotification}
+        />
+      )}
+
+      {currentView === 'recruiters' && (
+        <RecruiterPage
+          currentUser={currentUser}
+          onViewProfile={(username) => viewPublicProfile(username)}
+          onMakers={() => navigate('makers')}
+          onBack={() => navigate(currentUser ? 'dashboard' : 'landing')}
+          onSignup={() => navigate('signup')}
+          onHire={() => navigate('hire')}
+          showNotification={showNotification}
         />
       )}
 
@@ -629,36 +647,45 @@ const builderQuotes = [
   { quote: "If you're not embarrassed by the first version of your product, you've launched too late.", author: "Reid Hoffman", role: "Co-founder, LinkedIn" },
 ];
 
-const SiteFooter = ({ onMakers, onHire, onMemo, onSignup, onCrackedSquad }) => (
-  <footer className="footer-wrap" style={{ borderTop: `1px solid ${t.surfaceBorder}`, padding: '48px 40px 32px', marginTop: 'auto' }}>
-    <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '32px' }}>
-      <div>
-        <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600', marginBottom: '16px' }}>MAKERLY</div>
-        <p style={{ fontSize: '13px', color: t.textTertiary, maxWidth: '260px', lineHeight: 1.5 }}>
-          Resumes are dead. Show what you've made.
-        </p>
-      </div>
-      <div className="footer-links" style={{ display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>EXPLORE</span>
-          {onMakers && <a onClick={onMakers} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Makers</a>}
-          {onHire && <a onClick={onHire} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Hire</a>}
-          {onMemo && <a onClick={onMemo} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Memo</a>}
-          {onCrackedSquad && <a onClick={onCrackedSquad} style={{ fontSize: '13px', color: t.error, cursor: 'pointer', textDecoration: 'none' }}>Cracked Squad</a>}
+const SiteFooter = () => {
+  const linkStyle = { fontSize: '13px', color: t.textSecondary, textDecoration: 'none' };
+  return (
+    <footer className="footer-wrap" style={{ borderTop: `1px solid ${t.surfaceBorder}`, padding: '48px 40px 32px', marginTop: 'auto' }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '32px' }}>
+        <div>
+          <a href="/" style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600', marginBottom: '16px', display: 'block', textDecoration: 'none' }}>MAKERLY</a>
+          <p style={{ fontSize: '13px', color: t.textTertiary, maxWidth: '260px', lineHeight: 1.5 }}>
+            Resumes are dead. Show what you've made.
+          </p>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>CONNECT</span>
-          <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: t.textSecondary, textDecoration: 'none' }}>Twitter</a>
-          {onSignup && <a onClick={onSignup} style={{ fontSize: '13px', color: t.textSecondary, cursor: 'pointer', textDecoration: 'none' }}>Create profile</a>}
+        <div className="footer-links" style={{ display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>EXPLORE</span>
+            <a href="/makers" style={linkStyle}>Browse Makers</a>
+            <a href="/hire" style={linkStyle}>Hire Makers</a>
+            <a href="/recruiters" style={linkStyle}>Post a Job</a>
+            <a href="/memo" style={linkStyle}>Memo</a>
+            <a href="/cracked-squad" style={{ ...linkStyle, color: t.error }}>Cracked Squad</a>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>ACCOUNT</span>
+            <a href="/signup" style={linkStyle}>Create Profile</a>
+            <a href="/login" style={linkStyle}>Log In</a>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500' }}>CONNECT</span>
+            <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={linkStyle}>Twitter</a>
+            <a href="https://github.com/pareen/maker" target="_blank" rel="noopener noreferrer" style={linkStyle}>GitHub</a>
+          </div>
         </div>
       </div>
-    </div>
-    <div style={{ maxWidth: '900px', margin: '24px auto 0', paddingTop: '24px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-      <span style={{ fontSize: '12px', color: t.textFaint }}>Made by <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: t.accent, textDecoration: 'none' }}>Pareen</a></span>
-      <span style={{ fontSize: '12px', color: t.textDim }}>&copy; {new Date().getFullYear()} Makerly</span>
-    </div>
-  </footer>
-);
+      <div style={{ maxWidth: '900px', margin: '24px auto 0', paddingTop: '24px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+        <span style={{ fontSize: '12px', color: t.textFaint }}>Made by <a href="https://twitter.com/Pareen" target="_blank" rel="noopener noreferrer" style={{ color: t.accent, textDecoration: 'none' }}>Pareen</a></span>
+        <span style={{ fontSize: '12px', color: t.textDim }}>&copy; {new Date().getFullYear()} Makerly</span>
+      </div>
+    </footer>
+  );
+};
 
 const MobileMenuButton = ({ onClick, isOpen }) => (
   <button
@@ -703,7 +730,7 @@ const MobileDrawer = ({ isOpen, onClose, children }) => {
   );
 };
 
-const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo, onCrackedSquad }) => {
+const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo, onCrackedSquad: _onCrackedSquad }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const sampleRoleBreakdown = roles.map(role => ({
     ...role,
@@ -1024,7 +1051,7 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo, onCrackedSqu
         </div>
       </section>
 
-      <SiteFooter onMakers={onMakers} onHire={onHire} onMemo={onMemo} onSignup={onSignup} onCrackedSquad={onCrackedSquad} />
+      <SiteFooter />
     </div>
   );
 };
@@ -1063,8 +1090,9 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
-      <div style={{ width: '100%', maxWidth: '400px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
+        <div style={{ width: '100%', maxWidth: '400px' }}>
         <button className="btn btn-ghost" onClick={onBack} style={{ marginBottom: '32px' }}>← Back</button>
 
         <h1 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '8px' }}>
@@ -1161,6 +1189,8 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
           </button>
         </p>
       </div>
+      </div>
+      <SiteFooter />
     </div>
   );
 };
@@ -1301,7 +1331,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
   };
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}`, flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600' }}>MAKER.PROFILE</div>
@@ -1446,6 +1476,7 @@ const Dashboard = ({ user, setUser, onEditProfile, onViewProfile, onLogout, onSh
           existingProjects={user.projects}
         />
       )}
+      <SiteFooter />
     </div>
   );
 };
@@ -1858,7 +1889,8 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
   const selectAll = () => {
     const importable = repos.map((repo, i) => {
       const alreadyImported = existingProjects.some(p =>
-        p.name === repo.name || p.links?.some(l => repo.links?.includes(l))
+        (repo.githubRepoId && p.githubRepoId === repo.githubRepoId) ||
+        p.links?.some(l => repo.links?.includes(l))
       );
       return alreadyImported ? null : i;
     }).filter(i => i !== null);
@@ -2028,7 +2060,8 @@ const GitHubImportModal = ({ onImport, onClose, showNotification, existingProjec
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', maxHeight: '400px', overflow: 'auto' }}>
               {repos.map((repo, index) => {
                 const alreadyImported = existingProjects.some(p =>
-                  p.links?.some(l => repo.links?.includes(l)) || p.links?.includes(repo.githubUrl)
+                  (repo.githubRepoId && p.githubRepoId === repo.githubRepoId) ||
+                  p.links?.some(l => repo.links?.includes(l))
                 );
                 return (
                   <div
@@ -2331,7 +2364,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification, isAdmin }) => {
   };
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header className="desktop-header" style={{ padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <button className="btn btn-ghost" onClick={onBack}>← Back</button>
         <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
@@ -2470,7 +2503,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification, isAdmin }) => {
         <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
           <h2 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '20px' }}>CONTACT</h2>
           <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>
-            Let people reach you directly from your profile. Your email will be visible to anyone who visits.
+            Let people message you directly from your profile. Your email stays private — visitors just see a contact button.
           </p>
 
           <div style={{ marginBottom: '16px' }}>
@@ -2481,13 +2514,13 @@ const EditProfile = ({ user, setUser, onBack, showNotification, isAdmin }) => {
                 onChange={(e) => setFormData({ ...formData, showEmail: e.target.checked })}
                 style={{ width: '16px', height: '16px' }}
               />
-              <span style={{ fontSize: '14px', color: t.textSecondary }}>Show my email on my profile</span>
+              <span style={{ fontSize: '14px', color: t.textSecondary }}>Enable contact form on my profile</span>
             </label>
           </div>
 
           {formData.showEmail && (
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Contact email</label>
+              <label style={{ display: 'block', fontSize: '12px', color: t.textFaint, marginBottom: '8px' }}>Where should messages be sent?</label>
               <input
                 className="input"
                 type="email"
@@ -2495,7 +2528,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification, isAdmin }) => {
                 value={formData.contactEmail || ''}
                 onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
               />
-              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>This will be shown as a "Get in touch" button on your public profile.</div>
+              <div style={{ fontSize: '11px', color: t.textFaint, marginTop: '4px' }}>Messages from visitors will be emailed here. This address is never shown publicly.</div>
             </div>
           )}
         </div>
@@ -2722,6 +2755,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification, isAdmin }) => {
 
         <button className="btn btn-primary" onClick={handleSave} style={{ width: '100%' }}>Save Changes</button>
       </div>
+      <SiteFooter />
     </div>
   );
 };
@@ -2910,7 +2944,36 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
   const [showAllUpdates, setShowAllUpdates] = useState(false);
   const [updates, setUpdates] = useState(user.updates || []);
   const [projectViewMode, setProjectViewMode] = useState('list'); // 'list' | 'timeline'
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [contactMsg, setContactMsg] = useState({ name: '', email: '', message: '' });
+  const [contactSending, setContactSending] = useState(false);
+  const [contactSent, setContactSent] = useState(false);
   const PROFILE_UPDATES_LIMIT = 5;
+
+  const handleContactSubmit = async () => {
+    if (!contactMsg.message.trim()) return;
+    setContactSending(true);
+    try {
+      const res = await fetch('/api/contact-maker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toEmail: user.contactEmail,
+          toUsername: user.username,
+          senderName: contactMsg.name,
+          senderEmail: contactMsg.email,
+          message: contactMsg.message,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to send');
+      setContactSent(true);
+      setContactMsg({ name: '', email: '', message: '' });
+    } catch {
+      alert('Failed to send message. Please try again.');
+    } finally {
+      setContactSending(false);
+    }
+  };
 
   // Load updates for the logged-in user (they're not on the user object)
   useEffect(() => {
@@ -2955,9 +3018,9 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           {!isOwner && user.showEmail && user.contactEmail && (
-            <a href={`mailto:${user.contactEmail}`} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-              Get in touch
-            </a>
+            <button className="btn btn-primary" onClick={() => { setShowContactForm(f => !f); setContactSent(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {showContactForm ? 'Close' : 'Contact'}
+            </button>
           )}
           {isOwner && (
             <>
@@ -2969,6 +3032,60 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
           )}
         </div>
       </header>
+
+      {/* Contact Form */}
+      {showContactForm && (
+        <div style={{ borderBottom: `1px solid ${t.surfaceBorder}`, padding: '24px 40px', background: t.surfaceRaised }}>
+          <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+            {contactSent ? (
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <div style={{ fontSize: '18px', marginBottom: '8px' }}>Message sent</div>
+                <p style={{ fontSize: '13px', color: t.textSecondary }}>{user.name || user.username} will receive your message via email.</p>
+              </div>
+            ) : (
+              <>
+                <h3 style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '16px' }}>Send a message to {user.name || user.username}</h3>
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                  <input
+                    className="input"
+                    placeholder="Your name"
+                    value={contactMsg.name}
+                    onChange={e => setContactMsg(m => ({ ...m, name: e.target.value }))}
+                    style={{ flex: 1 }}
+                  />
+                  <input
+                    className="input"
+                    type="email"
+                    placeholder="Your email (for reply)"
+                    value={contactMsg.email}
+                    onChange={e => setContactMsg(m => ({ ...m, email: e.target.value }))}
+                    style={{ flex: 1 }}
+                  />
+                </div>
+                <textarea
+                  className="input"
+                  placeholder="Your message..."
+                  value={contactMsg.message}
+                  onChange={e => setContactMsg(m => ({ ...m, message: e.target.value }))}
+                  rows={4}
+                  maxLength={2000}
+                  style={{ width: '100%', resize: 'vertical', marginBottom: '12px' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: t.textFaint }}>{contactMsg.message.length}/2000</span>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleContactSubmit}
+                    disabled={contactSending || !contactMsg.message.trim()}
+                  >
+                    {contactSending ? 'Sending...' : 'Send message'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="profile-container" style={{ padding: '60px 40px', maxWidth: '1100px', margin: '0 auto' }}>
         {/* Profile Header */}
@@ -3565,20 +3682,27 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
     <div style={{
       minHeight: '100vh',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '40px 24px'
+      flexDirection: 'column',
     }}>
-      <div style={{ maxWidth: '500px', width: '100%' }}>
-        {steps[step]()}
-        <button
-          className="btn btn-ghost"
-          onClick={handleFinish}
-          style={{ display: 'block', margin: '40px auto 0', fontSize: '12px', color: t.textFaint }}
-        >
-          Skip setup — go to dashboard
-        </button>
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 24px'
+      }}>
+        <div style={{ maxWidth: '500px', width: '100%' }}>
+          {steps[step]()}
+          <button
+            className="btn btn-ghost"
+            onClick={handleFinish}
+            style={{ display: 'block', margin: '40px auto 0', fontSize: '12px', color: t.textFaint }}
+          >
+            Skip setup — go to dashboard
+          </button>
+        </div>
       </div>
+      <SiteFooter />
     </div>
   );
 };
@@ -3733,7 +3857,8 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
   }
 
   return (
-    <div className="directory-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 24px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="directory-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 24px', flex: 1 }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
@@ -3896,6 +4021,485 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
           )}
         </div>
       </div>
+      </div>
+      <SiteFooter />
+    </div>
+  );
+};
+
+// ============================================
+// RECRUITER DASHBOARD — Manage profile, postings, and applications
+// ============================================
+const jobRoles = [
+  { key: 'engineer', label: 'Engineer' },
+  { key: 'designer', label: 'Designer' },
+  { key: 'pm', label: 'Product Manager' },
+  { key: 'marketer', label: 'Marketer' },
+  { key: 'cofounder', label: 'Co-founder' },
+  { key: 'other', label: 'Other' },
+];
+
+const RecruiterPage = ({ currentUser, onViewProfile, onMakers, onBack, onSignup, onHire, showNotification }) => {
+  const [recruiterProfile, setRecruiterProfile] = useState(null);
+  const [postings, setPostings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [showPostingForm, setShowPostingForm] = useState(false);
+  const [editingPosting, setEditingPosting] = useState(null);
+  const [viewingApplications, setViewingApplications] = useState(null); // jobId
+  const [applications, setApplications] = useState([]);
+  const [appsLoading, setAppsLoading] = useState(false);
+
+  // Profile form
+  const [companyName, setCompanyName] = useState('');
+  const [companyUrl, setCompanyUrl] = useState('');
+  const [roleTitle, setRoleTitle] = useState('');
+  const [bio, setBio] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Posting form
+  const [postTitle, setPostTitle] = useState('');
+  const [postDescription, setPostDescription] = useState('');
+  const [postProjectName, setPostProjectName] = useState('');
+  const [postProjectDesc, setPostProjectDesc] = useState('');
+  const [postRoleNeeded, setPostRoleNeeded] = useState('');
+  const [postDomains, setPostDomains] = useState('');
+  const [postLocation, setPostLocation] = useState('');
+  const [postRemote, setPostRemote] = useState(true);
+  const [postCompensation, setPostCompensation] = useState('');
+  const [postStatus, setPostStatus] = useState('draft');
+
+  useEffect(() => {
+    document.title = 'Recruiter Dashboard — Makerly';
+    return () => { document.title = 'Makerly — Show what you\'ve made'; };
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) { setLoading(false); return; }
+    const load = async () => {
+      try {
+        const profile = await db.getRecruiterProfile(currentUser.id);
+        setRecruiterProfile(profile);
+        if (profile) {
+          setCompanyName(profile.companyName || '');
+          setCompanyUrl(profile.companyUrl || '');
+          setRoleTitle(profile.roleTitle || '');
+          setBio(profile.bio || '');
+          const jobs = await db.getJobPostingsByRecruiter(profile.id);
+          setPostings(jobs);
+        }
+      } catch (err) {
+        console.error('Failed to load recruiter data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [currentUser]);
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!companyName.trim()) return;
+    setSaving(true);
+    try {
+      if (recruiterProfile) {
+        const updated = await db.updateRecruiterProfile(currentUser.id, { companyName: companyName.trim(), companyUrl: companyUrl.trim(), roleTitle: roleTitle.trim(), bio: bio.trim() });
+        setRecruiterProfile(updated);
+        setEditing(false);
+      } else {
+        const created = await db.createRecruiterProfile(currentUser.id, { companyName: companyName.trim(), companyUrl: companyUrl.trim(), roleTitle: roleTitle.trim(), bio: bio.trim() });
+        setRecruiterProfile(created);
+      }
+      showNotification('Recruiter profile saved');
+    } catch (err) {
+      console.error('Failed to save recruiter profile:', err);
+      showNotification('Failed to save profile', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetPostingForm = () => {
+    setPostTitle(''); setPostDescription(''); setPostProjectName(''); setPostProjectDesc('');
+    setPostRoleNeeded(''); setPostDomains(''); setPostLocation(''); setPostRemote(true);
+    setPostCompensation(''); setPostStatus('draft'); setEditingPosting(null);
+  };
+
+  const openEditPosting = (posting) => {
+    setPostTitle(posting.title); setPostDescription(posting.description);
+    setPostProjectName(posting.projectName || ''); setPostProjectDesc(posting.projectDescription || '');
+    setPostRoleNeeded(posting.roleNeeded || ''); setPostDomains((posting.domains || []).join(', '));
+    setPostLocation(posting.location || ''); setPostRemote(posting.remote);
+    setPostCompensation(posting.compensation || ''); setPostStatus(posting.status);
+    setEditingPosting(posting.id); setShowPostingForm(true);
+  };
+
+  const handleSavePosting = async (e) => {
+    e.preventDefault();
+    if (!postTitle.trim() || !postDescription.trim()) return;
+    setSaving(true);
+    const data = {
+      title: postTitle.trim(), description: postDescription.trim(),
+      projectName: postProjectName.trim() || null, projectDescription: postProjectDesc.trim() || null,
+      roleNeeded: postRoleNeeded || null, domains: postDomains.split(',').map(d => d.trim()).filter(Boolean),
+      location: postLocation.trim() || null, remote: postRemote,
+      compensation: postCompensation.trim() || null, status: postStatus
+    };
+    try {
+      if (editingPosting) {
+        const updated = await db.updateJobPosting(editingPosting, data);
+        setPostings(prev => prev.map(p => p.id === editingPosting ? updated : p));
+        showNotification('Job posting updated');
+      } else {
+        const created = await db.createJobPosting(recruiterProfile.id, data);
+        setPostings(prev => [created, ...prev]);
+        showNotification('Job posting created');
+      }
+      setShowPostingForm(false);
+      resetPostingForm();
+    } catch (err) {
+      console.error('Failed to save posting:', err);
+      showNotification('Failed to save posting', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeletePosting = async (jobId) => {
+    try {
+      await db.deleteJobPosting(jobId);
+      setPostings(prev => prev.filter(p => p.id !== jobId));
+      showNotification('Posting deleted');
+    } catch (_err) {
+      showNotification('Failed to delete posting', 'error');
+    }
+  };
+
+  const handleToggleStatus = async (posting) => {
+    const next = posting.status === 'open' ? 'closed' : 'open';
+    try {
+      const updated = await db.updateJobPosting(posting.id, { status: next });
+      setPostings(prev => prev.map(p => p.id === posting.id ? updated : p));
+      showNotification(`Posting ${next === 'open' ? 'published' : 'closed'}`);
+    } catch (_err) {
+      showNotification('Failed to update status', 'error');
+    }
+  };
+
+  const loadApplications = async (jobId) => {
+    setViewingApplications(jobId);
+    setAppsLoading(true);
+    try {
+      const apps = await db.getApplicationsForJob(jobId);
+      setApplications(apps);
+    } catch (err) {
+      console.error('Failed to load applications:', err);
+    } finally {
+      setAppsLoading(false);
+    }
+  };
+
+  const handleUpdateAppStatus = async (appId, status) => {
+    try {
+      await db.updateApplicationStatus(appId, status);
+      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status } : a));
+      showNotification(`Application ${status}`);
+    } catch (_err) {
+      showNotification('Failed to update application', 'error');
+    }
+  };
+
+  const statusColors = {
+    draft: { bg: 'rgba(168,162,158,0.1)', color: t.textFaint, border: 'rgba(168,162,158,0.2)' },
+    open: { bg: 'rgba(74,222,128,0.1)', color: t.success, border: 'rgba(74,222,128,0.2)' },
+    closed: { bg: 'rgba(239,68,68,0.1)', color: t.error, border: 'rgba(239,68,68,0.2)' },
+    pending: { bg: 'rgba(251,191,36,0.1)', color: t.accent, border: 'rgba(251,191,36,0.2)' },
+    reviewed: { bg: 'rgba(34,211,238,0.1)', color: t.cyan, border: 'rgba(34,211,238,0.2)' },
+    accepted: { bg: 'rgba(74,222,128,0.1)', color: t.success, border: 'rgba(74,222,128,0.2)' },
+    rejected: { bg: 'rgba(239,68,68,0.1)', color: t.error, border: 'rgba(239,68,68,0.2)' },
+  };
+
+  const inputStyle = { width: '100%', padding: '10px 14px', background: t.surfaceBgHover, border: '1px solid rgba(255,255,255,0.1)', borderRadius: t.radiusSm, color: t.text, fontSize: '14px' };
+  const labelStyle = { fontSize: '12px', color: t.textSecondary, fontWeight: '500', marginBottom: '6px', display: 'block' };
+
+  if (loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}><div style={{ color: t.textSecondary, fontSize: '14px' }}>Loading...</div></div>;
+  }
+
+  // Not logged in
+  if (!currentUser) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+          <button onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>MAKERLY</button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button className="btn btn-ghost" onClick={onHire}>Job Board</button>
+            <button className="btn btn-ghost" onClick={onBack}>Back</button>
+          </div>
+        </header>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px' }}>
+          <div style={{ textAlign: 'center', maxWidth: '400px' }}>
+            <div style={{ fontSize: '13px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500', marginBottom: '16px' }}>FOR RECRUITERS</div>
+            <h1 style={{ fontSize: '36px', fontFamily: t.fontHeading, marginBottom: '16px' }}>Post jobs. Find makers.</h1>
+            <p style={{ fontSize: '15px', color: t.textSecondary, lineHeight: 1.6, marginBottom: '32px' }}>Sign in to create your recruiter profile and start posting positions for makers to apply.</p>
+            <button className="btn btn-primary" style={{ padding: '14px 40px', fontSize: '15px' }} onClick={onSignup}>Sign up to get started</button>
+          </div>
+        </div>
+        <SiteFooter />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>MAKERLY</button>
+          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500', background: 'rgba(251,191,36,0.1)', border: `1px solid ${t.accentBorder}`, padding: '3px 8px', borderRadius: '8px' }}>RECRUITER DASHBOARD</span>
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button className="btn btn-ghost" onClick={onHire}>Job Board</button>
+          <button className="btn btn-ghost" onClick={onMakers}>Makers</button>
+          <button className="btn btn-ghost" onClick={onBack}>Dashboard</button>
+        </div>
+      </header>
+
+      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px', flex: 1, width: '100%' }}>
+        {/* Recruiter Profile Section */}
+        {!recruiterProfile || editing ? (
+          <div style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, padding: '32px', marginBottom: '32px' }}>
+            <h2 style={{ fontSize: '20px', fontFamily: t.fontHeading, marginBottom: '4px' }}>{recruiterProfile ? 'Edit Recruiter Profile' : 'Create Your Recruiter Profile'}</h2>
+            <p style={{ fontSize: '13px', color: t.textFaint, marginBottom: '24px' }}>{recruiterProfile ? 'Update your company information' : 'Tell makers about your company and what you\'re looking for'}</p>
+            <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label htmlFor="rp-company" style={labelStyle}>Company Name *</label>
+                <input id="rp-company" type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Acme Inc." required style={inputStyle} />
+              </div>
+              <div>
+                <label htmlFor="rp-url" style={labelStyle}>Company Website</label>
+                <input id="rp-url" type="text" value={companyUrl} onChange={e => setCompanyUrl(e.target.value)} placeholder="https://acme.com" style={inputStyle} />
+              </div>
+              <div>
+                <label htmlFor="rp-title" style={labelStyle}>Your Title</label>
+                <input id="rp-title" type="text" value={roleTitle} onChange={e => setRoleTitle(e.target.value)} placeholder="Head of Engineering" style={inputStyle} />
+              </div>
+              <div>
+                <label htmlFor="rp-bio" style={labelStyle}>About your company</label>
+                <textarea id="rp-bio" value={bio} onChange={e => setBio(e.target.value)} placeholder="What does your company do? What kind of people do you want to hire?" rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button type="submit" className="btn btn-primary" disabled={saving} style={{ padding: '10px 28px' }}>{saving ? 'Saving...' : recruiterProfile ? 'Save Changes' : 'Create Profile'}</button>
+                {recruiterProfile && <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>Cancel</button>}
+              </div>
+            </form>
+          </div>
+        ) : (
+          <div style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, padding: '24px', marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                <h2 style={{ fontSize: '20px', fontFamily: t.fontHeading, margin: 0 }}>{recruiterProfile.companyName}</h2>
+                {recruiterProfile.companyUrl && <a href={ensureUrl(recruiterProfile.companyUrl)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: t.accent }}>website</a>}
+              </div>
+              {recruiterProfile.roleTitle && <div style={{ fontSize: '13px', color: t.textSecondary }}>{recruiterProfile.roleTitle}</div>}
+              {recruiterProfile.bio && <p style={{ fontSize: '13px', color: t.textTertiary, marginTop: '8px', lineHeight: 1.5 }}>{recruiterProfile.bio}</p>}
+            </div>
+            <button className="btn btn-ghost" onClick={() => setEditing(true)} style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Edit Profile</button>
+          </div>
+        )}
+
+        {/* Only show postings if recruiter profile exists */}
+        {recruiterProfile && (
+          <>
+            {/* Postings header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '18px', fontFamily: t.fontHeading, margin: 0 }}>Your Job Postings ({postings.length})</h2>
+              <button className="btn btn-primary" onClick={() => { resetPostingForm(); setShowPostingForm(true); }} style={{ padding: '8px 20px', fontSize: '13px' }}>
+                + New Posting
+              </button>
+            </div>
+
+            {/* Posting Form */}
+            {showPostingForm && (
+              <div style={{ background: t.surfaceBg, border: `1px solid ${t.accentBorder}`, borderRadius: t.radiusMd, padding: '28px', marginBottom: '20px' }}>
+                <h3 style={{ fontSize: '16px', fontFamily: t.fontHeading, marginBottom: '20px' }}>{editingPosting ? 'Edit Job Posting' : 'New Job Posting'}</h3>
+                <form onSubmit={handleSavePosting} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label htmlFor="jp-title" style={labelStyle}>Job Title *</label>
+                    <input id="jp-title" type="text" value={postTitle} onChange={e => setPostTitle(e.target.value)} placeholder="Senior Frontend Engineer" required style={inputStyle} />
+                  </div>
+                  <div>
+                    <label htmlFor="jp-desc" style={labelStyle}>Description *</label>
+                    <textarea id="jp-desc" value={postDescription} onChange={e => setPostDescription(e.target.value)} placeholder="What will this person do? What are you looking for?" rows={4} required style={{ ...inputStyle, resize: 'vertical' }} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <label htmlFor="jp-project" style={labelStyle}>Project Name</label>
+                      <input id="jp-project" type="text" value={postProjectName} onChange={e => setPostProjectName(e.target.value)} placeholder="What are you building?" style={inputStyle} />
+                    </div>
+                    <div>
+                      <label htmlFor="jp-role" style={labelStyle}>Role Type</label>
+                      <select id="jp-role" value={postRoleNeeded} onChange={e => setPostRoleNeeded(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                        <option value="">Select role...</option>
+                        {jobRoles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="jp-projdesc" style={labelStyle}>Project Description</label>
+                    <textarea id="jp-projdesc" value={postProjectDesc} onChange={e => setPostProjectDesc(e.target.value)} placeholder="More about the project..." rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <label htmlFor="jp-domains" style={labelStyle}>Domains (comma-separated)</label>
+                      <input id="jp-domains" type="text" value={postDomains} onChange={e => setPostDomains(e.target.value)} placeholder="React, TypeScript, AI" style={inputStyle} />
+                    </div>
+                    <div>
+                      <label htmlFor="jp-comp" style={labelStyle}>Compensation</label>
+                      <input id="jp-comp" type="text" value={postCompensation} onChange={e => setPostCompensation(e.target.value)} placeholder="$150-180k + equity" style={inputStyle} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <label htmlFor="jp-location" style={labelStyle}>Location</label>
+                      <input id="jp-location" type="text" value={postLocation} onChange={e => setPostLocation(e.target.value)} placeholder="San Francisco, CA" style={inputStyle} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={labelStyle}>Remote?</span>
+                      <div style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: t.text, cursor: 'pointer' }}>
+                          <input type="radio" checked={postRemote} onChange={() => setPostRemote(true)} /> Yes
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: t.text, cursor: 'pointer' }}>
+                          <input type="radio" checked={!postRemote} onChange={() => setPostRemote(false)} /> No
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <span style={labelStyle}>Status</span>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                      {['draft', 'open'].map(s => (
+                        <button key={s} type="button" onClick={() => setPostStatus(s)} style={{
+                          padding: '6px 16px', borderRadius: t.radiusSm, fontSize: '12px', fontWeight: '600', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em',
+                          background: postStatus === s ? statusColors[s].bg : 'transparent',
+                          color: postStatus === s ? statusColors[s].color : t.textFaint,
+                          border: `1px solid ${postStatus === s ? statusColors[s].border : 'rgba(255,255,255,0.1)'}`
+                        }}>{s}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                    <button type="submit" className="btn btn-primary" disabled={saving} style={{ padding: '10px 28px' }}>{saving ? 'Saving...' : editingPosting ? 'Update Posting' : 'Create Posting'}</button>
+                    <button type="button" className="btn btn-ghost" onClick={() => { setShowPostingForm(false); resetPostingForm(); }}>Cancel</button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Applications view */}
+            {viewingApplications && (
+              <div style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, padding: '24px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 style={{ fontSize: '16px', fontFamily: t.fontHeading, margin: 0 }}>
+                    Applications for: {postings.find(p => p.id === viewingApplications)?.title || ''}
+                  </h3>
+                  <button className="btn btn-ghost" onClick={() => setViewingApplications(null)} style={{ fontSize: '12px' }}>Close</button>
+                </div>
+                {appsLoading ? (
+                  <div style={{ color: t.textFaint, fontSize: '13px', padding: '20px 0' }}>Loading applications...</div>
+                ) : applications.length === 0 ? (
+                  <div style={{ color: t.textFaint, fontSize: '13px', padding: '20px 0' }}>No applications yet</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {applications.map(app => {
+                      const sc = statusColors[app.status] || statusColors.pending;
+                      return (
+                        <div key={app.id} style={{ border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusSm, padding: '16px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                            <div>
+                              <span onClick={() => onViewProfile(app.applicantUsername)} style={{ fontSize: '15px', fontWeight: '500', color: t.text, cursor: 'pointer' }}
+                                onMouseOver={e => e.target.style.color = t.accent} onMouseOut={e => e.target.style.color = t.text}>
+                                {app.applicantName}
+                              </span>
+                              <span style={{ fontSize: '12px', color: t.textFaint, marginLeft: '8px' }}>@{app.applicantUsername}</span>
+                              {app.applicantProjectCount > 0 && <span style={{ fontSize: '11px', color: t.accent, marginLeft: '8px' }}>{app.applicantProjectCount} projects</span>}
+                            </div>
+                            <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '8px', fontWeight: '600', letterSpacing: '0.05em', background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`, textTransform: 'uppercase' }}>{app.status}</span>
+                          </div>
+                          {app.applicantBio && <p style={{ fontSize: '12px', color: t.textTertiary, marginBottom: '8px' }}>{app.applicantBio}</p>}
+                          <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: t.radiusSm, padding: '12px', marginBottom: '10px' }}>
+                            <p style={{ fontSize: '13px', color: t.textSecondary, lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap' }}>{app.message}</p>
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <span style={{ fontSize: '11px', color: t.textFaint }}>{new Date(app.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                            <div style={{ flex: 1 }} />
+                            {app.status === 'pending' && (
+                              <>
+                                <button onClick={() => handleUpdateAppStatus(app.id, 'reviewed')} style={{ padding: '4px 12px', borderRadius: '8px', border: `1px solid ${statusColors.reviewed.border}`, background: statusColors.reviewed.bg, color: statusColors.reviewed.color, cursor: 'pointer', fontSize: '11px', fontWeight: '500' }}>Mark Reviewed</button>
+                                <button onClick={() => handleUpdateAppStatus(app.id, 'accepted')} style={{ padding: '4px 12px', borderRadius: '8px', border: `1px solid ${statusColors.accepted.border}`, background: statusColors.accepted.bg, color: statusColors.accepted.color, cursor: 'pointer', fontSize: '11px', fontWeight: '500' }}>Accept</button>
+                                <button onClick={() => handleUpdateAppStatus(app.id, 'rejected')} style={{ padding: '4px 12px', borderRadius: '8px', border: `1px solid ${statusColors.rejected.border}`, background: statusColors.rejected.bg, color: statusColors.rejected.color, cursor: 'pointer', fontSize: '11px', fontWeight: '500' }}>Reject</button>
+                              </>
+                            )}
+                            {app.status === 'reviewed' && (
+                              <>
+                                <button onClick={() => handleUpdateAppStatus(app.id, 'accepted')} style={{ padding: '4px 12px', borderRadius: '8px', border: `1px solid ${statusColors.accepted.border}`, background: statusColors.accepted.bg, color: statusColors.accepted.color, cursor: 'pointer', fontSize: '11px', fontWeight: '500' }}>Accept</button>
+                                <button onClick={() => handleUpdateAppStatus(app.id, 'rejected')} style={{ padding: '4px 12px', borderRadius: '8px', border: `1px solid ${statusColors.rejected.border}`, background: statusColors.rejected.bg, color: statusColors.rejected.color, cursor: 'pointer', fontSize: '11px', fontWeight: '500' }}>Reject</button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Postings list */}
+            {postings.length === 0 && !showPostingForm && (
+              <div style={{ textAlign: 'center', padding: '60px', color: t.textFaint, background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd }}>
+                <div style={{ fontSize: '15px', marginBottom: '12px' }}>No job postings yet</div>
+                <div style={{ fontSize: '13px' }}>Click "New Posting" to create your first job listing</div>
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {postings.map(posting => {
+                const sc = statusColors[posting.status] || statusColors.draft;
+                return (
+                  <div key={posting.id} style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, padding: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '16px', fontWeight: '500', color: t.text }}>{posting.title}</span>
+                          <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '8px', fontWeight: '600', letterSpacing: '0.05em', background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`, textTransform: 'uppercase' }}>{posting.status}</span>
+                        </div>
+                        {posting.projectName && <div style={{ fontSize: '13px', color: t.textSecondary, marginTop: '2px' }}>Project: {posting.projectName}</div>}
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => loadApplications(posting.id)} className="btn btn-ghost" style={{ fontSize: '11px', padding: '4px 10px' }}>Applications</button>
+                        <button onClick={() => openEditPosting(posting)} className="btn btn-ghost" style={{ fontSize: '11px', padding: '4px 10px' }}>Edit</button>
+                        <button onClick={() => handleToggleStatus(posting)} style={{ padding: '4px 10px', borderRadius: t.radiusSm, border: `1px solid ${posting.status === 'open' ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.3)'}`, background: posting.status === 'open' ? 'rgba(239,68,68,0.1)' : 'rgba(74,222,128,0.1)', color: posting.status === 'open' ? t.error : t.success, cursor: 'pointer', fontSize: '11px', fontWeight: '500' }}>
+                          {posting.status === 'open' ? 'Close' : 'Publish'}
+                        </button>
+                        <button onClick={() => handleDeletePosting(posting.id)} style={{ padding: '4px 10px', borderRadius: t.radiusSm, border: '1px solid rgba(239,68,68,0.2)', background: 'transparent', color: t.textFaint, cursor: 'pointer', fontSize: '11px' }}>Delete</button>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '13px', color: t.textTertiary, lineHeight: 1.5, marginBottom: '10px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{posting.description}</p>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      {posting.roleNeeded && <span style={{ fontSize: '10px', color: t.accent, background: t.accentBgSubtle, border: `1px solid ${t.accentBorder}`, padding: '2px 8px', borderRadius: '8px', fontWeight: '600' }}>{(jobRoles.find(r => r.key === posting.roleNeeded) || {}).label || posting.roleNeeded}</span>}
+                      {posting.remote && <span style={{ fontSize: '10px', color: t.cyan, background: 'rgba(34,211,238,0.08)', padding: '2px 8px', borderRadius: '8px' }}>Remote</span>}
+                      {posting.location && <span style={{ fontSize: '10px', color: t.textFaint }}>{posting.location}</span>}
+                      {posting.compensation && <span style={{ fontSize: '10px', color: t.purple }}>{posting.compensation}</span>}
+                      {posting.domains?.length > 0 && posting.domains.map(d => <span key={d} style={{ fontSize: '10px', color: t.textFaint, background: t.surfaceBgHover, padding: '2px 6px', borderRadius: '6px' }}>{d}</span>)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+      <SiteFooter />
     </div>
   );
 };
@@ -3903,7 +4507,7 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
 // ============================================
 // MEMO PAGE
 // ============================================
-const MemoPage = ({ onBack, onSignup, onMakers, onCrackedSquad }) => {
+const MemoPage = ({ onBack, onSignup, onMakers, onCrackedSquad: _onCrackedSquad }) => {
   useEffect(() => {
     document.title = 'Makers vs Takers — Makerly';
     return () => { document.title = 'Makerly — Show what you\'ve made'; };
@@ -4018,7 +4622,7 @@ const MemoPage = ({ onBack, onSignup, onMakers, onCrackedSquad }) => {
         </div>
       </article>
 
-      <SiteFooter onMakers={onMakers} onSignup={onSignup} onCrackedSquad={onCrackedSquad} />
+      <SiteFooter />
     </div>
   );
 };
@@ -4026,53 +4630,80 @@ const MemoPage = ({ onBack, onSignup, onMakers, onCrackedSquad }) => {
 // ============================================
 // HIRE PAGE
 // ============================================
-const HirePage = ({ onViewProfile, onMakers, onBack, onSignup, onCrackedSquad }) => {
-  const [makers, setMakers] = useState([]);
+const HirePage = ({ currentUser, onViewProfile, onMakers, onBack, onSignup, onRecruiters, showNotification }) => {
+  const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [filter, setFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [remoteFilter, setRemoteFilter] = useState('');
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [applyMessage, setApplyMessage] = useState('');
+  const [applying, setApplying] = useState(false);
+  const [appliedJobs, setAppliedJobs] = useState(new Set());
 
   useEffect(() => {
-    document.title = 'Hire Makers — Makerly';
+    document.title = 'Job Board — Makerly';
     return () => { document.title = 'Makerly — Show what you\'ve made'; };
   }, []);
 
   useEffect(() => {
-    db.getPublicMakers().then(list => {
-      // Quality-based scoring — same as directory
-      const score = (m) => {
-        let s = 0;
-        if (m.name) s += 5;
-        if (m.bio && m.bio.length > 20) s += 10;
-        else if (m.bio) s += 3;
-        if (m.firstMake?.description) s += 5;
-        if (m.domains?.length > 0) s += 5;
-        if (m.socials && Object.values(m.socials).some(v => v)) s += 5;
-        const pc = Math.min(m.projectCount || 0, 3);
-        s += pc * 5;
-        if (m.todayMaking) s += 15;
-        if (m.lastActivity) {
-          const daysAgo = (Date.now() - new Date(m.lastActivity).getTime()) / 86400000;
-          if (daysAgo < 1) s += 10;
-          else if (daysAgo < 7) s += 7;
-          else if (daysAgo < 30) s += 3;
+    const load = async () => {
+      try {
+        const postings = await db.getPublicJobPostings();
+        setJobs(postings);
+        // Check which jobs the current user already applied to
+        if (currentUser) {
+          const myApps = await db.getMyApplications(currentUser.id);
+          setAppliedJobs(new Set(myApps.map(a => a.jobId)));
         }
-        return s;
-      };
-      const active = list.filter(m => m.projectCount > 0).sort((a, b) => score(b) - score(a));
-      setMakers(active.slice(0, 6));
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, []);
+      } catch (err) {
+        console.error('Failed to load job postings:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [currentUser]);
 
-  const handleNotify = (e) => {
-    e.preventDefault();
-    if (!email.trim()) return;
-    // Store in localStorage for now (could be Supabase later)
-    const existing = JSON.parse(localStorage.getItem('hire_waitlist') || '[]');
-    existing.push({ email: email.trim(), date: new Date().toISOString() });
-    localStorage.setItem('hire_waitlist', JSON.stringify(existing));
-    setSubmitted(true);
+  const filtered = jobs.filter(j => {
+    if (roleFilter && j.roleNeeded !== roleFilter) return false;
+    if (remoteFilter === 'yes' && !j.remote) return false;
+    if (remoteFilter === 'no' && j.remote) return false;
+    if (!filter) return true;
+    const q = filter.toLowerCase();
+    return (j.title || '').toLowerCase().includes(q) ||
+           (j.description || '').toLowerCase().includes(q) ||
+           (j.companyName || '').toLowerCase().includes(q) ||
+           (j.projectName || '').toLowerCase().includes(q) ||
+           (j.domains || []).some(d => d.toLowerCase().includes(q));
+  });
+
+  const handleApply = async (jobId) => {
+    if (!applyMessage.trim()) return;
+    setApplying(true);
+    try {
+      await db.applyToJob(jobId, currentUser.id, applyMessage.trim());
+      setAppliedJobs(prev => new Set([...prev, jobId]));
+      setApplyMessage('');
+      setSelectedJob(null);
+      showNotification('Application submitted!');
+    } catch (err) {
+      const msg = err?.message?.includes('unique') ? 'You already applied to this job' : 'Failed to submit application';
+      showNotification(msg, 'error');
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const formatRelative = (d) => {
+    if (!d) return '';
+    const diff = Date.now() - new Date(d).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days < 1) return 'today';
+    if (days === 1) return 'yesterday';
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   return (
@@ -4080,205 +4711,157 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup, onCrackedSquad })
       <header className="desktop-header" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button onClick={onBack} style={{ fontSize: '14px', letterSpacing: '0.15em', color: t.accent, fontWeight: '600', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>MAKERLY</button>
+          <span style={{ fontSize: '11px', letterSpacing: '0.1em', color: t.textFaint, fontWeight: '500', background: 'rgba(251,191,36,0.1)', border: `1px solid ${t.accentBorder}`, padding: '3px 8px', borderRadius: '8px' }}>JOB BOARD</span>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-ghost" onClick={onMakers}>Browse Makers</button>
+          {onRecruiters && <button className="btn btn-ghost" style={{ color: t.accent }} onClick={onRecruiters}>Post a Job</button>}
           <button className="btn btn-ghost" onClick={onBack}>Back</button>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="desktop-content" style={{ padding: '100px 40px 80px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
-        <div style={{ fontSize: '13px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500', marginBottom: '24px' }}>FOR FOUNDERS & HIRING MANAGERS</div>
-        <h1 className="hero-title" style={{ fontSize: '56px', fontFamily: t.fontHeading, fontWeight: '500', letterSpacing: '-0.02em', maxWidth: '800px', lineHeight: 1.08, margin: '0 auto 28px' }}>
-          Stop reading resumes.<br />
-          <span style={{ color: t.textTertiary }}>See what they've built.</span>
+      <section className="desktop-content" style={{ padding: '60px 40px 50px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <h1 className="hero-title" style={{ fontSize: '44px', fontFamily: t.fontHeading, fontWeight: '500', letterSpacing: '-0.02em', maxWidth: '700px', lineHeight: 1.1, margin: '0 auto 20px' }}>
+          Jobs from companies that<br />
+          <span style={{ color: t.textTertiary }}>hire makers, not resumes.</span>
         </h1>
-        <p style={{ fontSize: '18px', color: t.textSecondary, maxWidth: '560px', lineHeight: 1.6, margin: '0 auto 48px' }}>
-          Every person on Makerly has built something. No job titles. No endorsements. No fluff.<br />
-          Just proof of work.
+        <p style={{ fontSize: '16px', color: t.textSecondary, maxWidth: '500px', lineHeight: 1.6, margin: '0 auto 0' }}>
+          Real projects from real companies. Apply with your maker profile — your work speaks for itself.
         </p>
-        <button className="btn btn-primary" style={{ padding: '16px 48px', fontSize: '16px' }} onClick={onMakers}>
-          Browse makers →
-        </button>
       </section>
 
-      {/* The difference */}
-      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, textAlign: 'center', marginBottom: '48px' }}>
-            LinkedIn is a list of places people worked.<br />
-            <span style={{ color: t.textTertiary }}>Makerly is a list of things people made.</span>
-          </h2>
-
-          <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
-            {/* What you see on LinkedIn */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusLg, padding: '32px', opacity: 0.5 }}>
-              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.textFaint, marginBottom: '24px', fontWeight: '500' }}>A LINKEDIN PROFILE TELLS YOU</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', color: t.textTertiary, fontSize: '15px' }}>
-                <div>Where they went to school</div>
-                <div>Which companies hired them</div>
-                <div>What titles they held</div>
-                <div>Who endorsed their "skills"</div>
-                <div style={{ fontSize: '13px', color: t.textFaint, fontStyle: 'italic', marginTop: '8px' }}>None of this tells you if they can build.</div>
-              </div>
-            </div>
-
-            {/* What you see on Makerly */}
-            <div style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(251,191,36,0.01) 100%)', border: `1px solid ${t.accentBorder}`, borderRadius: t.radiusLg, padding: '32px' }}>
-              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.accent, marginBottom: '24px', fontWeight: '500' }}>A MAKERLY PROFILE TELLS YOU</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', color: t.text, fontSize: '15px' }}>
-                <div>What they've built — from age 8 to today</div>
-                <div>How far each project went (idea → users → revenue)</div>
-                <div>Whether they're solo founders or team players</div>
-                <div>What they're building right now</div>
-                <div style={{ fontSize: '13px', color: t.accent, fontWeight: '500', marginTop: '8px' }}>This tells you everything.</div>
-              </div>
-            </div>
-          </div>
+      {/* Filters + Job Listings */}
+      <section style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px', flex: 1, width: '100%' }}>
+        {/* Filters */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+          <label htmlFor="job-search" className="sr-only">Search jobs</label>
+          <input id="job-search" type="text" placeholder="Search jobs, companies, domains..."
+            value={filter} onChange={e => setFilter(e.target.value)}
+            style={{ flex: 1, minWidth: '200px', padding: '10px 16px', background: t.surfaceBgHover, border: '1px solid rgba(255,255,255,0.1)', borderRadius: t.radiusSm, color: t.text, fontSize: '14px' }}
+          />
+          <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} aria-label="Filter by role"
+            style={{ padding: '10px 12px', background: t.surfaceBgHover, border: '1px solid rgba(255,255,255,0.1)', borderRadius: t.radiusSm, color: roleFilter ? t.text : t.textFaint, fontSize: '13px', cursor: 'pointer' }}>
+            <option value="">All roles</option>
+            {jobRoles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+          </select>
+          <select value={remoteFilter} onChange={e => setRemoteFilter(e.target.value)} aria-label="Remote filter"
+            style={{ padding: '10px 12px', background: t.surfaceBgHover, border: '1px solid rgba(255,255,255,0.1)', borderRadius: t.radiusSm, color: remoteFilter ? t.text : t.textFaint, fontSize: '13px', cursor: 'pointer' }}>
+            <option value="">Remote?</option>
+            <option value="yes">Remote only</option>
+            <option value="no">On-site only</option>
+          </select>
         </div>
-      </section>
 
-      {/* The filter */}
-      <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '20px' }}>
-            Makerly is the filter.
-          </h2>
-          <p style={{ fontSize: '17px', color: t.textSecondary, lineHeight: 1.6, marginBottom: '40px' }}>
-            You don't need algorithms to find great people here. Everyone on Makerly has made something.
-            That's the entire bar. And it's higher than any resume screen you've ever run.
-          </p>
-          <div className="desktop-grid hire-filter-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-            {[
-              { num: 'Zero', desc: 'job titles or degrees required' },
-              { num: 'Every', desc: 'person here has shipped something' },
-              { num: 'Real', desc: 'projects you can click and verify' },
-            ].map((item, i) => (
-              <div key={i} style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, padding: '24px' }}>
-                <div style={{ fontSize: '20px', fontFamily: t.fontHeading, color: t.accent, marginBottom: '8px' }}>{item.num}</div>
-                <div style={{ fontSize: '13px', color: t.textSecondary }}>{item.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        {loading && <div style={{ textAlign: 'center', padding: '60px', color: t.textFaint }}>Loading jobs...</div>}
 
-      {/* Real makers */}
-      {!loading && makers.length > 0 && (
-        <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
-          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-              <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500' }}>REAL MAKERS ON MAKERLY</span>
-              <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginTop: '12px' }}>
-                These people have built things. See for yourself.
-              </h2>
+        {!loading && filtered.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '60px' }}>
+            <div style={{ color: t.textFaint, fontSize: '15px', marginBottom: '16px' }}>
+              {jobs.length === 0 ? 'No job postings yet' : 'No jobs match your filters'}
             </div>
+            {jobs.length === 0 && (
+              <div style={{ color: t.textTertiary, fontSize: '13px' }}>
+                Are you hiring? <button onClick={onRecruiters} style={{ color: t.accent, background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline' }}>Post a job</button>
+              </div>
+            )}
+          </div>
+        )}
 
-            <div className="desktop-grid" aria-label="Featured makers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
-              {makers.map(maker => (
-                <div
-                  key={maker.id}
-                  role="button"
-                  onClick={() => onViewProfile(maker.username)}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewProfile(maker.username); } }}
-                  tabIndex={0}
-                  aria-label={`View ${maker.name || maker.username}'s profile`}
-                  style={{
-                    background: t.surfaceBg,
-                    border: `1px solid ${t.surfaceBorderLight}`,
-                    borderRadius: t.radiusMd,
-                    padding: '24px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s'
-                  }}
-                  onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(251,191,36,0.3)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                  onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                >
-                  <div style={{ fontSize: '18px', fontFamily: t.fontHeading, marginBottom: '4px' }}>{maker.name || maker.username}</div>
-                  <div style={{ fontSize: '12px', color: t.textFaint, marginBottom: '12px' }}>makerly.me/{maker.username}</div>
-                  {maker.bio && <p style={{ fontSize: '13px', color: t.textSecondary, lineHeight: 1.5, marginBottom: '12px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{maker.bio}</p>}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13px', color: t.accent }}>{maker.projectCount} project{maker.projectCount !== 1 ? 's' : ''}</span>
-                    {maker.todayMaking && (
-                      <span style={{ fontSize: '11px', color: t.success, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span className="ongoing-pulse" style={{ width: '5px', height: '5px', borderRadius: '50%', background: t.success }} />
-                        active
-                      </span>
+        {/* Job Cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {filtered.map(job => {
+            const isSelected = selectedJob === job.id;
+            const alreadyApplied = appliedJobs.has(job.id);
+            return (
+              <div key={job.id} style={{ background: t.surfaceBg, border: `1px solid ${isSelected ? t.accentBorder : t.surfaceBorder}`, borderRadius: t.radiusMd, padding: '24px', transition: 'all 0.15s' }}>
+                {/* Job header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '18px', fontFamily: t.fontHeading, margin: 0, color: t.text }}>{job.title}</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '14px', color: t.textSecondary, fontWeight: '500' }}>{job.companyName}</span>
+                      {job.companyUrl && <a href={ensureUrl(job.companyUrl)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: t.accent }} onClick={e => e.stopPropagation()}>website</a>}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '11px', color: t.textFaint, whiteSpace: 'nowrap' }}>{formatRelative(job.createdAt)}</span>
+                </div>
+
+                {/* Tags row */}
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                  {job.roleNeeded && <span style={{ fontSize: '10px', fontWeight: '600', color: t.accent, background: 'rgba(251,191,36,0.1)', border: `1px solid ${t.accentBorder}`, padding: '2px 8px', borderRadius: '8px' }}>{(jobRoles.find(r => r.key === job.roleNeeded) || {}).label || job.roleNeeded}</span>}
+                  {job.remote && <span style={{ fontSize: '10px', color: t.cyan, background: 'rgba(34,211,238,0.08)', border: '1px solid rgba(34,211,238,0.15)', padding: '2px 8px', borderRadius: '8px' }}>Remote</span>}
+                  {job.location && <span style={{ fontSize: '10px', color: t.textFaint, background: t.surfaceBgHover, padding: '2px 8px', borderRadius: '8px' }}>{job.location}</span>}
+                  {job.compensation && <span style={{ fontSize: '10px', color: t.purple, background: 'rgba(167,139,250,0.08)', padding: '2px 8px', borderRadius: '8px' }}>{job.compensation}</span>}
+                  {job.domains?.map(d => <span key={d} style={{ fontSize: '10px', color: t.textFaint, background: t.surfaceBgHover, padding: '2px 6px', borderRadius: '6px' }}>{d}</span>)}
+                </div>
+
+                {/* Description preview */}
+                <p style={{ fontSize: '13px', color: t.textTertiary, lineHeight: 1.5, marginBottom: '12px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: isSelected ? 100 : 2, WebkitBoxOrient: 'vertical' }}>{job.description}</p>
+
+                {/* Project info */}
+                {job.projectName && (
+                  <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusSm, padding: '12px', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '12px', color: t.textFaint, marginBottom: '4px' }}>THE PROJECT</div>
+                    <div style={{ fontSize: '14px', color: t.text, fontWeight: '500' }}>{job.projectName}</div>
+                    {job.projectDescription && <p style={{ fontSize: '13px', color: t.textTertiary, lineHeight: 1.5, marginTop: '4px' }}>{job.projectDescription}</p>}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${t.surfaceBorder}`, paddingTop: '12px' }}>
+                  <span onClick={() => onViewProfile(job.recruiterUsername)} style={{ fontSize: '12px', color: t.textTertiary, cursor: 'pointer' }}
+                    onMouseOver={e => e.target.style.color = t.accent} onMouseOut={e => e.target.style.color = t.textTertiary}>
+                    Posted by {job.recruiterName}
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {!isSelected && (
+                      <button onClick={() => setSelectedJob(job.id)} className="btn btn-ghost" style={{ fontSize: '12px', padding: '6px 14px' }}>Details</button>
+                    )}
+                    {isSelected && (
+                      <button onClick={() => { setSelectedJob(null); setApplyMessage(''); }} className="btn btn-ghost" style={{ fontSize: '12px', padding: '6px 14px' }}>Collapse</button>
+                    )}
+                    {alreadyApplied ? (
+                      <span style={{ fontSize: '12px', color: t.success, padding: '6px 14px', fontWeight: '500' }}>Applied</span>
+                    ) : currentUser ? (
+                      <button onClick={() => setSelectedJob(job.id)} className="btn btn-primary" style={{ fontSize: '12px', padding: '6px 18px' }}>Apply</button>
+                    ) : (
+                      <button onClick={onSignup} className="btn btn-primary" style={{ fontSize: '12px', padding: '6px 18px' }}>Sign up to apply</button>
                     )}
                   </div>
-                  {maker.domains?.length > 0 && (
-                    <div style={{ display: 'flex', gap: '4px', marginTop: '10px', flexWrap: 'wrap' }}>
-                      {maker.domains.slice(0, 3).map(d => (
-                        <span key={d} style={{ fontSize: '10px', color: t.textFaint, background: t.surfaceBgHover, padding: '2px 6px', borderRadius: '6px' }}>{d}</span>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              ))}
-            </div>
 
-            <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <button className="btn btn-secondary" onClick={onMakers} style={{ padding: '14px 36px' }}>
-                See all makers →
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
+                {/* Apply form */}
+                {isSelected && currentUser && !alreadyApplied && (
+                  <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(251,191,36,0.04)', border: `1px solid ${t.accentBorder}`, borderRadius: t.radiusSm }}>
+                    <div style={{ fontSize: '13px', color: t.textSecondary, marginBottom: '8px', fontWeight: '500' }}>Apply to this position</div>
+                    <p style={{ fontSize: '12px', color: t.textFaint, marginBottom: '12px' }}>Your maker profile (makerly.me/{currentUser.username}) will be shared with the recruiter.</p>
+                    <label htmlFor={`apply-${job.id}`} className="sr-only">Application message</label>
+                    <textarea id={`apply-${job.id}`} value={applyMessage} onChange={e => setApplyMessage(e.target.value)}
+                      placeholder="Tell them why you're interested and what you'd bring..." rows={3}
+                      style={{ width: '100%', padding: '10px 14px', background: t.surfaceBgHover, border: '1px solid rgba(255,255,255,0.1)', borderRadius: t.radiusSm, color: t.text, fontSize: '14px', resize: 'vertical', marginBottom: '12px' }}
+                    />
+                    <button onClick={() => handleApply(job.id)} className="btn btn-primary" disabled={applying || !applyMessage.trim()} style={{ padding: '8px 24px', fontSize: '13px' }}>
+                      {applying ? 'Submitting...' : 'Submit Application'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
-      {/* Email capture */}
-      <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+      {/* Bottom CTA for recruiters */}
+      <section className="section-padding" style={{ padding: '60px 40px', textAlign: 'center', borderTop: `1px solid ${t.surfaceBorder}` }}>
         <div style={{ maxWidth: '500px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '16px' }}>
-            Get notified when new makers join.
-          </h2>
-          <p style={{ fontSize: '14px', color: t.textTertiary, marginBottom: '32px' }}>
-            We'll email you when interesting builders create their profiles.
-          </p>
-
-          {submitted ? (
-            <div style={{ background: t.successBgSubtle, border: `1px solid ${t.successBorder}`, borderRadius: t.radiusMd, padding: '24px' }}>
-              <div style={{ fontSize: '18px', fontFamily: t.fontHeading, color: t.success, marginBottom: '8px' }}>You're on the list.</div>
-              <div style={{ fontSize: '13px', color: t.textSecondary }}>We'll let you know when new makers join.</div>
-            </div>
-          ) : (
-            <form onSubmit={handleNotify} style={{ display: 'flex', gap: '12px' }}>
-              <label htmlFor="hire-email" className="sr-only">Email address</label>
-              <input
-                id="hire-email"
-                className="input"
-                type="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                style={{ flex: 1 }}
-              />
-              <button type="submit" className="btn btn-primary" style={{ padding: '12px 28px', whiteSpace: 'nowrap' }}>
-                Notify me
-              </button>
-            </form>
-          )}
+          <h2 style={{ fontSize: '28px', fontFamily: t.fontHeading, marginBottom: '16px' }}>Hiring builders?</h2>
+          <p style={{ fontSize: '15px', color: t.textSecondary, marginBottom: '28px' }}>Create your recruiter profile and post jobs. Makers apply with their portfolios — no resumes needed.</p>
+          <button className="btn btn-primary" style={{ padding: '14px 40px', fontSize: '15px' }} onClick={onRecruiters}>Post a Job</button>
         </div>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="section-padding" style={{ padding: '80px 40px', textAlign: 'center' }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '16px' }}>
-            Are you a maker?
-          </h2>
-          <p style={{ fontSize: '16px', color: t.textSecondary, marginBottom: '32px' }}>
-            The smartest people don't send resumes. They send their Makerly.
-          </p>
-          <button className="btn btn-primary" style={{ padding: '16px 48px', fontSize: '16px' }} onClick={onSignup}>
-            Create your profile
-          </button>
-        </div>
-      </section>
-
-      <SiteFooter onMakers={onMakers} onSignup={onSignup} onCrackedSquad={onCrackedSquad} />
+      <SiteFooter />
     </div>
   );
 };
@@ -4286,28 +4869,13 @@ const HirePage = ({ onViewProfile, onMakers, onBack, onSignup, onCrackedSquad })
 // ============================================
 // CRACKED SQUAD ADMIN TAB
 // ============================================
-const CrackedSquadAdminTab = ({ users, applications, onViewProfile, onToggle, onAccept, onReject }) => (
+const CrackedSquadAdminTab = ({ users, applications, onViewProfile, onAccept, onReject }) => {
+  return (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
     <div style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, overflow: 'hidden' }}>
       <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
-        <h2 style={{ fontSize: '16px', color: t.text, margin: 0 }}>Toggle Members</h2>
-        <p style={{ fontSize: '12px', color: t.textFaint, marginTop: '4px' }}>Manually add or remove users</p>
-      </div>
-      <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
-        {users.map(u => (
-          <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span onClick={() => onViewProfile(u.username)} style={{ color: t.text, cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>{u.name || u.username}</span>
-              <span style={{ fontSize: '11px', color: t.textFaint }}>@{u.username}</span>
-            </div>
-            <button onClick={() => onToggle(u)} style={{ padding: '4px 12px', borderRadius: '12px', border: `1px solid ${u.crackedSquad ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'}`, background: u.crackedSquad ? 'rgba(239,68,68,0.1)' : 'transparent', color: u.crackedSquad ? t.error : t.textFaint, cursor: 'pointer', fontSize: '11px', fontWeight: '500' }}>{u.crackedSquad ? 'MEMBER' : 'Add'}</button>
-          </div>
-        ))}
-      </div>
-    </div>
-    <div style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusMd, overflow: 'hidden' }}>
-      <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <h2 style={{ fontSize: '16px', color: t.text, margin: 0 }}>Applications ({applications.length})</h2>
+        <p style={{ fontSize: '12px', color: t.textFaint, marginTop: '4px' }}>To add/remove squad members, use checkboxes on the Users tab</p>
       </div>
       {applications.length === 0 ? (
         <div style={{ padding: '40px', textAlign: 'center', color: t.textFaint }}>No applications yet</div>
@@ -4346,7 +4914,8 @@ const CrackedSquadAdminTab = ({ users, applications, onViewProfile, onToggle, on
       )}
     </div>
   </div>
-);
+  );
+};
 
 // ============================================
 // CRACKED SQUAD PAGE
@@ -4391,10 +4960,23 @@ const CrackedSquadPage = ({ currentUser, onBack, onSignup, onLogin, onViewProfil
     if (!biggestProblem.trim() || !peersOpinion.trim()) return;
     setSubmitting(true);
     try {
+      const bp = biggestProblem.trim();
+      const po = peersOpinion.trim();
       await db.submitCrackedSquadApplication(currentUser.id, {
-        biggestProblem: biggestProblem.trim(),
-        peersOpinion: peersOpinion.trim()
+        biggestProblem: bp,
+        peersOpinion: po
       });
+      // Notify admin via email (fire-and-forget)
+      fetch('/api/notify-cracked-squad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          applicantName: currentUser.name || '',
+          applicantUsername: currentUser.username,
+          biggestProblem: bp,
+          peersOpinion: po
+        })
+      }).catch(() => {});
       setExistingApp({ status: 'pending' });
       setShowApply(false);
       showNotification('Application submitted');
@@ -4474,33 +5056,71 @@ const CrackedSquadPage = ({ currentUser, onBack, onSignup, onLogin, onViewProfil
       </section>
 
       {/* Members */}
-      {!loadingMembers && members.length > 0 && (
+      {!loadingMembers && (
         <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <h2 style={{ fontSize: '28px', fontFamily: t.fontHeading, marginBottom: '12px', textAlign: 'center' }}>Current Members</h2>
-            <p style={{ fontSize: '14px', color: t.textFaint, textAlign: 'center', marginBottom: '40px' }}>{members.length} builder{members.length !== 1 ? 's' : ''}</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' }}>
-              {members.map(m => (
-                <div
-                  key={m.id}
-                  onClick={() => onViewProfile(m.username)}
-                  style={{
-                    background: t.surfaceBg,
-                    border: `1px solid ${t.surfaceBorder}`,
-                    borderRadius: t.radiusMd,
-                    padding: '20px',
-                    cursor: 'pointer',
-                    transition: 'border-color 0.15s'
-                  }}
-                  onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'}
-                  onMouseOut={e => e.currentTarget.style.borderColor = t.surfaceBorder}
-                >
-                  <div style={{ fontSize: '16px', fontFamily: t.fontHeading, marginBottom: '4px' }}>{m.name || m.username}</div>
-                  <div style={{ fontSize: '11px', color: t.textFaint }}>makerly.me/{m.username}</div>
-                  {m.bio && <p style={{ fontSize: '12px', color: t.textTertiary, marginTop: '8px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{m.bio}</p>}
-                </div>
-              ))}
-            </div>
+          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '28px', fontFamily: t.fontHeading, marginBottom: '12px', textAlign: 'center' }}>The Squad</h2>
+            <p style={{ fontSize: '14px', color: t.textFaint, textAlign: 'center', marginBottom: '40px' }}>
+              {members.length > 0 ? `${members.length} builder${members.length !== 1 ? 's' : ''} who made the cut` : 'Applications open. First cohort forming now.'}
+            </p>
+            {members.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                {members.map(m => (
+                  <div
+                    key={m.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View ${m.name || m.username}'s profile`}
+                    onClick={() => onViewProfile(m.username)}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewProfile(m.username); } }}
+                    style={{
+                      background: t.surfaceBg,
+                      border: `1px solid ${t.surfaceBorder}`,
+                      borderRadius: t.radiusMd,
+                      padding: '20px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                    onMouseOut={e => { e.currentTarget.style.borderColor = t.surfaceBorder; e.currentTarget.style.background = t.surfaceBg; }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '16px', fontWeight: '500', color: t.text }}>{m.name || m.username}</span>
+                          {m.todayMaking && (
+                            <span className="ongoing-pulse" style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.success, flexShrink: 0 }} />
+                          )}
+                        </div>
+                        <div style={{ fontSize: '12px', color: t.textFaint, marginTop: '2px' }}>makerly.me/{m.username}</div>
+                      </div>
+                      {m.projectCount > 0 && (
+                        <span style={{ fontSize: '13px', color: t.accent, fontWeight: '500', whiteSpace: 'nowrap' }}>
+                          {m.projectCount} made
+                        </span>
+                      )}
+                    </div>
+                    {m.bio && (
+                      <p style={{ color: t.textSecondary, fontSize: '13px', marginTop: '8px', lineHeight: '1.5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {m.bio}
+                      </p>
+                    )}
+                    {m.todayMaking && (
+                      <div style={{ marginTop: '10px', padding: '6px 10px', background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.15)', borderRadius: '6px', fontSize: '12px', color: t.textSecondary }}>
+                        <span style={{ color: t.success, fontWeight: '500' }}>Building now:</span> {m.todayMaking}
+                      </div>
+                    )}
+                    {m.domains?.length > 0 && (
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
+                        {m.domains.slice(0, 4).map(d => (
+                          <span key={d} style={{ fontSize: '11px', color: t.textFaint, background: t.surfaceBgHover, padding: '2px 8px', borderRadius: t.radiusSm }}>{d}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -4592,7 +5212,7 @@ const CrackedSquadPage = ({ currentUser, onBack, onSignup, onLogin, onViewProfil
         </div>
       </section>
 
-      <SiteFooter onCrackedSquad={() => {}} />
+      <SiteFooter />
     </div>
   );
 };
@@ -4609,6 +5229,8 @@ const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) =>
   const [sortDir, setSortDir] = useState('desc');
   const [activeTab, setActiveTab] = useState('users');
   const [csApplications, setCsApplications] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState(new Set());
+  const [userSearch, setUserSearch] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -4653,6 +5275,37 @@ const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) =>
   };
 
   const sortIcon = (field) => sortField === field ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '';
+
+  const filteredSorted = sorted.filter(u => {
+    if (!userSearch) return true;
+    const q = userSearch.toLowerCase();
+    return (u.name || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q);
+  });
+
+  const toggleSelectUser = (id) => {
+    setSelectedUsers(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedUsers.size === filteredSorted.length) setSelectedUsers(new Set());
+    else setSelectedUsers(new Set(filteredSorted.map(u => u.id)));
+  };
+
+  const handleBulkCrackedSquad = async (addToSquad) => {
+    const ids = [...selectedUsers];
+    if (ids.length === 0) return;
+    try {
+      await Promise.all(ids.map(id => db.adminToggleCrackedSquad(id, addToSquad)));
+      setUsers(prev => prev.map(u => ids.includes(u.id) ? { ...u, crackedSquad: addToSquad } : u));
+      setSelectedUsers(new Set());
+      showNotification(`${ids.length} user${ids.length !== 1 ? 's' : ''} ${addToSquad ? 'added to' : 'removed from'} Cracked Squad`);
+    } catch { showNotification('Failed to update', 'error'); }
+  };
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
   const formatRelative = (d) => {
@@ -4723,7 +5376,7 @@ const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) =>
       <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: t.surfaceBg, borderRadius: '10px', padding: '4px', width: 'fit-content' }}>
         {[
           { key: 'users', label: `Users (${users.length})` },
-          { key: 'crackedSquad', label: `Cracked Squad (${csApplications.length})` },
+          { key: 'crackedSquad', label: `Applications (${csApplications.length})` },
           { key: 'errors', label: `Errors (${errorLogs.length})` },
         ].map(tab => (
           <button
@@ -4752,13 +5405,34 @@ const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) =>
         borderRadius: t.radiusMd,
         overflow: 'hidden'
       }}>
-        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.surfaceBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: '16px', color: t.text, margin: 0 }}>All Users ({users.length})</h2>
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={userSearch}
+            onChange={e => { setUserSearch(e.target.value); setSelectedUsers(new Set()); }}
+            style={{ padding: '6px 12px', background: t.surfaceBgHover, border: '1px solid rgba(255,255,255,0.1)', borderRadius: t.radiusSm, color: t.text, fontSize: '13px', width: '200px' }}
+          />
         </div>
+
+        {/* Bulk action bar */}
+        {selectedUsers.size > 0 && (
+          <div style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.04)', borderBottom: `1px solid ${t.surfaceBorder}`, display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '13px', color: t.text, fontWeight: '500' }}>{selectedUsers.size} selected</span>
+            <button className="btn" onClick={() => handleBulkCrackedSquad(true)} style={{ padding: '4px 12px', fontSize: '12px', background: 'rgba(239,68,68,0.15)', color: t.error, border: '1px solid rgba(239,68,68,0.3)', borderRadius: t.radiusSm, cursor: 'pointer', fontWeight: '500' }}>Add to Cracked Squad</button>
+            <button className="btn" onClick={() => handleBulkCrackedSquad(false)} style={{ padding: '4px 12px', fontSize: '12px', background: 'transparent', color: t.textFaint, border: '1px solid rgba(255,255,255,0.1)', borderRadius: t.radiusSm, cursor: 'pointer' }}>Remove from Squad</button>
+            <button onClick={() => setSelectedUsers(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: t.textFaint, cursor: 'pointer', fontSize: '12px' }}>Clear</button>
+          </div>
+        )}
+
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                <th style={{ padding: '12px 16px', width: '32px' }}>
+                  <input type="checkbox" checked={selectedUsers.size === filteredSorted.length && filteredSorted.length > 0} onChange={toggleSelectAll} style={{ cursor: 'pointer' }} />
+                </th>
                 {[
                   { key: 'username', label: 'User' },
                   { key: 'projectCount', label: 'Projects' },
@@ -4785,20 +5459,28 @@ const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) =>
               </tr>
             </thead>
             <tbody>
-              {sorted.map(u => {
+              {filteredSorted.map(u => {
                 const completeness = profileCompleteness(u);
                 return (
-                  <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                  <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', background: selectedUsers.has(u.id) ? 'rgba(255,255,255,0.04)' : 'transparent' }}>
+                    <td style={{ padding: '12px 16px' }}>
+                      <input type="checkbox" checked={selectedUsers.has(u.id)} onChange={() => toggleSelectUser(u.id)} style={{ cursor: 'pointer' }} />
+                    </td>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span
-                          onClick={() => onViewProfile(u.username)}
-                          style={{ color: t.text, cursor: 'pointer', fontWeight: '500' }}
-                          onMouseOver={e => e.target.style.textDecoration = 'underline'}
-                          onMouseOut={e => e.target.style.textDecoration = 'none'}
-                        >
-                          {u.name || u.username}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span
+                            onClick={() => onViewProfile(u.username)}
+                            style={{ color: t.text, cursor: 'pointer', fontWeight: '500' }}
+                            onMouseOver={e => e.target.style.textDecoration = 'underline'}
+                            onMouseOut={e => e.target.style.textDecoration = 'none'}
+                          >
+                            {u.name || u.username}
+                          </span>
+                          {u.crackedSquad && (
+                            <span style={{ fontSize: '9px', letterSpacing: '0.05em', fontWeight: '600', color: t.error, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', padding: '2px 6px', borderRadius: '8px', whiteSpace: 'nowrap' }}>CRACKED</span>
+                          )}
+                        </div>
                         <span style={{ color: t.textFaint, fontSize: '12px' }}>@{u.username}</span>
                       </div>
                     </td>
@@ -4839,14 +5521,6 @@ const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) =>
           users={sorted}
           applications={csApplications}
           onViewProfile={onViewProfile}
-          onToggle={async (u) => {
-            const newVal = !u.crackedSquad;
-            try {
-              await db.adminToggleCrackedSquad(u.id, newVal);
-              setUsers(prev => prev.map(p => p.id === u.id ? { ...p, crackedSquad: newVal } : p));
-              showNotification(`${u.name || u.username} ${newVal ? 'added to' : 'removed from'} Cracked Squad`);
-            } catch { showNotification('Failed to update', 'error'); }
-          }}
           onAccept={async (app) => {
             const applicant = users.find(u => u.id === app.user_id);
             try {
