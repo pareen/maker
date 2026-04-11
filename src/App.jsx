@@ -2339,6 +2339,7 @@ const EditProfile = ({ user, setUser, onBack, showNotification }) => {
             <input
               className="input"
               placeholder="Your maker philosophy in one line"
+              maxLength={200}
               value={formData.philosophy || ''}
               onChange={(e) => setFormData({ ...formData, philosophy: e.target.value })}
             />

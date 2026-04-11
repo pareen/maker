@@ -4,7 +4,7 @@ export function formatCurrency(cents) {
   if (!cents || cents === 0) return null;
   const dollars = cents / 100;
   if (dollars >= 1_000_000_000) return `$${(dollars / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`;
-  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (dollars >= 999_500) return `$${(dollars / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
   if (dollars >= 1_000) return `$${(dollars / 1_000).toFixed(0)}K`;
   return `$${dollars.toFixed(0)}`;
 }
@@ -12,7 +12,7 @@ export function formatCurrency(cents) {
 export function formatNumber(n) {
   if (!n || n === 0) return null;
   if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (n >= 999_500) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
   return `${n}`;
 }
@@ -44,11 +44,11 @@ export function parseNumberInput(str) {
 // Format cents as a readable dollar string for input preview
 export function formatCentsPreview(cents) {
   if (!cents || cents === 0) return '';
-  return `$${(cents / 100).toLocaleString()}`;
+  return `$${(cents / 100).toLocaleString('en-US')}`;
 }
 
 // Format a raw number with commas for input preview
 export function formatNumberPreview(n) {
   if (!n || n === 0) return '';
-  return n.toLocaleString();
+  return n.toLocaleString('en-US');
 }

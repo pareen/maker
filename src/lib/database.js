@@ -423,9 +423,9 @@ function profileFromDb(dbProfile) {
     crackedSquad: dbProfile.cracked_squad || false,
     philosophy: dbProfile.philosophy || '',
     pressLinks: dbProfile.press_links || [],
-    totalRaised: dbProfile.total_raised || null,
-    totalValuation: dbProfile.total_valuation || null,
-    totalUsers: dbProfile.total_users || null
+    totalRaised: dbProfile.total_raised ?? null,
+    totalValuation: dbProfile.total_valuation ?? null,
+    totalUsers: dbProfile.total_users ?? null
   }
 }
 
