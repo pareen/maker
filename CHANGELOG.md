@@ -19,6 +19,7 @@ All notable changes to Makerly will be documented in this file.
 
 ### Fixed
 - Nullish coalescing for profile stat overrides (explicit 0 no longer treated as null)
+- Nullish coalescing for project financial fields in create/update/read (`|| 0` → `?? 0`)
 - K/M boundary rounding ($999,500 now displays as $1M, not $1000K)
 - Locale-pinned number formatting for consistent display across environments
 - Philosophy input capped at 200 characters

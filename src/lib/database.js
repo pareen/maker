@@ -535,9 +535,9 @@ export async function createProject(userId, project) {
       image_url: project.imageUrl || null,
       featured: project.featured || false,
       key_metric: project.keyMetric || null,
-      funding_raised: project.fundingRaised || 0,
-      valuation: project.valuation || 0,
-      users_reached: project.usersReached || 0
+      funding_raised: project.fundingRaised ?? 0,
+      valuation: project.valuation ?? 0,
+      users_reached: project.usersReached ?? 0
     }
 
     const { data, error } = await supabase
@@ -575,9 +575,9 @@ export async function updateProject(projectId, updates) {
       image_url: updates.imageUrl || null,
       featured: updates.featured || false,
       key_metric: updates.keyMetric || null,
-      funding_raised: updates.fundingRaised || 0,
-      valuation: updates.valuation || 0,
-      users_reached: updates.usersReached || 0
+      funding_raised: updates.fundingRaised ?? 0,
+      valuation: updates.valuation ?? 0,
+      users_reached: updates.usersReached ?? 0
     }
 
     const { data, error } = await supabase
@@ -705,9 +705,9 @@ function projectFromDb(dbProject) {
     imageUrl: dbProject.image_url || '',
     featured: dbProject.featured || false,
     keyMetric: dbProject.key_metric || '',
-    fundingRaised: dbProject.funding_raised || 0,
-    valuation: dbProject.valuation || 0,
-    usersReached: dbProject.users_reached || 0
+    fundingRaised: dbProject.funding_raised ?? 0,
+    valuation: dbProject.valuation ?? 0,
+    usersReached: dbProject.users_reached ?? 0
   }
 }
 
