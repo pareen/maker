@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   const postmarkKey = process.env.POSTMARK_SERVER_TOKEN;
 
   if (!supabaseUrl || !serviceRoleKey || !postmarkKey) {
-    return res.status(500).json({ error: 'Server config missing' });
+    return res.status(500).json({ error: 'Server config missing', missing: { supabaseUrl: !supabaseUrl, serviceRoleKey: !serviceRoleKey, postmarkKey: !postmarkKey } });
   }
 
   const { adminId } = req.body;
