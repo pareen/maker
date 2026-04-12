@@ -160,7 +160,7 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Makerly <onboarding@resend.dev>',
+          from: 'Pareen from Makerly <pareen@makerly.me>',
           to: [email],
           subject: `${profile.name || profile.username}, your maker profile is live`,
           html,

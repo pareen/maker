@@ -71,7 +71,7 @@ async function sendEmail(subject, html) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Makerly Errors <onboarding@resend.dev>',
+      from: 'Makerly Errors <pareen@makerly.me>',
       to: [NOTIFY_EMAIL],
       subject,
       html,

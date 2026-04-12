@@ -97,7 +97,7 @@ export default async function handler(req, res) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Makerly <onboarding@resend.dev>',
+            from: 'Pareen from Makerly <pareen@makerly.me>',
             to: [email],
             subject: "You're in the Cracked Squad",
             html,

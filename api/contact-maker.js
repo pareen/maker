@@ -42,7 +42,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Makerly <onboarding@resend.dev>',
+        from: 'Makerly <pareen@makerly.me>',
         to: [toEmail],
         ...(senderEmail ? { reply_to: senderEmail } : {}),
         subject: `${senderName || 'Someone'} reached out via Makerly`,
