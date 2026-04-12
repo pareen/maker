@@ -4,18 +4,18 @@
  * Error Monitor — watches Supabase error_logs and emails on new errors.
  *
  * Usage:
- *   RESEND_API_KEY=re_xxx node scripts/error-monitor.js
+ *   POSTMARK_SERVER_TOKEN=xxx node scripts/error-monitor.js
  *
  * Or set all env vars in .env and run:
  *   node --env-file=.env scripts/error-monitor.js
  *
  * Polls every 60 seconds. Sends one email per error.
- * Free Resend account: https://resend.com (100 emails/day)
+ * Postmark: https://postmarkapp.com
  */
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-const RESEND_API_KEY = process.env.RESEND_API_KEY
+const POSTMARK_SERVER_TOKEN = process.env.POSTMARK_SERVER_TOKEN
 const NOTIFY_EMAIL = 'pareen@redcom.in'
 const POLL_INTERVAL_MS = 60_000 // 1 minute
 
@@ -23,8 +23,8 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('Missing VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
   process.exit(1)
 }
-if (!RESEND_API_KEY) {
-  console.error('Missing RESEND_API_KEY. Get one free at https://resend.com')
+if (!POSTMARK_SERVER_TOKEN) {
+  console.error('Missing POSTMARK_SERVER_TOKEN. Get one at https://postmarkapp.com')
   process.exit(1)
 }
 
@@ -64,23 +64,24 @@ async function getUsernames(userIds) {
 }
 
 async function sendEmail(subject, html) {
-  const res = await fetch('https://api.resend.com/emails', {
+  const res = await fetch('https://api.postmarkapp.com/email', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'X-Postmark-Server-Token': POSTMARK_SERVER_TOKEN,
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Makerly Errors <pareen@makerly.me>',
-      to: [NOTIFY_EMAIL],
-      subject,
-      html,
+      From: 'Makerly Errors <pareen@makerly.me>',
+      To: NOTIFY_EMAIL,
+      Subject: subject,
+      HtmlBody: html,
     })
   })
 
   if (!res.ok) {
     const body = await res.text()
-    console.error(`Resend API error: ${res.status} ${body}`)
+    console.error(`Postmark API error: ${res.status} ${body}`)
     return false
   }
   return true

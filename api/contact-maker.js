@@ -3,9 +3,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env.POSTMARK_SERVER_TOKEN;
   if (!apiKey) {
-    return res.status(500).json({ error: 'RESEND_API_KEY not configured' });
+    return res.status(500).json({ error: 'POSTMARK_SERVER_TOKEN not configured' });
   }
 
   const { toEmail, toUsername, senderName, senderEmail, message } = req.body;
@@ -35,24 +35,25 @@ export default async function handler(req, res) {
   `;
 
   try {
-    const emailRes = await fetch('https://api.resend.com/emails', {
+    const emailRes = await fetch('https://api.postmarkapp.com/email', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'X-Postmark-Server-Token': apiKey,
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Makerly <pareen@makerly.me>',
-        to: [toEmail],
-        ...(senderEmail ? { reply_to: senderEmail } : {}),
-        subject: `${senderName || 'Someone'} reached out via Makerly`,
-        html,
+        From: 'Makerly <pareen@makerly.me>',
+        To: toEmail,
+        ...(senderEmail ? { ReplyTo: senderEmail } : {}),
+        Subject: `${senderName || 'Someone'} reached out via Makerly`,
+        HtmlBody: html,
       })
     });
 
     if (!emailRes.ok) {
       const err = await emailRes.text();
-      console.error('Resend error:', err);
+      console.error('Postmark error:', err);
       return res.status(500).json({ error: 'Failed to send message' });
     }
 
