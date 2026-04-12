@@ -180,7 +180,7 @@ export default async function handler(req, res) {
       errors.push({ email, error: err.message });
     }
 
-    // Rate limit: 2 emails per second (Resend free tier)
+    // Rate limit: avoid hitting Postmark's per-second limit
     await new Promise(r => setTimeout(r, 500));
   }
 
