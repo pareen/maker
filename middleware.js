@@ -60,9 +60,13 @@ export default async function middleware(request) {
   <meta property="og:type" content="profile" />
   <meta property="og:url" content="${profileUrl}" />
   <meta property="og:site_name" content="Makerly" />
-  <meta name="twitter:card" content="summary" />
+  <meta property="og:image" content="https://makerly.me/api/og-card?username=${encodeURIComponent(profile.username)}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(title)}" />
   <meta name="twitter:description" content="${escapeHtml(description)}" />
+  <meta name="twitter:image" content="https://makerly.me/api/og-card?username=${encodeURIComponent(profile.username)}" />
   <link rel="canonical" href="${profileUrl}" />
   <meta http-equiv="refresh" content="0;url=${profileUrl}" />
 </head>

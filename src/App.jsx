@@ -5418,6 +5418,7 @@ const AdminPanel = ({ user: adminUser, onBack, showNotification, onViewProfile }
           { key: 'users', label: `Users (${users.length})` },
           { key: 'crackedSquad', label: `Applications (${csApplications.length})` },
           { key: 'errors', label: `Errors (${errorLogs.length})` },
+          { key: 'growth', label: 'Growth' },
         ].map(tab => (
           <button
             key={tab.key}
@@ -5646,6 +5647,80 @@ const AdminPanel = ({ user: adminUser, onBack, showNotification, onViewProfile }
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === 'growth' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Welcome Email Blast */}
+          <div className="card" style={{ padding: '24px' }}>
+            <h2 style={{ fontSize: '16px', color: t.text, margin: '0 0 8px' }}>Welcome Email Blast</h2>
+            <p style={{ fontSize: '13px', color: t.textFaint, margin: '0 0 20px', lineHeight: 1.5 }}>
+              Send a welcome email to all {users.length} users with their shareable profile card and social share buttons. Each email includes their stats, domains, and one-click share to X, LinkedIn, and WhatsApp.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/welcome-blast', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ adminId: adminUser.id, dryRun: true }),
+                    });
+                    const data = await res.json();
+                    showNotification(`Dry run: would send to ${data.count} users`, 'success');
+                  } catch { showNotification('Dry run failed', 'error'); }
+                }}
+              >
+                Dry Run
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  if (!confirm(`Send welcome email to all ${users.length} users?`)) return;
+                  showNotification('Sending welcome emails...', 'success');
+                  try {
+                    const res = await fetch('/api/welcome-blast', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ adminId: adminUser.id }),
+                    });
+                    const data = await res.json();
+                    showNotification(`Sent ${data.sent} emails${data.failed ? `, ${data.failed} failed` : ''}`, data.failed ? 'error' : 'success');
+                  } catch { showNotification('Failed to send emails', 'error'); }
+                }}
+              >
+                Send to All Users
+              </button>
+            </div>
+          </div>
+
+          {/* Viral Loops Overview */}
+          <div className="card" style={{ padding: '24px' }}>
+            <h2 style={{ fontSize: '16px', color: t.text, margin: '0 0 16px' }}>Viral Loops</h2>
+            {[
+              { name: 'Welcome Email + Card', status: 'live', desc: 'Every user gets a shareable profile card with social share buttons' },
+              { name: 'OG Image Cards', status: 'live', desc: 'Profile links render rich cards on X, LinkedIn, WhatsApp, Slack' },
+              { name: 'Contact Form', status: 'live', desc: 'Visitors can message makers, driving profile traffic' },
+              { name: '"Invite a maker" CTA', status: 'live', desc: 'Every welcome email has an invite link at the bottom' },
+              { name: 'Referral credit', status: 'planned', desc: '"Invited by @username" on profiles' },
+              { name: 'Milestone cards', status: 'planned', desc: 'Auto-generated celebration cards when makers hit milestones' },
+              { name: 'Weekly Spotlight', status: 'planned', desc: 'Email featuring top makers, shareable by all users' },
+            ].map(loop => (
+              <div key={loop.name} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                <span style={{
+                  fontSize: '10px', fontWeight: '600', letterSpacing: '0.1em', padding: '3px 8px', borderRadius: '4px',
+                  background: loop.status === 'live' ? 'rgba(34,197,94,0.15)' : 'rgba(251,191,36,0.15)',
+                  color: loop.status === 'live' ? '#22c55e' : '#fbbf24',
+                }}>{loop.status.toUpperCase()}</span>
+                <div>
+                  <div style={{ fontSize: '13px', color: t.text, fontWeight: '500' }}>{loop.name}</div>
+                  <div style={{ fontSize: '12px', color: t.textFaint }}>{loop.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
