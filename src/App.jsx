@@ -1484,6 +1484,61 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
           <p style={{ color: t.textTertiary }}>What are you making today?</p>
         </div>
 
+        {/* Cracked Squad Card */}
+        {user.crackedSquad && (
+          <div style={{ marginBottom: '32px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: t.radiusMd, padding: '28px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '24px', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <div style={{ fontSize: '11px', letterSpacing: '0.2em', color: t.error, fontWeight: '600', marginBottom: '12px' }}>CRACKED SQUAD MEMBER</div>
+                <div style={{ fontSize: '24px', fontFamily: t.fontHeading, marginBottom: '4px' }}>{user.name || user.username}</div>
+                <div style={{ fontSize: '13px', color: t.textFaint, marginBottom: '16px' }}>makerly.me/{user.username}</div>
+                <p style={{ fontSize: '13px', color: t.textTertiary, lineHeight: 1.5, margin: 0 }}>
+                  Share your Cracked Squad card on socials. Let people know you made the cut.
+                </p>
+              </div>
+              <div id="cracked-squad-card" style={{ width: '320px', background: '#0c0a09', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '28px', textAlign: 'center', flexShrink: 0 }}>
+                <div style={{ fontSize: '10px', letterSpacing: '0.3em', color: '#ef4444', fontWeight: '600', marginBottom: '16px' }}>CRACKED SQUAD</div>
+                <div style={{ fontSize: '22px', fontWeight: '600', color: '#e7e5e4', marginBottom: '4px', fontFamily: 'serif' }}>{user.name || user.username}</div>
+                <div style={{ fontSize: '12px', color: '#78716c', marginBottom: '16px' }}>makerly.me/{user.username}</div>
+                <div style={{ width: '40px', height: '1px', background: 'rgba(239,68,68,0.3)', margin: '0 auto 16px' }} />
+                <div style={{ fontSize: '10px', color: '#57534e', letterSpacing: '0.1em' }}>MAKERLY</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '20px', flexWrap: 'wrap' }}>
+              <button
+                className="btn"
+                onClick={() => {
+                  const text = `I just got selected for the Cracked Squad on @makikiapp — a group of teenage builders who are unreasonably ambitious.\n\nmakerly.me/${user.username}`;
+                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                }}
+                style={{ padding: '8px 16px', fontSize: '12px', background: 'rgba(239,68,68,0.1)', color: t.error, border: '1px solid rgba(239,68,68,0.25)', borderRadius: t.radiusSm, cursor: 'pointer', fontWeight: '500' }}
+              >
+                Share on X
+              </button>
+              <button
+                className="btn"
+                onClick={() => {
+                  const text = `I just got selected for the Cracked Squad on Makerly — a group of teenage builders who are unreasonably ambitious.\n\nmakerly.me/${user.username}`;
+                  window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`https://makerly.me/${user.username}`)}&summary=${encodeURIComponent(text)}`, '_blank');
+                }}
+                style={{ padding: '8px 16px', fontSize: '12px', background: 'rgba(239,68,68,0.1)', color: t.error, border: '1px solid rgba(239,68,68,0.25)', borderRadius: t.radiusSm, cursor: 'pointer', fontWeight: '500' }}
+              >
+                Share on LinkedIn
+              </button>
+              <button
+                className="btn"
+                onClick={() => {
+                  const text = `Cracked Squad member — makerly.me/${user.username}`;
+                  navigator.clipboard.writeText(text).then(() => showNotification('Copied to clipboard!')).catch(() => {});
+                }}
+                style={{ padding: '8px 16px', fontSize: '12px', background: 'transparent', color: t.textFaint, border: '1px solid rgba(255,255,255,0.1)', borderRadius: t.radiusSm, cursor: 'pointer' }}
+              >
+                Copy Link
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Post Update */}
         <div className="card" style={{ padding: '24px', marginBottom: '32px' }}>
           <div style={{ display: 'flex', gap: '12px' }}>
@@ -5200,7 +5255,7 @@ const CrackedSquadPage = ({ currentUser, onBack, onSignup, onLogin, onViewProfil
 // ============================================
 // ADMIN PANEL
 // ============================================
-const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) => {
+const AdminPanel = ({ user: adminUser, onBack, showNotification, onViewProfile }) => {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
   const [errorLogs, setErrorLogs] = useState([]);
@@ -5280,10 +5335,15 @@ const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) =>
     const ids = [...selectedUsers];
     if (ids.length === 0) return;
     try {
-      await Promise.all(ids.map(id => db.adminToggleCrackedSquad(id, addToSquad)));
+      const res = await fetch('/api/admin-toggle-cracked-squad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: ids, addToSquad, adminId: adminUser.id })
+      });
+      if (!res.ok) throw new Error('Failed');
       setUsers(prev => prev.map(u => ids.includes(u.id) ? { ...u, crackedSquad: addToSquad } : u));
       setSelectedUsers(new Set());
-      showNotification(`${ids.length} user${ids.length !== 1 ? 's' : ''} ${addToSquad ? 'added to' : 'removed from'} Cracked Squad`);
+      showNotification(`${ids.length} user${ids.length !== 1 ? 's' : ''} ${addToSquad ? 'added to' : 'removed from'} Cracked Squad${addToSquad ? ' — welcome emails sent' : ''}`);
     } catch { showNotification('Failed to update', 'error'); }
   };
 
@@ -5358,6 +5418,7 @@ const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) =>
           { key: 'users', label: `Users (${users.length})` },
           { key: 'crackedSquad', label: `Applications (${csApplications.length})` },
           { key: 'errors', label: `Errors (${errorLogs.length})` },
+          { key: 'growth', label: 'Growth' },
         ].map(tab => (
           <button
             key={tab.key}
@@ -5505,10 +5566,16 @@ const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) =>
             const applicant = users.find(u => u.id === app.user_id);
             try {
               await db.adminUpdateApplicationStatus(app.id, 'accepted');
-              if (applicant) await db.adminToggleCrackedSquad(applicant.id, true);
+              if (applicant) {
+                await fetch('/api/admin-toggle-cracked-squad', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userIds: [applicant.id], addToSquad: true, adminId: adminUser.id })
+                });
+              }
               setCsApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'accepted' } : a));
               if (applicant) setUsers(prev => prev.map(u => u.id === applicant.id ? { ...u, crackedSquad: true } : u));
-              showNotification(`${applicant?.name || 'User'} accepted`);
+              showNotification(`${applicant?.name || 'User'} accepted — welcome email sent`);
             } catch { showNotification('Failed', 'error'); }
           }}
           onReject={async (app) => {
@@ -5580,6 +5647,80 @@ const AdminPanel = ({ user: _user, onBack, showNotification, onViewProfile }) =>
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === 'growth' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Welcome Email Blast */}
+          <div className="card" style={{ padding: '24px' }}>
+            <h2 style={{ fontSize: '16px', color: t.text, margin: '0 0 8px' }}>Welcome Email Blast</h2>
+            <p style={{ fontSize: '13px', color: t.textFaint, margin: '0 0 20px', lineHeight: 1.5 }}>
+              Send a welcome email to all {users.length} users with their shareable profile card and social share buttons. Each email includes their stats, domains, and one-click share to X, LinkedIn, and WhatsApp.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/welcome-blast', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ adminId: adminUser.id, dryRun: true }),
+                    });
+                    const data = await res.json();
+                    showNotification(`Dry run: would send to ${data.count} users`, 'success');
+                  } catch { showNotification('Dry run failed', 'error'); }
+                }}
+              >
+                Dry Run
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  if (!confirm(`Send welcome email to all ${users.length} users?`)) return;
+                  showNotification('Sending welcome emails...', 'success');
+                  try {
+                    const res = await fetch('/api/welcome-blast', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ adminId: adminUser.id }),
+                    });
+                    const data = await res.json();
+                    showNotification(`Sent ${data.sent} emails${data.failed ? `, ${data.failed} failed` : ''}`, data.failed ? 'error' : 'success');
+                  } catch { showNotification('Failed to send emails', 'error'); }
+                }}
+              >
+                Send to All Users
+              </button>
+            </div>
+          </div>
+
+          {/* Viral Loops Overview */}
+          <div className="card" style={{ padding: '24px' }}>
+            <h2 style={{ fontSize: '16px', color: t.text, margin: '0 0 16px' }}>Viral Loops</h2>
+            {[
+              { name: 'Welcome Email + Card', status: 'live', desc: 'Every user gets a shareable profile card with social share buttons' },
+              { name: 'OG Image Cards', status: 'live', desc: 'Profile links render rich cards on X, LinkedIn, WhatsApp, Slack' },
+              { name: 'Contact Form', status: 'live', desc: 'Visitors can message makers, driving profile traffic' },
+              { name: '"Invite a maker" CTA', status: 'live', desc: 'Every welcome email has an invite link at the bottom' },
+              { name: 'Referral credit', status: 'planned', desc: '"Invited by @username" on profiles' },
+              { name: 'Milestone cards', status: 'planned', desc: 'Auto-generated celebration cards when makers hit milestones' },
+              { name: 'Weekly Spotlight', status: 'planned', desc: 'Email featuring top makers, shareable by all users' },
+            ].map(loop => (
+              <div key={loop.name} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                <span style={{
+                  fontSize: '10px', fontWeight: '600', letterSpacing: '0.1em', padding: '3px 8px', borderRadius: '4px',
+                  background: loop.status === 'live' ? 'rgba(34,197,94,0.15)' : 'rgba(251,191,36,0.15)',
+                  color: loop.status === 'live' ? '#22c55e' : '#fbbf24',
+                }}>{loop.status.toUpperCase()}</span>
+                <div>
+                  <div style={{ fontSize: '13px', color: t.text, fontWeight: '500' }}>{loop.name}</div>
+                  <div style={{ fontSize: '12px', color: t.textFaint }}>{loop.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
