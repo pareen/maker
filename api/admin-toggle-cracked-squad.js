@@ -104,7 +104,7 @@ export default async function handler(req, res) {
             HtmlBody: html,
           })
         }).catch(err => console.error(`Failed to email ${email}:`, err));
-      }).filter(Boolean);
+      });
 
       await Promise.allSettled(emailPromises);
     }

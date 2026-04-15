@@ -18,6 +18,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Message too long (max 2000 characters)' });
   }
 
+  // Validate email formats to prevent header injection and open relay
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(toEmail) || (senderEmail && !emailRegex.test(senderEmail))) {
+    return res.status(400).json({ error: 'Invalid email address' });
+  }
+
   const escapedMessage = message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
   const escapedSender = (senderName || 'Someone').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -46,7 +52,7 @@ export default async function handler(req, res) {
         From: 'Makerly <pareen@makerly.me>',
         To: toEmail,
         ...(senderEmail ? { ReplyTo: senderEmail } : {}),
-        Subject: `${senderName || 'Someone'} reached out via Makerly`,
+        Subject: `${(senderName || 'Someone').slice(0, 50)} reached out via Makerly`,
         HtmlBody: html,
       })
     });

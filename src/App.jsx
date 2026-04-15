@@ -1313,9 +1313,17 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
     setBulkDeleting(true);
     try {
       const ids = [...selectedProjects];
-      await Promise.all(ids.map(id => db.deleteProject(id)));
-      setUser(prev => ({ ...prev, projects: prev.projects.filter(p => !selectedProjects.has(p.id)) }));
-      showNotification(`${count} project${count > 1 ? 's' : ''} deleted`);
+      const results = await Promise.allSettled(ids.map(id => db.deleteProject(id)));
+      const succeeded = new Set(ids.filter((_, i) => results[i].status === 'fulfilled'));
+      const failed = ids.length - succeeded.size;
+      if (succeeded.size > 0) {
+        setUser(prev => ({ ...prev, projects: prev.projects.filter(p => !succeeded.has(p.id)) }));
+      }
+      if (failed > 0) {
+        showNotification(`Deleted ${succeeded.size}, failed ${failed}`, 'error');
+      } else {
+        showNotification(`${count} project${count > 1 ? 's' : ''} deleted`);
+      }
       setSelectedProjects(new Set());
       setBulkSelectMode(false);
     } catch (error) {
