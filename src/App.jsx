@@ -1664,7 +1664,7 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
               ) : (
                 <>
                   {user.projects.length > 1 && (
-                    <button className="btn btn-ghost" style={{ fontSize: '13px', padding: '6px 14px', color: t.textFaint }} onClick={() => setBulkSelectMode(true)}>Select</button>
+                    <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => setBulkSelectMode(true)}>Select</button>
                   )}
                   <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => setShowGitHubImport(true)}>Import from GitHub</button>
                   <button className="btn btn-primary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => { setEditingProject(null); setShowProjectModal(true); }}>+ Add Project</button>
