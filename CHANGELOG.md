@@ -2,6 +2,26 @@
 
 All notable changes to Makerly will be documented in this file.
 
+## [0.1.4.0] - 2026-04-15
+
+### Added
+- Bulk delete for projects: select multiple projects and delete in one action
+- OG image card endpoint for shareable profile links (`/api/og-card`)
+- Welcome email blast endpoint for existing squad members
+- Retro email endpoint for one-time squad notifications
+
+### Changed
+- Email provider switched from Resend to Postmark across all 6 endpoints
+- All email from addresses now use pareen@makerly.me
+- Comprehensive site footer now appears on every page (Dashboard, Auth, Edit Profile, Onboarding, Directory)
+
+### Fixed
+- HTML escaping in Cracked Squad application notification emails (XSS prevention)
+- Email format validation in contact form (prevents header injection)
+- Bulk delete uses Promise.allSettled for graceful partial failure handling
+- Removed env var leak from retro-emails error response
+- Removed stale .filter(Boolean) on promises in admin toggle
+
 ## [0.1.3.0] - 2026-04-12
 
 ### Added
