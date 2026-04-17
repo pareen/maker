@@ -7,9 +7,9 @@ export default async function handler(req, res) {
 
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const resendKey = process.env.RESEND_API_KEY;
+  const postmarkKey = process.env.POSTMARK_SERVER_TOKEN;
 
-  if (!supabaseUrl || !serviceRoleKey || !resendKey) {
+  if (!supabaseUrl || !serviceRoleKey || !postmarkKey) {
     return res.status(500).json({ error: 'Server config missing' });
   }
 
@@ -153,17 +153,18 @@ export default async function handler(req, res) {
 </div>`;
 
     try {
-      const emailRes = await fetch('https://api.resend.com/emails', {
+      const emailRes = await fetch('https://api.postmarkapp.com/email', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${resendKey}`,
+          'X-Postmark-Server-Token': postmarkKey,
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Makerly <onboarding@resend.dev>',
-          to: [email],
-          subject: `${profile.name || profile.username}, your maker profile is live`,
-          html,
+          From: 'Pareen from Makerly <pareen@makerly.me>',
+          To: email,
+          Subject: `${profile.name || profile.username}, your maker profile is live`,
+          HtmlBody: html,
         })
       });
 
@@ -179,7 +180,7 @@ export default async function handler(req, res) {
       errors.push({ email, error: err.message });
     }
 
-    // Rate limit: 2 emails per second (Resend free tier)
+    // Rate limit: avoid hitting Postmark's per-second limit
     await new Promise(r => setTimeout(r, 500));
   }
 

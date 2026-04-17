@@ -7,7 +7,7 @@ export default async function handler(req, res) {
 
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const resendKey = process.env.RESEND_API_KEY;
+  const postmarkKey = process.env.POSTMARK_SERVER_TOKEN;
 
   if (!supabaseUrl || !serviceRoleKey) {
     return res.status(500).json({ error: 'Server config missing' });
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     if (updateError) throw updateError;
 
     // Send welcome emails if adding to squad
-    if (addToSquad && resendKey) {
+    if (addToSquad && postmarkKey) {
       // Get profiles and auth emails
       const { data: profiles } = await supabase
         .from('profiles')
@@ -90,20 +90,21 @@ export default async function handler(req, res) {
           </div>
         `;
 
-        return fetch('https://api.resend.com/emails', {
+        return fetch('https://api.postmarkapp.com/email', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${resendKey}`,
+            'X-Postmark-Server-Token': postmarkKey,
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Makerly <onboarding@resend.dev>',
-            to: [email],
-            subject: "You're in the Cracked Squad",
-            html,
+            From: 'Pareen from Makerly <pareen@makerly.me>',
+            To: email,
+            Subject: "You're in the Cracked Squad",
+            HtmlBody: html,
           })
         }).catch(err => console.error(`Failed to email ${email}:`, err));
-      }).filter(Boolean);
+      });
 
       await Promise.allSettled(emailPromises);
     }

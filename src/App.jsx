@@ -1030,6 +1030,32 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo, onCrackedSqu
         </div>
       </section>
 
+      {/* Makers Club / Telegram */}
+      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500', marginBottom: '16px' }}>MAKERS CLUB</div>
+          <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '16px' }}>
+            Hang out with the others who build.
+          </h2>
+          <p style={{ fontSize: '16px', color: t.textSecondary, lineHeight: 1.6, marginBottom: '32px' }}>
+            We've started a Telegram group for makers shipping things, sharing wins, and dropping their Makerly links. Come show off what you've made.
+          </p>
+          <a
+            className="btn btn-primary"
+            href="https://t.me/+gv6c_XN7aDU2OWJl"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ padding: '16px 40px', fontSize: '16px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z" />
+            </svg>
+            Join the Makers Club on Telegram
+          </a>
+          <p style={{ fontSize: '12px', color: t.textFaint, marginTop: '16px' }}>Free · Open to anyone who's made something</p>
+        </div>
+      </section>
+
       {/* Hiring pitch */}
       <section className="section-padding" style={{ padding: '60px 40px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={{ maxWidth: '500px', margin: '0 auto' }}>
@@ -1198,6 +1224,9 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [updatesPage, setUpdatesPage] = useState(1);
   const UPDATES_PER_PAGE = 10;
+  const [bulkSelectMode, setBulkSelectMode] = useState(false);
+  const [selectedProjects, setSelectedProjects] = useState(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Profile editing state (merged from EditProfile)
   const [formData, setFormData] = useState({ ...user });
@@ -1301,6 +1330,43 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
         showNotification('Error deleting project: ' + (error?.message || String(error)), 'error');
       }
     }
+  };
+
+  const bulkDeleteProjects = async () => {
+    const count = selectedProjects.size;
+    if (count === 0) return;
+    if (!confirm(`Delete ${count} project${count > 1 ? 's' : ''}? This cannot be undone.`)) return;
+    setBulkDeleting(true);
+    try {
+      const ids = [...selectedProjects];
+      const results = await Promise.allSettled(ids.map(id => db.deleteProject(id)));
+      const succeeded = new Set(ids.filter((_, i) => results[i].status === 'fulfilled'));
+      const failed = ids.length - succeeded.size;
+      if (succeeded.size > 0) {
+        setUser(prev => ({ ...prev, projects: prev.projects.filter(p => !succeeded.has(p.id)) }));
+      }
+      if (failed > 0) {
+        showNotification(`Deleted ${succeeded.size}, failed ${failed}`, 'error');
+      } else {
+        showNotification(`${count} project${count > 1 ? 's' : ''} deleted`);
+      }
+      setSelectedProjects(new Set());
+      setBulkSelectMode(false);
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      showNotification('Error deleting projects: ' + (error?.message || String(error)), 'error');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const toggleProjectSelection = (projectId) => {
+    setSelectedProjects(prev => {
+      const next = new Set(prev);
+      if (next.has(projectId)) next.delete(projectId);
+      else next.add(projectId);
+      return next;
+    });
   };
 
   const importGitHubProjects = async (projects) => {
@@ -1596,11 +1662,40 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
 
         {/* Projects */}
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
             <h2 style={{ fontSize: '12px', letterSpacing: '0.1em', color: t.textFaint }}>YOUR PROJECTS ({user.projects.length})</h2>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => setShowGitHubImport(true)}>Import from GitHub</button>
-              <button className="btn btn-primary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => { setEditingProject(null); setShowProjectModal(true); }}>+ Add Project</button>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {bulkSelectMode ? (
+                <>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ fontSize: '12px', padding: '6px 12px' }}
+                    onClick={() => {
+                      if (selectedProjects.size === user.projects.length) setSelectedProjects(new Set());
+                      else setSelectedProjects(new Set(user.projects.map(p => p.id)));
+                    }}
+                  >
+                    {selectedProjects.size === user.projects.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                  <button
+                    className="btn"
+                    style={{ fontSize: '12px', padding: '6px 14px', background: selectedProjects.size > 0 ? 'rgba(239,68,68,0.15)' : 'transparent', color: selectedProjects.size > 0 ? t.error : t.textFaint, border: `1px solid ${selectedProjects.size > 0 ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: t.radiusSm, cursor: selectedProjects.size > 0 ? 'pointer' : 'default' }}
+                    onClick={bulkDeleteProjects}
+                    disabled={selectedProjects.size === 0 || bulkDeleting}
+                  >
+                    {bulkDeleting ? 'Deleting...' : `Delete ${selectedProjects.size > 0 ? `(${selectedProjects.size})` : ''}`}
+                  </button>
+                  <button className="btn btn-ghost" style={{ fontSize: '12px', padding: '6px 12px' }} onClick={() => { setBulkSelectMode(false); setSelectedProjects(new Set()); }}>Cancel</button>
+                </>
+              ) : (
+                <>
+                  {user.projects.length > 1 && (
+                    <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => setBulkSelectMode(true)}>Select</button>
+                  )}
+                  <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => setShowGitHubImport(true)}>Import from GitHub</button>
+                  <button className="btn btn-primary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => { setEditingProject(null); setShowProjectModal(true); }}>+ Add Project</button>
+                </>
+              )}
             </div>
           </div>
 
@@ -1612,12 +1707,40 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
           ) : (
             <div aria-label="Your projects" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {user.projects.map(project => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onEdit={() => { setEditingProject(project); setShowProjectModal(true); }}
-                  onDelete={() => deleteProject(project.id, project.name)}
-                />
+                bulkSelectMode ? (
+                  <div
+                    key={project.id}
+                    onClick={() => toggleProjectSelection(project.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer',
+                      padding: '14px 18px', borderRadius: t.radiusMd,
+                      background: selectedProjects.has(project.id) ? 'rgba(239,68,68,0.06)' : 'rgba(0,0,0,0.2)',
+                      border: `1px solid ${selectedProjects.has(project.id) ? 'rgba(239,68,68,0.25)' : 'transparent'}`,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <div style={{
+                      width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0,
+                      border: `2px solid ${selectedProjects.has(project.id) ? t.error : 'rgba(255,255,255,0.15)'}`,
+                      background: selectedProjects.has(project.id) ? t.error : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.15s ease',
+                    }}>
+                      {selectedProjects.has(project.id) && <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>✓</span>}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '14px', fontWeight: '500', color: t.text }}>{project.name}</div>
+                      {project.oneLiner && <div style={{ fontSize: '12px', color: t.textFaint, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{project.oneLiner}</div>}
+                    </div>
+                  </div>
+                ) : (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    onEdit={() => { setEditingProject(project); setShowProjectModal(true); }}
+                    onDelete={() => deleteProject(project.id, project.name)}
+                  />
+                )
               ))}
             </div>
           )}
