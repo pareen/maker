@@ -4,6 +4,7 @@ const { setAuthMode } = db;
 import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection, handleGitHubOAuthRedirect } from './lib/github';
 import { isSupabaseConfigured } from './lib/supabase';
 import { formatCurrency, formatNumber, parseCurrencyInput, parseNumberInput, formatCentsPreview, formatNumberPreview } from './lib/format';
+import { track, identify, resetAnalytics } from './lib/analytics';
 
 const ensureUrl = (url) => {
   if (!url) return url;
@@ -241,6 +242,8 @@ const App = () => {
           await db.migrateLocalStorageData(session.user);
           const fullUser = await loadFullUser(session.user, version);
           if (!fullUser) return; // stale
+          identify(fullUser.id, { username: fullUser.username, email: session.user.email });
+          track('signed_in', { method: 'supabase' });
           setCurrentView('dashboard');
         } catch (err) {
           console.error('Failed to load user data on sign-in:', err);
@@ -255,6 +258,7 @@ const App = () => {
           setAuthMode(null);
           localStorage.removeItem('makerPortfolio_githubToken');
           setCurrentUser(null);
+          resetAnalytics();
           navigate('landing');
         }
       }
@@ -1089,6 +1093,8 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
     try {
       if (mode === 'signup') {
         const user = await db.signUp(email, password, username);
+        identify(user.id, { username, email });
+        track('signed_up', { method: 'email' });
         showNotification('Account created!');
         onSuccess({ ...user, username, projects: [] });
       } else {
@@ -1277,6 +1283,7 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
       setUpdates([newUpdate, ...updates]);
       setUser(prev => ({ ...prev, todayMaking: updateText.trim() }));
       setUpdateText('');
+      track('update_posted', { length: updateText.trim().length });
       showNotification('Update posted!');
     } catch (error) {
       console.error('Error posting update:', error);
@@ -1308,6 +1315,7 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
       } else {
         const newProject = await db.createProject(user.id, project);
         setUser(prev => ({ ...prev, projects: [...prev.projects, newProject] }));
+        track('project_created', { stage: project.currentStage, source: 'manual' });
         showNotification('Project added!');
       }
       setShowProjectModal(false);
@@ -1379,6 +1387,7 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
         // createProject returns existing project if deduped — only count truly new ones
         if (!existingIds.has(result.id)) {
           createdProjects.push(result);
+          track('project_created', { stage: projectData.currentStage, source: 'github_import' });
         }
       } catch (error) {
         console.error(`Failed to import project ${project.name}:`, error);
@@ -3124,6 +3133,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         }),
       });
       if (!res.ok) throw new Error('Failed to send');
+      track('contact_form_submitted', { toUsername: user.username, hasReplyEmail: !!contactMsg.email });
       setContactSent(true);
       setContactMsg({ name: '', email: '', message: '' });
     } catch {
@@ -3176,7 +3186,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           {!isOwner && user.showEmail && user.contactEmail && (
-            <button className="btn btn-primary" onClick={() => { setShowContactForm(f => !f); setContactSent(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button className="btn btn-primary" onClick={() => { setShowContactForm(f => { if (!f) track('contact_form_opened', { toUsername: user.username }); return !f; }); setContactSent(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {showContactForm ? 'Close' : 'Contact'}
             </button>
           )}
@@ -3876,6 +3886,7 @@ const ShareModal = ({ username, todayMaking, onClose, showNotification }) => {
     try {
       await navigator.clipboard.writeText(`https://${profileUrl}`);
       setCopied(true);
+      track('profile_shared', { platform: 'copy_link', username });
       showNotification('Link copied!');
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -3883,11 +3894,16 @@ const ShareModal = ({ username, todayMaking, onClose, showNotification }) => {
     }
   };
 
+  const shareTo = (platform, url) => {
+    track('profile_shared', { platform, username });
+    window.open(url, '_blank');
+  };
+
   const shareOptions = [
-    { name: 'Twitter / X', icon: '𝕏', action: () => window.open(`https://twitter.com/intent/tweet?text=Check out my maker profile&url=https://${profileUrl}`, '_blank') },
-    { name: 'LinkedIn', icon: 'in', action: () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=https://${profileUrl}`, '_blank') },
-    { name: 'WhatsApp', icon: 'W', action: () => window.open(`https://wa.me/?text=Check out my maker profile: https://${profileUrl}`, '_blank') },
-    { name: 'Email', icon: '@', action: () => window.open(`mailto:?subject=Check out my maker profile&body=https://${profileUrl}`, '_blank') },
+    { name: 'Twitter / X', icon: '𝕏', action: () => shareTo('twitter', `https://twitter.com/intent/tweet?text=Check out my maker profile&url=https://${profileUrl}`) },
+    { name: 'LinkedIn', icon: 'in', action: () => shareTo('linkedin', `https://www.linkedin.com/sharing/share-offsite/?url=https://${profileUrl}`) },
+    { name: 'WhatsApp', icon: 'W', action: () => shareTo('whatsapp', `https://wa.me/?text=Check out my maker profile: https://${profileUrl}`) },
+    { name: 'Email', icon: '@', action: () => shareTo('email', `mailto:?subject=Check out my maker profile&body=https://${profileUrl}`) },
   ];
 
   return (
@@ -5792,6 +5808,7 @@ const AdminPanel = ({ user: adminUser, onBack, showNotification, onViewProfile }
                       body: JSON.stringify({ adminId: adminUser.id, dryRun: true }),
                     });
                     const data = await res.json();
+                    track('welcome_blast_dry_run', { count: data.count });
                     showNotification(`Dry run: would send to ${data.count} users`, 'success');
                   } catch { showNotification('Dry run failed', 'error'); }
                 }}
@@ -5810,6 +5827,7 @@ const AdminPanel = ({ user: adminUser, onBack, showNotification, onViewProfile }
                       body: JSON.stringify({ adminId: adminUser.id }),
                     });
                     const data = await res.json();
+                    track('welcome_blast_sent', { sent: data.sent, failed: data.failed || 0 });
                     showNotification(`Sent ${data.sent} emails${data.failed ? `, ${data.failed} failed` : ''}`, data.failed ? 'error' : 'success');
                   } catch { showNotification('Failed to send emails', 'error'); }
                 }}

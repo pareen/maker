@@ -30,3 +30,6 @@ dist-ssr
 .vercel
 .gstack/
 .env.vercel
+.env.production
+bun.lock
+.env*.local
