@@ -1030,6 +1030,32 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo, onCrackedSqu
         </div>
       </section>
 
+      {/* Makers Club / Telegram */}
+      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500', marginBottom: '16px' }}>MAKERS CLUB</div>
+          <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginBottom: '16px' }}>
+            Hang out with the others who build.
+          </h2>
+          <p style={{ fontSize: '16px', color: t.textSecondary, lineHeight: 1.6, marginBottom: '32px' }}>
+            We've started a Telegram group for makers shipping things, sharing wins, and dropping their Makerly links. Come show off what you've made.
+          </p>
+          <a
+            className="btn btn-primary"
+            href="https://t.me/+gv6c_XN7aDU2OWJl"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ padding: '16px 40px', fontSize: '16px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z" />
+            </svg>
+            Join the Makers Club on Telegram
+          </a>
+          <p style={{ fontSize: '12px', color: t.textFaint, marginTop: '16px' }}>Free · Open to anyone who's made something</p>
+        </div>
+      </section>
+
       {/* Hiring pitch */}
       <section className="section-padding" style={{ padding: '60px 40px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={{ maxWidth: '500px', margin: '0 auto' }}>
