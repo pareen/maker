@@ -82,10 +82,13 @@ export default async function handler(req, res) {
     if (profile.total_users > 0) statChips.push(`${formatNum(profile.total_users)} users`);
     if (profile.total_raised > 0) statChips.push(`$${formatNum(profile.total_raised)} raised`);
 
+    const utm = 'utm_source=welcome_email&utm_medium=email&utm_campaign=welcome_blast';
     const profileUrl = `https://makerly.me/${profile.username}`;
-    const tweetText = encodeURIComponent(`Check out my maker profile on @makabordi's Makerly\n\n${profileUrl}`);
-    const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(profileUrl)}`;
-    const whatsappText = encodeURIComponent(`Check out my maker profile: ${profileUrl}`);
+    const profileUrlCta = `${profileUrl}?${utm}&utm_content=cta`;
+    const profileUrlShare = `${profileUrl}?${utm}&utm_content=share`;
+    const tweetText = encodeURIComponent(`Check out my maker profile on @makabordi's Makerly\n\n${profileUrlShare}`);
+    const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(profileUrlShare)}`;
+    const whatsappText = encodeURIComponent(`Check out my maker profile: ${profileUrlShare}`);
 
     const html = `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;background:#0c0a09;color:#e7e5e4;padding:0;border-radius:12px;overflow:hidden;">
@@ -131,7 +134,7 @@ export default async function handler(req, res) {
       <a href="https://wa.me/?text=${whatsappText}" style="display:inline-block;background:#25d366;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600;margin:0 4px 8px;">Share on WhatsApp</a>
     </div>
 
-    <a href="${profileUrl}" style="display:inline-block;background:#fbbf24;color:#0c0a09;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">View Your Profile</a>
+    <a href="${profileUrlCta}" style="display:inline-block;background:#fbbf24;color:#0c0a09;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">View Your Profile</a>
   </div>
 
   <!-- Viral hook -->
@@ -140,7 +143,7 @@ export default async function handler(req, res) {
       Know someone who should be on Makerly?
     </p>
     <div style="text-align:center;">
-      <a href="https://makerly.me/signup" style="color:#fbbf24;font-size:13px;text-decoration:none;font-weight:600;">Invite them to create a profile →</a>
+      <a href="https://makerly.me/signup?${utm}&utm_content=invite" style="color:#fbbf24;font-size:13px;text-decoration:none;font-weight:600;">Invite them to create a profile →</a>
     </div>
   </div>
 

@@ -1283,6 +1283,7 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
       setUpdates([newUpdate, ...updates]);
       setUser(prev => ({ ...prev, todayMaking: updateText.trim() }));
       setUpdateText('');
+      track('update_posted', { length: updateText.trim().length });
       showNotification('Update posted!');
     } catch (error) {
       console.error('Error posting update:', error);
@@ -1314,6 +1315,7 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
       } else {
         const newProject = await db.createProject(user.id, project);
         setUser(prev => ({ ...prev, projects: [...prev.projects, newProject] }));
+        track('project_created', { stage: project.currentStage, source: 'manual' });
         showNotification('Project added!');
       }
       setShowProjectModal(false);
@@ -1385,6 +1387,7 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
         // createProject returns existing project if deduped — only count truly new ones
         if (!existingIds.has(result.id)) {
           createdProjects.push(result);
+          track('project_created', { stage: projectData.currentStage, source: 'github_import' });
         }
       } catch (error) {
         console.error(`Failed to import project ${project.name}:`, error);
@@ -5805,6 +5808,7 @@ const AdminPanel = ({ user: adminUser, onBack, showNotification, onViewProfile }
                       body: JSON.stringify({ adminId: adminUser.id, dryRun: true }),
                     });
                     const data = await res.json();
+                    track('welcome_blast_dry_run', { count: data.count });
                     showNotification(`Dry run: would send to ${data.count} users`, 'success');
                   } catch { showNotification('Dry run failed', 'error'); }
                 }}
@@ -5823,6 +5827,7 @@ const AdminPanel = ({ user: adminUser, onBack, showNotification, onViewProfile }
                       body: JSON.stringify({ adminId: adminUser.id }),
                     });
                     const data = await res.json();
+                    track('welcome_blast_sent', { sent: data.sent, failed: data.failed || 0 });
                     showNotification(`Sent ${data.sent} emails${data.failed ? `, ${data.failed} failed` : ''}`, data.failed ? 'error' : 'success');
                   } catch { showNotification('Failed to send emails', 'error'); }
                 }}
