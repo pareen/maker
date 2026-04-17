@@ -4,6 +4,7 @@ const { setAuthMode } = db;
 import { fetchUserRepos, mapRepoToProject, signInWithGitHub, fetchAuthenticatedRepos, getGitHubConnection, handleGitHubOAuthRedirect } from './lib/github';
 import { isSupabaseConfigured } from './lib/supabase';
 import { formatCurrency, formatNumber, parseCurrencyInput, parseNumberInput, formatCentsPreview, formatNumberPreview } from './lib/format';
+import { track, identify, resetAnalytics } from './lib/analytics';
 
 const ensureUrl = (url) => {
   if (!url) return url;
@@ -241,6 +242,8 @@ const App = () => {
           await db.migrateLocalStorageData(session.user);
           const fullUser = await loadFullUser(session.user, version);
           if (!fullUser) return; // stale
+          identify(fullUser.id, { username: fullUser.username, email: session.user.email });
+          track('signed_in', { method: 'supabase' });
           setCurrentView('dashboard');
         } catch (err) {
           console.error('Failed to load user data on sign-in:', err);
@@ -255,6 +258,7 @@ const App = () => {
           setAuthMode(null);
           localStorage.removeItem('makerPortfolio_githubToken');
           setCurrentUser(null);
+          resetAnalytics();
           navigate('landing');
         }
       }
@@ -1089,6 +1093,8 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
     try {
       if (mode === 'signup') {
         const user = await db.signUp(email, password, username);
+        identify(user.id, { username, email });
+        track('signed_up', { method: 'email' });
         showNotification('Account created!');
         onSuccess({ ...user, username, projects: [] });
       } else {
@@ -3124,6 +3130,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         }),
       });
       if (!res.ok) throw new Error('Failed to send');
+      track('contact_form_submitted', { toUsername: user.username, hasReplyEmail: !!contactMsg.email });
       setContactSent(true);
       setContactMsg({ name: '', email: '', message: '' });
     } catch {
@@ -3176,7 +3183,7 @@ const ProfileView = ({ user, isOwner, onBack, onEdit, onShare }) => {
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           {!isOwner && user.showEmail && user.contactEmail && (
-            <button className="btn btn-primary" onClick={() => { setShowContactForm(f => !f); setContactSent(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button className="btn btn-primary" onClick={() => { setShowContactForm(f => { if (!f) track('contact_form_opened', { toUsername: user.username }); return !f; }); setContactSent(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {showContactForm ? 'Close' : 'Contact'}
             </button>
           )}
@@ -3876,6 +3883,7 @@ const ShareModal = ({ username, todayMaking, onClose, showNotification }) => {
     try {
       await navigator.clipboard.writeText(`https://${profileUrl}`);
       setCopied(true);
+      track('profile_shared', { platform: 'copy_link', username });
       showNotification('Link copied!');
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -3883,11 +3891,16 @@ const ShareModal = ({ username, todayMaking, onClose, showNotification }) => {
     }
   };
 
+  const shareTo = (platform, url) => {
+    track('profile_shared', { platform, username });
+    window.open(url, '_blank');
+  };
+
   const shareOptions = [
-    { name: 'Twitter / X', icon: '𝕏', action: () => window.open(`https://twitter.com/intent/tweet?text=Check out my maker profile&url=https://${profileUrl}`, '_blank') },
-    { name: 'LinkedIn', icon: 'in', action: () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=https://${profileUrl}`, '_blank') },
-    { name: 'WhatsApp', icon: 'W', action: () => window.open(`https://wa.me/?text=Check out my maker profile: https://${profileUrl}`, '_blank') },
-    { name: 'Email', icon: '@', action: () => window.open(`mailto:?subject=Check out my maker profile&body=https://${profileUrl}`, '_blank') },
+    { name: 'Twitter / X', icon: '𝕏', action: () => shareTo('twitter', `https://twitter.com/intent/tweet?text=Check out my maker profile&url=https://${profileUrl}`) },
+    { name: 'LinkedIn', icon: 'in', action: () => shareTo('linkedin', `https://www.linkedin.com/sharing/share-offsite/?url=https://${profileUrl}`) },
+    { name: 'WhatsApp', icon: 'W', action: () => shareTo('whatsapp', `https://wa.me/?text=Check out my maker profile: https://${profileUrl}`) },
+    { name: 'Email', icon: '@', action: () => shareTo('email', `mailto:?subject=Check out my maker profile&body=https://${profileUrl}`) },
   ];
 
   return (
