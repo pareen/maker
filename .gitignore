@@ -32,3 +32,4 @@ dist-ssr
 .env.vercel
 .env.production
 bun.lock
+.env*.local
