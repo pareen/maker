@@ -2,6 +2,20 @@
 
 All notable changes to Makerly will be documented in this file.
 
+## [0.1.5.0] - 2026-04-17
+
+### Added
+- PostHog analytics instrumented across the viral loop: signup, signin, profile share (per platform), contact form open/submit, project created, update posted, and welcome-email blast events
+- UTM tags on welcome email CTAs so email-driven visits and shares are attributable in analytics
+- Makers Club Telegram CTA on the landing page
+
+### Changed
+- Contact form button on profiles reveals a tracked inline form instead of an email display
+- Welcome email share links carry per-button UTM content (cta / share / invite) for funnel attribution
+
+### Fixed
+- Bulk Select button visibility (switched from ghost to secondary variant)
+
 ## [0.1.4.0] - 2026-04-15
 
 ### Added
