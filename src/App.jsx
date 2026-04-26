@@ -899,6 +899,14 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo, onCrackedSqu
               </div>
             ))}
           </div>
+
+          <div style={{ marginTop: '48px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500' }}>WATCH</span>
+              <h3 style={{ fontSize: '20px', fontFamily: t.fontHeading, marginTop: '8px', color: t.textSecondary }}>Elon on the people who make things.</h3>
+            </div>
+            <TweetEmbed tweetUrl="https://twitter.com/readswithravi/status/2048167366224163005" />
+          </div>
         </div>
       </section>
 
@@ -2994,6 +3002,41 @@ const TwitterEmbed = ({ username }) => {
   }, [username]);
 
   return <div ref={containerRef} style={{ maxHeight: '500px', overflow: 'auto' }} />;
+};
+
+// ============================================
+// TWEET EMBED (single tweet / video)
+// ============================================
+const TweetEmbed = ({ tweetUrl }) => {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !tweetUrl) return;
+    const container = containerRef.current;
+    container.innerHTML = '';
+
+    const blockquote = document.createElement('blockquote');
+    blockquote.className = 'twitter-tweet';
+    blockquote.setAttribute('data-theme', 'dark');
+    blockquote.setAttribute('data-dnt', 'true');
+    const anchor = document.createElement('a');
+    anchor.href = tweetUrl;
+    blockquote.appendChild(anchor);
+    container.appendChild(blockquote);
+
+    if (window.twttr?.widgets) {
+      window.twttr.widgets.load(container);
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://platform.twitter.com/widgets.js';
+      script.async = true;
+      container.appendChild(script);
+    }
+
+    return () => { container.innerHTML = ''; };
+  }, [tweetUrl]);
+
+  return <div ref={containerRef} style={{ display: 'flex', justifyContent: 'center' }} />;
 };
 
 // ============================================
