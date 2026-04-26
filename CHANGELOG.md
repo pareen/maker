@@ -2,6 +2,16 @@
 
 All notable changes to Makerly will be documented in this file.
 
+## [0.1.6.0] - 2026-04-26
+
+### Added
+- Builder Ethos section on the landing page now features an embedded Elon Musk video on "the people who make things"
+- New job board section on the landing page with two-card layout: a maker card (browse jobs, apply with portfolio) and a recruiter card (post jobs, hire builders)
+- Internal weekly PostHog metrics script (`scripts/posthog-weekly.js`) for pulling the Friday review snapshot
+
+### Changed
+- Synced `package.json` version field with the project's `VERSION` file
+
 ## [0.1.5.0] - 2026-04-17
 
 ### Added
