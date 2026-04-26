@@ -1060,15 +1060,43 @@ const LandingPage = ({ onLogin, onSignup, onMakers, onHire, onMemo, onCrackedSqu
         </div>
       </section>
 
-      {/* Hiring pitch */}
-      <section className="section-padding" style={{ padding: '60px 40px', textAlign: 'center', borderBottom: `1px solid ${t.surfaceBorder}` }}>
-        <div style={{ maxWidth: '500px', margin: '0 auto' }}>
-          <p style={{ fontSize: '15px', color: t.textTertiary, lineHeight: 1.6 }}>
-            Hiring? Every person on Makerly has built something. That's the filter.
-          </p>
-          <button className="btn btn-ghost" onClick={onHire} style={{ marginTop: '12px', color: t.accent }}>
-            Browse makers for your team →
-          </button>
+      {/* Hiring pitch — Job Board */}
+      <section className="section-padding" style={{ padding: '80px 40px', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500' }}>NEW · JOB BOARD</span>
+            <h2 style={{ fontSize: '32px', fontFamily: t.fontHeading, marginTop: '12px', marginBottom: '12px' }}>
+              Now hiring builders.<br />
+              <span style={{ color: t.textTertiary }}>Now applying with proof.</span>
+            </h2>
+            <p style={{ fontSize: '15px', color: t.textSecondary, maxWidth: '520px', margin: '0 auto', lineHeight: 1.6 }}>
+              Companies post real jobs for the projects they're building. Makers apply with their portfolios — your work speaks for itself, no resume required.
+            </p>
+          </div>
+
+          <div className="desktop-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div style={{ background: t.surfaceBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: t.radiusLg, padding: '28px' }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.cyan, fontWeight: '500', marginBottom: '12px' }}>FOR MAKERS</div>
+              <h3 style={{ fontSize: '20px', fontFamily: t.fontHeading, marginBottom: '8px' }}>Browse jobs. Apply with your work.</h3>
+              <p style={{ fontSize: '14px', color: t.textSecondary, lineHeight: 1.6, marginBottom: '20px' }}>
+                Filter by role, remote, and domain. Every application links to your maker profile, so recruiters see what you've built.
+              </p>
+              <button className="btn btn-ghost" onClick={onHire} style={{ color: t.cyan, padding: '8px 0' }}>
+                Browse the job board →
+              </button>
+            </div>
+
+            <div style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.05) 0%, rgba(251,191,36,0.01) 100%)', border: `1px solid ${t.accentBorder}`, borderRadius: t.radiusLg, padding: '28px' }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: t.accent, fontWeight: '500', marginBottom: '12px' }}>FOR RECRUITERS</div>
+              <h3 style={{ fontSize: '20px', fontFamily: t.fontHeading, marginBottom: '8px' }}>Post jobs. Hire builders, not resumes.</h3>
+              <p style={{ fontSize: '14px', color: t.textSecondary, lineHeight: 1.6, marginBottom: '20px' }}>
+                Set up your recruiter profile, post the project you're hiring for, and review applications from makers with real, verifiable work.
+              </p>
+              <a href="/recruiters" className="btn btn-ghost" style={{ color: t.accent, padding: '8px 0', textDecoration: 'none', display: 'inline-block' }}>
+                Post a job →
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 
