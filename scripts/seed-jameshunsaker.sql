@@ -6,7 +6,7 @@
 DO $$
 DECLARE
   user_uuid UUID := '6a3d4e9c-b55f-4019-a2b7-c47e60721124'::uuid;
-  user_email TEXT := 'jameshunsaker+demo@makerly.me';
+  user_email TEXT := 'james@makerly.me';
 BEGIN
   INSERT INTO auth.users (
     id, instance_id, aud, role, email, encrypted_password,
@@ -22,7 +22,7 @@ BEGIN
     crypt('demo-jh-' || gen_random_uuid()::text, gen_salt('bf')),
     now(),
     jsonb_build_object('username', 'jameshunsaker'),
-    jsonb_build_object('provider', 'email', 'providers', ARRAY['email']),
+    jsonb_build_object('provider', 'email', 'providers', ARRAY['email'], 'demo', true, 'ai_generated', true),
     now(),
     now()
   )
@@ -39,7 +39,7 @@ VALUES (
   '6a3d4e9c-b55f-4019-a2b7-c47e60721124'::uuid,
   'jameshunsaker',
   'James Hunsaker',
-  E'I rebuild systems from the bottom up.\nEight years on Jump Trading''s HFT desk building ultra-low-latency execution.\nNow: parallel-execution EVM. Monad mainnet went live November 24, 2025.',
+  E'[AI-GENERATED DEMO PROFILE]\n\nI rebuild systems from the bottom up.\nEight years on Jump Trading''s HFT desk building ultra-low-latency execution.\nNow: parallel-execution EVM. Monad mainnet went live November 24, 2025.',
   'Latency is a feature. If the spec is the bottleneck, rewrite the spec.',
   E'Third grade. My mom was a teacher, so the school had Apple IIs I could mess around with after hours. I''d borrow programming magazines from the public library and type the BASIC listings in by hand, debugging my own typos in the morning. Same era, same vibe as a young Elon Musk typing up Blastar a continent away — except mine never made it to magazine print.',
   '9',

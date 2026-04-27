@@ -6,7 +6,7 @@
 DO $$
 DECLARE
   user_uuid UUID := '7e10d5ad-1971-4c12-b150-e10a07112002'::uuid;
-  user_email TEXT := 'elonmusk+demo@makerly.me';
+  user_email TEXT := 'elon@makerly.me';
 BEGIN
   -- 1. auth.users row (FK target for profiles.id)
   INSERT INTO auth.users (
@@ -31,7 +31,7 @@ BEGIN
     crypt('demo-elon-' || gen_random_uuid()::text, gen_salt('bf')),
     now(),
     jsonb_build_object('username', 'elonmusk'),
-    jsonb_build_object('provider', 'email', 'providers', ARRAY['email']),
+    jsonb_build_object('provider', 'email', 'providers', ARRAY['email'], 'demo', true, 'ai_generated', true),
     now(),
     now()
   )
@@ -63,6 +63,7 @@ VALUES (
   '7e10d5ad-1971-4c12-b150-e10a07112002'::uuid,
   'elonmusk',
   'Elon Musk',
+  E'[AI-GENERATED DEMO PROFILE]\n\n' ||
   E'I make things that move atoms.\n' ||
   E'Started door-to-door in Pretoria with chocolate Easter eggs and homemade gunpowder rockets.\n' ||
   E'Now: cars, rockets, tunnels, satellites, neural implants, humanoid robots. Same algorithm, larger blast radius.',
