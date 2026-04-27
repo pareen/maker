@@ -55,7 +55,7 @@ VALUES (
   jsonb_build_object('type', 'twitter', 'url', '@_jhunsaker'),
   FALSE,
   '',
-  TRUE,
+  FALSE,
   '[
     {"url": "https://fortune.com/crypto/2024/04/09/monad-paradigm-greenoaks-jump-crypto-funding-225-million/", "source": "Fortune", "title": "Paradigm leads $225M Series A for Monad — largest crypto round of 2024 at a $3B valuation"},
     {"url": "https://www.theblock.co/post/211352/monad-labs-funding-blockchain-former-jump-trading-developers", "source": "The Block", "title": "Former Jump Trading developers raise $19M to build Monad blockchain (2023 seed, Dragonfly-led)"},

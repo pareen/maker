@@ -81,7 +81,7 @@ VALUES (
   jsonb_build_object('type', 'twitter', 'url', '@elonmusk'),
   FALSE,
   '',
-  TRUE,
+  FALSE,
   '[
     {
       "url": "https://blastar-1984.appspot.com/",
