@@ -1139,6 +1139,8 @@ const AuthPage = ({ mode, onSwitch, onBack, onSuccess, showNotification }) => {
         db.setAuthMode(user.aud ? 'supabase' : 'local');
         const profile = await db.getProfile(user.id);
         const projects = await db.getProjectsByUserId(user.id);
+        identify(user.id, { username: profile?.username, email });
+        track('signed_in', { method: user.aud ? 'supabase' : 'local' });
         showNotification('Welcome back!');
         onSuccess({ ...user, ...profile, projects });
       }
@@ -1352,6 +1354,7 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
         const newProject = await db.createProject(user.id, project);
         setUser(prev => ({ ...prev, projects: [...prev.projects, newProject] }));
         track('project_created', { stage: project.currentStage, source: 'manual' });
+        identify(user.id, { user_role: 'maker', has_created_project: true });
         showNotification('Project added!');
       }
       setShowProjectModal(false);
@@ -1424,6 +1427,7 @@ const Dashboard = ({ user, setUser, onViewProfile, onLogout, onShare, onAdmin, o
         if (!existingIds.has(result.id)) {
           createdProjects.push(result);
           track('project_created', { stage: projectData.currentStage, source: 'github_import' });
+          identify(user.id, { user_role: 'maker', has_created_project: true });
         }
       } catch (error) {
         console.error(`Failed to import project ${project.name}:`, error);
@@ -3720,24 +3724,42 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
   const [todayMaking, setTodayMaking] = useState('');
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => { track('onboarding_started'); }, []);
+
+  const goToStep = (next) => {
+    track('onboarding_step_completed', { from: step, to: next });
+    setStep(next);
+  };
+
   const handleFinish = async () => {
     setSaving(true);
+    const filledName = !!name.trim();
+    const filledFirstMake = !!(firstMakeDesc.trim() || firstMakeAge.trim());
+    const filledTodayMaking = !!todayMaking.trim();
     try {
       const updates = {};
-      if (name.trim()) updates.name = name.trim();
-      if (firstMakeDesc.trim() || firstMakeAge.trim()) {
+      if (filledName) updates.name = name.trim();
+      if (filledFirstMake) {
         updates.firstMake = { description: firstMakeDesc.trim(), age: firstMakeAge.trim() };
       }
-      if (todayMaking.trim()) updates.todayMaking = todayMaking.trim();
+      if (filledTodayMaking) updates.todayMaking = todayMaking.trim();
 
       if (Object.keys(updates).length > 0) {
         await db.updateProfile(user.id, updates);
         setUser(prev => ({ ...prev, ...updates }));
       }
+      track('onboarding_completed', {
+        last_step: step,
+        skipped: step < 2,
+        filled_name: filledName,
+        filled_first_make: filledFirstMake,
+        filled_today_making: filledTodayMaking,
+      });
       onComplete();
     } catch (err) {
       console.error('Onboarding save error:', err);
       showNotification('Failed to save — you can fill this in later', 'error');
+      track('onboarding_completed', { last_step: step, skipped: true, error: true });
       onComplete();
     } finally {
       setSaving(false);
@@ -3779,12 +3801,12 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
               fontSize: '18px',
               textAlign: 'center'
             }}
-            onKeyDown={e => e.key === 'Enter' && name.trim() && setStep(1)}
+            onKeyDown={e => e.key === 'Enter' && name.trim() && goToStep(1)}
           />
         </div>
         <button
           className="btn btn-primary"
-          onClick={() => setStep(1)}
+          onClick={() => goToStep(1)}
           disabled={!name.trim()}
           style={{ marginTop: '32px', padding: '14px 48px', fontSize: '15px' }}
         >
@@ -3856,7 +3878,7 @@ const Onboarding = ({ user, setUser, onComplete, showNotification }) => {
           <button className="btn btn-ghost" onClick={() => setStep(0)}>Back</button>
           <button
             className="btn btn-primary"
-            onClick={() => setStep(2)}
+            onClick={() => goToStep(2)}
             style={{ padding: '14px 48px', fontSize: '15px' }}
           >
             Next
@@ -4026,6 +4048,8 @@ const MakerDirectory = ({ currentUser, onViewProfile, onBack, onLogin, onHire })
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [crackedOnly, setCrackedOnly] = useState(false);
+
+  useEffect(() => { track('maker_directory_viewed', { authenticated: !!currentUser }); }, [currentUser]);
 
   useEffect(() => {
     const load = async () => {
@@ -4316,8 +4340,9 @@ const RecruiterPage = ({ currentUser, onViewProfile, onMakers, onBack, onSignup,
 
   useEffect(() => {
     document.title = 'Recruiter Dashboard — Makerly';
+    track('recruiter_page_viewed', { authenticated: !!currentUser });
     return () => { document.title = 'Makerly — Show what you\'ve made'; };
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     if (!currentUser) { setLoading(false); return; }
@@ -4330,6 +4355,7 @@ const RecruiterPage = ({ currentUser, onViewProfile, onMakers, onBack, onSignup,
           setCompanyUrl(profile.companyUrl || '');
           setRoleTitle(profile.roleTitle || '');
           setBio(profile.bio || '');
+          identify(currentUser.id, { user_role: 'recruiter', has_recruiter_profile: true });
           const jobs = await db.getJobPostingsByRecruiter(profile.id);
           setPostings(jobs);
         }
@@ -4351,9 +4377,12 @@ const RecruiterPage = ({ currentUser, onViewProfile, onMakers, onBack, onSignup,
         const updated = await db.updateRecruiterProfile(currentUser.id, { companyName: companyName.trim(), companyUrl: companyUrl.trim(), roleTitle: roleTitle.trim(), bio: bio.trim() });
         setRecruiterProfile(updated);
         setEditing(false);
+        track('recruiter_profile_updated');
       } else {
         const created = await db.createRecruiterProfile(currentUser.id, { companyName: companyName.trim(), companyUrl: companyUrl.trim(), roleTitle: roleTitle.trim(), bio: bio.trim() });
         setRecruiterProfile(created);
+        identify(currentUser.id, { user_role: 'recruiter', has_recruiter_profile: true });
+        track('recruiter_profile_created', { hasUrl: !!companyUrl.trim(), hasBio: !!bio.trim() });
       }
       showNotification('Recruiter profile saved');
     } catch (err) {
@@ -4394,10 +4423,12 @@ const RecruiterPage = ({ currentUser, onViewProfile, onMakers, onBack, onSignup,
       if (editingPosting) {
         const updated = await db.updateJobPosting(editingPosting, data);
         setPostings(prev => prev.map(p => p.id === editingPosting ? updated : p));
+        track('job_posting_updated', { jobId: editingPosting, status: data.status, roleNeeded: data.roleNeeded, remote: data.remote });
         showNotification('Job posting updated');
       } else {
         const created = await db.createJobPosting(recruiterProfile.id, data);
         setPostings(prev => [created, ...prev]);
+        track('job_posting_created', { jobId: created.id, status: data.status, roleNeeded: data.roleNeeded, remote: data.remote });
         showNotification('Job posting created');
       }
       setShowPostingForm(false);
@@ -4425,6 +4456,8 @@ const RecruiterPage = ({ currentUser, onViewProfile, onMakers, onBack, onSignup,
     try {
       const updated = await db.updateJobPosting(posting.id, { status: next });
       setPostings(prev => prev.map(p => p.id === posting.id ? updated : p));
+      track('job_posting_status_changed', { jobId: posting.id, from: posting.status, to: next });
+      if (next === 'open') track('job_posting_published', { jobId: posting.id, roleNeeded: posting.roleNeeded || null, remote: !!posting.remote });
       showNotification(`Posting ${next === 'open' ? 'published' : 'closed'}`);
     } catch (_err) {
       showNotification('Failed to update status', 'error');
@@ -4437,6 +4470,7 @@ const RecruiterPage = ({ currentUser, onViewProfile, onMakers, onBack, onSignup,
     try {
       const apps = await db.getApplicationsForJob(jobId);
       setApplications(apps);
+      track('applications_viewed', { jobId, count: apps.length });
     } catch (err) {
       console.error('Failed to load applications:', err);
     } finally {
@@ -4448,6 +4482,7 @@ const RecruiterPage = ({ currentUser, onViewProfile, onMakers, onBack, onSignup,
     try {
       await db.updateApplicationStatus(appId, status);
       setApplications(prev => prev.map(a => a.id === appId ? { ...a, status } : a));
+      track('application_status_updated', { applicationId: appId, status });
       showNotification(`Application ${status}`);
     } catch (_err) {
       showNotification('Failed to update application', 'error');
@@ -4888,8 +4923,9 @@ const HirePage = ({ currentUser, onViewProfile, onMakers, onBack, onSignup, onRe
 
   useEffect(() => {
     document.title = 'Job Board — Makerly';
+    track('job_board_viewed', { authenticated: !!currentUser });
     return () => { document.title = 'Makerly — Show what you\'ve made'; };
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     const load = async () => {
@@ -4926,11 +4962,20 @@ const HirePage = ({ currentUser, onViewProfile, onMakers, onBack, onSignup, onRe
   const handleApply = async (jobId) => {
     if (!applyMessage.trim()) return;
     setApplying(true);
+    const job = jobs.find(j => j.id === jobId);
     try {
       await db.applyToJob(jobId, currentUser.id, applyMessage.trim());
       setAppliedJobs(prev => new Set([...prev, jobId]));
       setApplyMessage('');
       setSelectedJob(null);
+      track('job_applied', {
+        jobId,
+        roleNeeded: job?.roleNeeded || null,
+        remote: !!job?.remote,
+        companyName: job?.companyName || null,
+        messageLength: applyMessage.trim().length,
+      });
+      identify(currentUser.id, { user_role: 'maker', has_applied_to_job: true });
       showNotification('Application submitted!');
     } catch (err) {
       const msg = err?.message?.includes('unique') ? 'You already applied to this job' : 'Failed to submit application';
@@ -5061,7 +5106,7 @@ const HirePage = ({ currentUser, onViewProfile, onMakers, onBack, onSignup, onRe
                   </span>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {!isSelected && (
-                      <button onClick={() => setSelectedJob(job.id)} className="btn btn-ghost" style={{ fontSize: '12px', padding: '6px 14px' }}>Details</button>
+                      <button onClick={() => { setSelectedJob(job.id); track('job_details_viewed', { jobId: job.id, roleNeeded: job.roleNeeded || null, remote: !!job.remote }); }} className="btn btn-ghost" style={{ fontSize: '12px', padding: '6px 14px' }}>Details</button>
                     )}
                     {isSelected && (
                       <button onClick={() => { setSelectedJob(null); setApplyMessage(''); }} className="btn btn-ghost" style={{ fontSize: '12px', padding: '6px 14px' }}>Collapse</button>
@@ -5069,9 +5114,9 @@ const HirePage = ({ currentUser, onViewProfile, onMakers, onBack, onSignup, onRe
                     {alreadyApplied ? (
                       <span style={{ fontSize: '12px', color: t.success, padding: '6px 14px', fontWeight: '500' }}>Applied</span>
                     ) : currentUser ? (
-                      <button onClick={() => setSelectedJob(job.id)} className="btn btn-primary" style={{ fontSize: '12px', padding: '6px 18px' }}>Apply</button>
+                      <button onClick={() => { setSelectedJob(job.id); track('job_apply_started', { jobId: job.id, roleNeeded: job.roleNeeded || null, remote: !!job.remote }); }} className="btn btn-primary" style={{ fontSize: '12px', padding: '6px 18px' }}>Apply</button>
                     ) : (
-                      <button onClick={onSignup} className="btn btn-primary" style={{ fontSize: '12px', padding: '6px 18px' }}>Sign up to apply</button>
+                      <button onClick={() => { track('job_signup_cta_clicked', { jobId: job.id }); onSignup(); }} className="btn btn-primary" style={{ fontSize: '12px', padding: '6px 18px' }}>Sign up to apply</button>
                     )}
                   </div>
                 </div>
@@ -5194,11 +5239,12 @@ const CrackedSquadPage = ({ currentUser, onBack, onSignup, onLogin, onViewProfil
 
   // Load cracked squad members
   useEffect(() => {
+    track('cracked_squad_viewed', { authenticated: !!currentUser });
     db.getPublicMakers().then(makers => {
       setMembers(makers.filter(m => m.crackedSquad));
       setLoadingMembers(false);
     }).catch(() => setLoadingMembers(false));
-  }, []);
+  }, [currentUser]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -5224,6 +5270,7 @@ const CrackedSquadPage = ({ currentUser, onBack, onSignup, onLogin, onViewProfil
       }).catch(() => {});
       setExistingApp({ status: 'pending' });
       setShowApply(false);
+      track('cracked_squad_applied', { problemLength: bp.length, peersLength: po.length });
       showNotification('Application submitted');
     } catch (err) {
       showNotification(err.message || 'Failed to submit', 'error');

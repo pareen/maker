@@ -2,6 +2,19 @@
 
 All notable changes to Makerly will be documented in this file.
 
+## [0.1.7.0] - 2026-05-03
+
+### Added
+- Maker funnel events: `onboarding_started`, `onboarding_step_completed`, `onboarding_completed` (with skipped/filled flags)
+- Recruiter funnel events: `recruiter_page_viewed`, `recruiter_profile_created`/`updated`, `job_posting_created`/`updated`, `job_posting_published`, `job_posting_status_changed`, `applications_viewed`, `application_status_updated`
+- Job application funnel events: `job_board_viewed`, `job_details_viewed`, `job_apply_started`, `job_applied`, `job_signup_cta_clicked`
+- Cracked Squad funnel events: `cracked_squad_viewed`, `cracked_squad_applied`
+- Maker directory `maker_directory_viewed` event
+- Person properties: `user_role` (maker/recruiter), `has_recruiter_profile`, `has_created_project`, `has_applied_to_job`
+- Local-auth sign-in is now tracked alongside the existing Supabase path
+- `VITE_POSTHOG_KEY` / `VITE_POSTHOG_HOST` documented in `.env.example`
+- PostHog "Makerly Funnels" dashboard with Maker, Recruiter, and Job Application funnel insights
+
 ## [0.1.6.0] - 2026-04-26
 
 ### Added
